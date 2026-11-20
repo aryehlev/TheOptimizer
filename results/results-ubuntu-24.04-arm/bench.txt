@@ -1,17 +1,17 @@
-tests: test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+tests: test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
 machine: aarch64, 4 CPUs, Neoverse-N2
 other work per request: 0 KiB
-  stock                             17.36 us   output 58.1% of input
-  gzip_with                         17.11 us   output 58.1% of input
-  gzip_codes_with                   11.41 us   output 58.7% of input
-  gzip_codes_with,table_order_13    12.65 us   output 58.7% of input
+  stock                             17.37 us   output 58.1% of input
+  gzip_with                         17.10 us   output 58.1% of input
+  gzip_codes_with                   11.43 us   output 58.7% of input
+  gzip_codes_with,table_order_13    12.66 us   output 58.7% of input
 other work per request: 256 KiB
-  stock                             17.48 us   output 58.1% of input
-  gzip_with                         17.19 us   output 58.1% of input
-  gzip_codes_with                   11.50 us   output 58.7% of input
-  gzip_codes_with,table_order_13    12.78 us   output 58.7% of input
+  stock                             17.50 us   output 58.1% of input
+  gzip_with                         17.22 us   output 58.1% of input
+  gzip_codes_with                   11.63 us   output 58.7% of input
+  gzip_codes_with,table_order_13    12.76 us   output 58.7% of input
 other work per request: 4096 KiB
-  stock                             18.21 us   output 58.1% of input
-  gzip_with                         19.03 us   output 58.1% of input
-  gzip_codes_with                   13.66 us   output 58.7% of input
-  gzip_codes_with,table_order_13    13.46 us   output 58.7% of input
+  stock                             18.55 us   output 58.1% of input
+  gzip_with                         19.27 us   output 58.1% of input
+  gzip_codes_with                   13.82 us   output 58.7% of input
+  gzip_codes_with,table_order_13    13.50 us   output 58.7% of input
