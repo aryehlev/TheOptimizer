@@ -1,14 +1,12 @@
 machine: aarch64, Neoverse-N2; payloads: /tmp/exp_rtb_single.bin
-variant                          min_us   med_us     bytes     size    time
-stock                             17.79    17.80    870103   +0.00%  100.0%
-v1_two_candidates                 12.00    12.02    878818   +1.00%   67.5%
-one_hash5                          8.37     8.39    882856   +1.47%   47.0%
-one_hash5_small_table              9.03     9.07    884187   +1.62%   50.8%
-one_hash5_first4                   7.90     7.92    885105   +1.72%   44.4%
-one_hash5_first3                   7.67     7.68    885932   +1.82%   43.1%
-one_hash5_first2                   7.56     7.57    887121   +1.96%   42.5%
-one_hash5_first2_small_table       8.23     8.28    887808   +2.03%   46.3%
-first2_token_8_16                  7.92     7.94    895822   +2.96%   44.5%
-first2_token_8_24                  8.00     8.02    892078   +2.53%   45.0%
-first2_token_8_32                  8.41     8.42    886499   +1.88%   47.3%
-first2_token_32_16                 7.54     7.55    885839   +1.81%   42.4%
+variant                                min_us   med_us     bytes     size    time
+stock                                   17.74    17.78    870103   +0.00%  100.0%
+v1_two_candidates                       11.96    12.00    878818   +1.00%   67.4%
+first2_token16                           7.54     7.55    887121   +1.96%   42.5%
+first2_token32                           7.51     7.53    885839   +1.81%   42.3%
+first2_token64                           7.45     7.47    885754   +1.80%   42.0%
+first2_no_token_skip                     7.53     7.54    885775   +1.80%   42.4%
+first3_token32                           7.63     7.64    884615   +1.67%   43.0%
+first2_token32_noclear                   8.18     8.20    885840   +1.81%   46.1%
+first2_token32_noprefetch                7.31     7.33    885839   +1.81%   41.2%
+first2_token32_noclear_noprefetch        7.98     7.99    885840   +1.81%   45.0%
