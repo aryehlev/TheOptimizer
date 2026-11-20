@@ -1,7 +1,7 @@
 machine: aarch64, Neoverse-N2; payloads: /tmp/exp_rtb_single.bin
 encoder                                  min_us   med_us     bytes     size    time
-stock                                     17.74    17.75    870103   +0.00%  100.0%
-sessions_off                              17.37    17.39    870103   +0.00%   97.9%
-shared_codes                              11.86    11.87    878804   +1.00%   66.9%
+stock                                     17.75    17.78    870103   +0.00%  100.0%
+sessions_off                              17.41    17.42    870103   +0.00%   98.1%
+shared_codes                              11.87    11.89    878804   +1.00%   66.9%
 shared_codes_fast_search                   6.67     6.68    885775   +1.80%   37.6%
 shared_codes_fast_search_small_table       7.05     7.06    886696   +1.91%   39.7%

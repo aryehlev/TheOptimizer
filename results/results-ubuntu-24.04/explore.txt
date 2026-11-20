@@ -1,7 +1,7 @@
 machine: x86_64, Intel(R) Xeon(R) 6975P-C; payloads: /tmp/exp_rtb_single.bin
 encoder                                  min_us   med_us     bytes     size    time
-stock                                     18.32    18.38    870103   +0.00%  100.0%
-sessions_off                              17.07    17.13    870103   +0.00%   93.2%
-shared_codes                              11.12    11.16    878804   +1.00%   60.7%
-shared_codes_fast_search                   6.92     6.96    885775   +1.80%   37.8%
-shared_codes_fast_search_small_table       8.24     8.30    886696   +1.91%   45.0%
+stock                                     18.31    18.34    870103   +0.00%  100.0%
+sessions_off                              17.03    17.11    870103   +0.00%   93.0%
+shared_codes                              11.12    11.14    878804   +1.00%   60.7%
+shared_codes_fast_search                   6.91     6.95    885775   +1.80%   37.7%
+shared_codes_fast_search_small_table       8.28     8.30    886696   +1.91%   45.2%
