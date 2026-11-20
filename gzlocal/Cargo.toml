@@ -1,0 +1,23 @@
+[package]
+name = "gzlocal"
+version = "0.3.0"
+edition = "2021"
+description = "gzip with one libdeflate compressor and one output buffer per thread"
+license = "MIT"
+
+[features]
+default = []
+# Which libdeflate to compile. With none of these it is the patched one: the
+# same bytes as stock at level 1, faster on small inputs, and it has sessions.
+stock = []      # unmodified libdeflate master, for comparison (no sessions)
+sized = []      # 0.1's default: level 1 hash table sized to the input (no sessions)
+identical = []  # 0.1's name for what is now the default
+
+[build-dependencies]
+cc = "1"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt-multi-thread"] }
+
+[profile.release]
+debug = 1

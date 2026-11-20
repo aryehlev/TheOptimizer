@@ -1,0 +1,65 @@
+name: gzlocal arm64 benchmark
+on:
+  push:
+    branches: [gzlocal-arm-bench]
+permissions:
+  contents: write
+jobs:
+  bench:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04-arm, ubuntu-24.04]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust
+        run: |
+          command -v cargo || { curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal; echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"; }
+      - name: Machine
+        run: |
+          mkdir -p out
+          { uname -m; lscpu | grep -E "Model name|Vendor ID|^CPU\(s\)|Thread|L1d|L2|L3|BogoMIPS" ; } | tee out/machine.txt
+      - name: Rust tests
+        run: |
+          cd gzlocal && cargo test --release 2>&1 | grep -E "test result|FAILED|panicked|error" | tee ../out/tests.txt
+          ! grep -qE "FAILED|panicked|error" ../out/tests.txt
+      - name: C stress, sanitizers and assertions on
+        run: |
+          python3 gzlocal/bench/rtbgen.py /tmp/rtb 400 6 > /dev/null
+          SRC=gzlocal/vendor/patched
+          FLAGS="-O1 -g -fsanitize=address,undefined -fno-sanitize-recover=undefined -DLIBDEFLATE_ENABLE_ASSERTIONS -DSESS_STATS -DHAVE_SESSION -std=gnu11 -I$SRC"
+          LIB="$(ls $SRC/lib/*.c) $(ls $SRC/lib/$( [ "$(uname -m)" = aarch64 ] && echo arm || echo x86 )/*.c)"
+          gcc $FLAGS -o /tmp/pstress stress/pstress.c $LIB
+          gcc $FLAGS -o /tmp/sstress stress/sstress.c $LIB
+          export ASAN_OPTIONS=detect_leaks=0
+          {
+            /tmp/pstress /tmp/rtb_single.bin 40000 71
+            PS_CALM=1 /tmp/pstress /tmp/rtb_single.bin 40000 91
+            SS_ORDER=13 /tmp/sstress /tmp/rtb_single.bin 30000 81 2 1
+            /tmp/sstress /tmp/rtb_fan_shared.bin 30000 84 1 1
+          } 2>&1 | grep -v "shared codes" | cut -c1-160 | tee out/stress.txt
+          [ "$(grep -c '^ok' out/stress.txt)" = 4 ]
+      - name: Benchmark
+        run: sh gzlocal/bench/arm.sh | tee out/bench.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: results-${{ matrix.runner }}
+          path: out/
+  publish:
+    needs: bench
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: results
+      - name: Commit the results to this branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results
+          git commit -m "Results of the arm64 benchmark run [skip ci]" || exit 0
+          git push
