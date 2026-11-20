@@ -46,6 +46,8 @@ jobs:
         run: sh gzlocal/bench/arm.sh | tee out/bench.txt
       - name: Single-thread harness
         run: sh exp/run.sh | tee out/explore.txt
+      - name: Cold caches
+        run: sh exp/cold.sh | tee out/cold.txt
       - uses: actions/upload-artifact@v4
         with:
           name: results-${{ matrix.runner }}
