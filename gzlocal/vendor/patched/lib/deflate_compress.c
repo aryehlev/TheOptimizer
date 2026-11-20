@@ -3270,7 +3270,8 @@ static forceinline void
 deflate_compress_fastest_generic(struct libdeflate_compressor * restrict c,
 				 const u8 *in, size_t in_nbytes,
 				 struct deflate_output_bitstream *os,
-				 const unsigned ht_order)
+				 const unsigned ht_order,
+				 const bool sess)	/* false: no session */
 {
 	const u8 *in_next = in;
 	const u8 *in_end = in_next + in_nbytes;
@@ -3279,7 +3280,7 @@ deflate_compress_fastest_generic(struct libdeflate_compressor * restrict c,
 	u32 nice_len = MIN(c->nice_match_length, max_len);
 	u32 next_hash = 0;
 	/* [session] long tokens are not searched (one block only) */
-	const bool tokens = c->s.enabled && SESS_TOKEN_CHECK != 0 &&
+	const bool tokens = sess && c->s.enabled && SESS_TOKEN_CHECK != 0 &&
 			    in_nbytes <= SESS_MAX_IN;
 
 	u32 mf_start;
@@ -3392,8 +3393,8 @@ deflate_compress_fastest_generic(struct libdeflate_compressor * restrict c,
 			 seq < &c->p.f.sequences[FAST_SEQ_STORE_LENGTH]);
 		seq->litrunlen_and_length = litrunlen;
 
-		if (c->s.enabled && in_block_begin == in && in_next == in_end &&
-		    in_nbytes <= SESS_MAX_IN)
+		if (sess && c->s.enabled && in_block_begin == in &&
+		    in_next == in_end && in_nbytes <= SESS_MAX_IN)
 			deflate_session_finish(c, os, in, in_nbytes, 0, 0, 0,
 					       ht_order, mf_start);
 		else
@@ -3977,6 +3978,20 @@ deflate_compress_fastest(struct libdeflate_compressor * restrict c,
 			 struct deflate_output_bitstream *os)
 {
 	STATIC_ASSERT(HT_MATCHFINDER_HASH_ORDER == 15);
+	if (!c->s.enabled) {
+		/* No session: the loop without anything of a session in it. */
+		if (in_nbytes <= HT_T11)
+			deflate_compress_fastest_generic(c, in, in_nbytes, os, 11, false);
+		else if (in_nbytes <= HT_T12)
+			deflate_compress_fastest_generic(c, in, in_nbytes, os, 12, false);
+		else if (in_nbytes <= HT_T13)
+			deflate_compress_fastest_generic(c, in, in_nbytes, os, 13, false);
+		else if (in_nbytes <= HT_T14)
+			deflate_compress_fastest_generic(c, in, in_nbytes, os, 14, false);
+		else
+			deflate_compress_fastest_generic(c, in, in_nbytes, os, 15, false);
+		return;
+	}
 	/*
 	 * [session] In one pass, as long as the last input that was looked
 	 * at used the shared codes.
@@ -3991,7 +4006,7 @@ deflate_compress_fastest(struct libdeflate_compressor * restrict c,
 		 * [session] The small table: for every input if a size was
 		 * asked for, else for the inputs a session is meant for.
 		 */
-		deflate_compress_fastest_generic(c, in, in_nbytes, os, 13);
+		deflate_compress_fastest_generic(c, in, in_nbytes, os, 13, true);
 		return;
 	}
 	if (c->s.enabled && !c->s.no_prefix && c->s.prev_len != 0 &&
@@ -4011,15 +4026,15 @@ deflate_compress_fastest(struct libdeflate_compressor * restrict c,
 	}
 
 	if (in_nbytes <= HT_T11)
-		deflate_compress_fastest_generic(c, in, in_nbytes, os, 11);
+		deflate_compress_fastest_generic(c, in, in_nbytes, os, 11, true);
 	else if (in_nbytes <= HT_T12)
-		deflate_compress_fastest_generic(c, in, in_nbytes, os, 12);
+		deflate_compress_fastest_generic(c, in, in_nbytes, os, 12, true);
 	else if (in_nbytes <= HT_T13)
-		deflate_compress_fastest_generic(c, in, in_nbytes, os, 13);
+		deflate_compress_fastest_generic(c, in, in_nbytes, os, 13, true);
 	else if (in_nbytes <= HT_T14)
-		deflate_compress_fastest_generic(c, in, in_nbytes, os, 14);
+		deflate_compress_fastest_generic(c, in, in_nbytes, os, 14, true);
 	else
-		deflate_compress_fastest_generic(c, in, in_nbytes, os, 15);
+		deflate_compress_fastest_generic(c, in, in_nbytes, os, 15, true);
 }
 
 /*
