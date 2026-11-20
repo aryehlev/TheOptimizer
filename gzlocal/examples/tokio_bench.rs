@@ -21,8 +21,8 @@
 //!   blocking       gzip_with moved to tokio's blocking pool with spawn_blocking
 //!   fresh          a new compressor for every payload
 //!
-//! [table_order] (12 to 15, default 15) is the size of the hash table for the
-//! modes codes and fast: see Gzip::set_table_order.
+//! [table_order] (11 to 15; 0 or absent: the default) is the size of the hash
+//! table for the modes codes and fast: see Gzip::set_table_order.
 
 use std::cell::RefCell;
 use std::time::Instant;
@@ -32,20 +32,22 @@ thread_local! {
 }
 
 #[cfg(gzlocal_session)]
-static ORDER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(15);
+static ORDER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+
+#[cfg(gzlocal_session)]
+fn with_order(session: gzlocal::Session) -> gzlocal::Gzip {
+    let mut g = gzlocal::Gzip::with_session(session);
+    match ORDER.load(std::sync::atomic::Ordering::Relaxed) {
+        0 => {}
+        order => g.set_table_order(order),
+    }
+    g
+}
 
 #[cfg(gzlocal_session)]
 thread_local! {
-    static CODES_ONLY: RefCell<gzlocal::Gzip> = RefCell::new({
-        let mut g = gzlocal::Gzip::with_session(gzlocal::Session::Codes);
-        g.set_table_order(ORDER.load(std::sync::atomic::Ordering::Relaxed));
-        g
-    });
-    static CODES_FAST: RefCell<gzlocal::Gzip> = RefCell::new({
-        let mut g = gzlocal::Gzip::with_session(gzlocal::Session::CodesFast);
-        g.set_table_order(ORDER.load(std::sync::atomic::Ordering::Relaxed));
-        g
-    });
+    static CODES_ONLY: RefCell<gzlocal::Gzip> = RefCell::new(with_order(gzlocal::Session::Codes));
+    static CODES_FAST: RefCell<gzlocal::Gzip> = RefCell::new(with_order(gzlocal::Session::CodesFast));
 }
 
 fn other_work(bytes: usize) -> u32 {
@@ -114,7 +116,7 @@ fn main() {
     let payloads: &'static [&'static [u8]] = Box::leak(list.into_boxed_slice());
     #[cfg(gzlocal_session)]
     {
-        let order: u32 = a.get(8).map_or(15, |o| o.parse().unwrap());
+        let order: u32 = a.get(8).map_or(0, |o| o.parse().unwrap());
         ORDER.store(order, std::sync::atomic::Ordering::Relaxed);
     }
     let groups = payloads.len() / group;

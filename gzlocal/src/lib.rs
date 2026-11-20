@@ -15,9 +15,11 @@
 //! output is ordinary gzip, about 1% larger, and depends on the payloads that
 //! came before on that thread. Nothing but the codes is kept between calls.
 //!
-//! `gzip_fast_with` is the same with a cheaper search for repetitions. It
-//! takes a little over a third of the time stock libdeflate takes, and the
-//! output is about 2% larger than stock's on JSON requests of a few kilobytes.
+//! `gzip_fast_with` is the same with a cheaper search for repetitions and a
+//! small table. It takes a little over a third of the time stock libdeflate
+//! takes, also when the thread has done a lot of other work since its last
+//! call, and the output is about 2% larger than stock's on JSON requests of a
+//! few kilobytes.
 //!
 //! `gzip_session_with` also continues a payload that starts with the same
 //! bytes as the one before it (one request sent to several recipients, with
@@ -73,8 +75,10 @@ pub enum Session {
     /// Payloads of 1 KiB and more are written in one pass.
     Codes,
     /// As `Codes`, with a cheaper search in that one pass: one earlier
-    /// position is tried per hash value instead of two, and five bytes are
-    /// hashed instead of four. Clearly faster; the output is about 1% larger
+    /// position is tried per hash value instead of two, five bytes are hashed
+    /// instead of four, and the table is 16 KiB instead of 128 KiB, so it is
+    /// cheap to have in the cache. Much faster, and it stays fast when the
+    /// thread does other work between calls; the output is about 1% larger
     /// than with `Codes` on JSON requests of a few kilobytes, and a few
     /// percent larger on text that repeats itself a lot.
     CodesFast,
@@ -125,13 +129,18 @@ impl Gzip {
     }
 
     /// The size of the hash table this compressor searches with, as a power
-    /// of two: 4 bytes times 2^`order`, `order` from 12 to 15. It applies to
-    /// `Session::Codes` and `Session::CodesFast`.
+    /// of two: 4 bytes times 2^`order`. The output differs by a fraction of
+    /// a percent between the sizes.
     ///
-    /// The default, 15 (128 KiB), is fastest when the table is still in the
-    /// CPU's caches at the next call. If the thread does a lot of other work
-    /// between two calls it is not, and 13 (32 KiB) is faster. Which of the
-    /// two your server is can only be measured there.
+    /// `Session::CodesFast`: 11, 12 or 13 (8, 16 or 32 KiB). The default is
+    /// 12; there is rarely a reason to change it.
+    ///
+    /// `Session::Codes`: 13 or 15. The default, 15 (128 KiB), is fastest when
+    /// the table is still in the CPU's caches at the next call. If the thread
+    /// does a lot of other work between two calls it is not, and 13 (32 KiB)
+    /// can be faster.
+    ///
+    /// Other values are taken as the nearest of these.
     #[cfg(gzlocal_session)]
     pub fn set_table_order(&mut self, order: u32) {
         unsafe { libdeflate_session_set_order(self.c.as_ptr(), order.min(15) as c_int) };
@@ -190,30 +199,41 @@ pub fn gzip_with<R>(payload: &[u8], f: impl FnOnce(&[u8]) -> R) -> R {
     LOCAL.with(|g| f(g.borrow_mut().compress(payload)))
 }
 
+// 0: the search's own default
 #[cfg(gzlocal_session)]
-static CODES_TABLE_ORDER: AtomicU32 = AtomicU32::new(15);
+static CODES_TABLE_ORDER: AtomicU32 = AtomicU32::new(0);
+#[cfg(gzlocal_session)]
+static FAST_TABLE_ORDER: AtomicU32 = AtomicU32::new(0);
+
+#[cfg(gzlocal_session)]
+fn local_session(session: Session, order: &AtomicU32) -> Gzip {
+    let mut g = Gzip::with_session(session);
+    match order.load(Ordering::Relaxed) {
+        0 => {}
+        order => g.set_table_order(order),
+    }
+    g
+}
 
 #[cfg(gzlocal_session)]
 thread_local! {
-    static LOCAL_CODES: RefCell<Gzip> = RefCell::new({
-        let mut g = Gzip::with_session(Session::Codes);
-        g.set_table_order(CODES_TABLE_ORDER.load(Ordering::Relaxed));
-        g
-    });
-    static LOCAL_FAST: RefCell<Gzip> = RefCell::new({
-        let mut g = Gzip::with_session(Session::CodesFast);
-        g.set_table_order(CODES_TABLE_ORDER.load(Ordering::Relaxed));
-        g
-    });
+    static LOCAL_CODES: RefCell<Gzip> = RefCell::new(local_session(Session::Codes, &CODES_TABLE_ORDER));
+    static LOCAL_FAST: RefCell<Gzip> = RefCell::new(local_session(Session::CodesFast, &FAST_TABLE_ORDER));
     static LOCAL_SESSION: RefCell<Gzip> = RefCell::new(Gzip::with_session(Session::CodesAndPrefix));
 }
 
 /// The table order (see [`Gzip::set_table_order`]) of the compressors that
-/// `gzip_codes_with` and `gzip_fast_with` create, one per thread, from now on.
-/// Call it once at startup, before the worker threads compress anything.
+/// `gzip_codes_with` creates, one per thread, from now on. Call it once at
+/// startup, before the worker threads compress anything.
 #[cfg(gzlocal_session)]
 pub fn set_codes_table_order(order: u32) {
-    CODES_TABLE_ORDER.store(order.clamp(12, 15), Ordering::Relaxed);
+    CODES_TABLE_ORDER.store(order.clamp(11, 15), Ordering::Relaxed);
+}
+
+/// The same for the compressors that `gzip_fast_with` creates.
+#[cfg(gzlocal_session)]
+pub fn set_fast_table_order(order: u32) {
+    FAST_TABLE_ORDER.store(order.clamp(11, 15), Ordering::Relaxed);
 }
 
 /// [`Gzip::own_codes`] of this thread's `gzip_codes_with` compressor.
@@ -233,7 +253,8 @@ pub fn gzip_codes_with<R>(payload: &[u8], f: impl FnOnce(&[u8]) -> R) -> R {
 }
 
 /// Like `gzip_codes_with`, with this thread's `Session::CodesFast` compressor:
-/// the fastest of the three, for an output about 1% larger than that of
+/// the fastest of the three, and the one whose speed depends least on what
+/// else the thread does, for an output about 1% larger than that of
 /// `gzip_codes_with`. It has a compressor of its own, so a thread that calls
 /// both keeps two sets of codes.
 #[cfg(gzlocal_session)]
@@ -312,6 +333,18 @@ mod tests {
         assert_eq!(Gzip::new(LEVEL).compress(&p), &a[..]);
     }
 
+    /// How much larger than stock's a session's output may be on `payload()`s.
+    /// Those are one phrase over and over, which is where the cheaper search
+    /// costs most: about 5%, against 2% on requests.
+    #[cfg(gzlocal_session)]
+    fn allowed_growth(session: Session, stock: usize) -> usize {
+        if session == Session::CodesFast {
+            stock / 12
+        } else {
+            stock / 20
+        }
+    }
+
     #[cfg(gzlocal_session)]
     #[test]
     fn sessions_round_trip() {
@@ -331,7 +364,7 @@ mod tests {
             match session {
                 Session::Off => assert_eq!(with, without),
                 // Sharing costs a little size, never much.
-                _ => assert!(with < without + without / 20, "{session:?}: {with} vs {without}"),
+                _ => assert!(with < without + allowed_growth(session, without), "{session:?}: {with} vs {without}"),
             }
         }
     }
@@ -390,10 +423,7 @@ mod tests {
                 with += gz.len();
                 without += plain.compress(&p).len();
             }
-            // These payloads are one phrase over and over, which is where the
-            // cheaper search costs most: about 5% against 1% to 2% on requests.
-            let allowed = if session == Session::CodesFast { without / 12 } else { without / 20 };
-            assert!(with < without + allowed, "{session:?}: {with} vs {without}");
+            assert!(with < without + allowed_growth(session, without), "{session:?}: {with} vs {without}");
             assert!(g.own_codes() < 30, "{session:?}: {} of 600 payloads did not use the shared codes", g.own_codes());
             // What the codes cannot encode, or fit badly, still comes out right, and is counted.
             let before = g.own_codes();
@@ -429,7 +459,7 @@ mod tests {
     #[test]
     fn table_orders_give_the_same_payloads() {
         let mut sizes = Vec::new();
-        for (order, session) in [0u32, 12, 13, 14, 15, 99].into_iter().flat_map(|o| [(o, Session::Codes), (o, Session::CodesFast)]) {
+        for (order, session) in [0u32, 11, 12, 13, 14, 15, 99].into_iter().flat_map(|o| [(o, Session::Codes), (o, Session::CodesFast)]) {
             let mut s = Gzip::with_session(session);
             s.set_table_order(order);
             let mut total = 0usize;
@@ -449,6 +479,7 @@ mod tests {
     #[test]
     fn every_thread_has_its_own_session() {
         set_codes_table_order(13);
+        set_fast_table_order(11);
         std::thread::scope(|s| {
             for t in 0..4u32 {
                 s.spawn(move || {
@@ -466,5 +497,6 @@ mod tests {
             }
         });
         set_codes_table_order(15);
+        set_fast_table_order(12);
     }
 }

@@ -16,7 +16,7 @@ build patched ../gzlocal/vendor/patched -DHAVE_SESSION -DHAVE_SEARCH_API
 python3 ../gzlocal/bench/rtbgen.py /tmp/exp_rtb 400 6 > /dev/null
 F=/tmp/exp_rtb_single.bin
 # name:binary:session:one_candidate:table_order
-V="stock:stock:0:0:15 sessions_off:patched:0:0:15 shared_codes:patched:2:0:15 shared_codes_fast_search:patched:2:1:15 shared_codes_fast_search_small_table:patched:2:1:13"
+V="stock:stock:0:0:15 sessions_off:patched:0:0:15 codes:patched:2:0:15 fast_8K:patched:2:1:11 fast_16K_the_default:patched:2:1:12 fast_32K:patched:2:1:13"
 rm -f /tmp/exp_*.txt
 CPU=$(( $(nproc) - 1 ))
 for round in 1 2 3 4 5 6 7 8 9 10 11; do

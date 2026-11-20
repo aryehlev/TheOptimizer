@@ -531,6 +531,8 @@ struct deflate_output_bitstream;
 #ifndef SESS_SAMPLE
 #  define SESS_SAMPLE		8	/* one input in this many is not: a power of 2 */
 #endif
+/* Two candidates, as libdeflate searches: the 32 KiB table was asked for */
+#define SESS_SMALL_TABLE(c)	((c)->s.order != 0 && (c)->s.order <= 13)
 /* In c->s.lit[], for a byte without a codeword: a length that is bit 15 */
 #define SESS_LIT_NONE		0x80000000u
 /* The most that one pass can write: header, 16 bits a byte, slack */
@@ -661,7 +663,8 @@ struct libdeflate_compressor {
 		u8 prev_out[SESS_MAX_REUSE_IN + 64];
 		/* Where one pass writes if the caller's buffer may be too small */
 		u8 dbuf[SESS_DIRECT_BOUND(SESS_MAX_IN)];
-		u8 order;	/* of the hash table, for sessions that share codes only */
+		u8 order;	/* of the hash table, for sessions that share codes
+				 * only: 11 to 15, or 0 for the search's default */
 		bool single;	/* such sessions keep one position per hash value */
 	} s;
 
@@ -3575,6 +3578,15 @@ do {									\
  *     2^ht_order pairs.  The entries are the same memory and are fenced and
  *     cleared the same way, so this and the two-candidate code can follow each
  *     other on one compressor;
+ *   - the table is small, 8 to 32 KiB (see deflate_direct()), so that it is
+ *     in the CPU's first-level cache while an input is written and costs
+ *     little to fetch when the thread has done other work since the last one;
+ *   - an entry that is not a position of this input is replaced by the
+ *     input's first position instead of being skipped: the bytes there are
+ *     compared like any candidate's, and there is one branch per position
+ *     that is taken only for a match.  With two (is the entry of this input?
+ *     are the bytes equal?) every chance meeting in a small table costs a
+ *     mispredicted branch;
  *   - five bytes are hashed, not four: a repetition of only four bytes saves
  *     next to nothing and is no longer looked for;
  *   - of the positions inside a match, only the first SESS_INSERT_FIRST and
@@ -3623,7 +3635,7 @@ deflate_direct_single_generic(struct libdeflate_compressor * restrict c,
 	u32 next_hash;
 	u32 bad = 0;		/* above 63: a symbol had no codeword */
 	u32 mf_start;
-	s32 cutoff;
+	s32 first;		/* the position of in[0] */
 	s32 cand;
 
 	STATIC_ASSERT(7 + 4 * MAX_LITLEN_CODEWORD_LEN <= 63);
@@ -3703,8 +3715,8 @@ do {									\
 	cand = tab[hash__];						\
 	tab[hash__] = in_next - in_cur_base;				\
 	next_hash = SESS_HASH5(w__ >> 8, bits);				\
-	if (cand > cutoff &&						\
-	    get_unaligned_le32(&in_cur_base[cand]) == (u32)w__)	\
+	cand = MAX(cand, first);					\
+	if (get_unaligned_le32(&in_cur_base[cand]) == (u32)w__)	\
 		goto found;						\
 	D_LIT(w__ & 0xFF);						\
 	in_next++;							\
@@ -3724,10 +3736,16 @@ do {									\
 				     ht_order);
 		c->ht_cleared_order = ht_order;
 	}
-	/* An entry is of this input if it is above this (see mf_begin_input()). */
-	cutoff = mf_stale_cutoff;
+	/* An entry is of this input if it is not below this (see mf_begin_input()). */
+	first = mf_start;
 	in_cur_base = in - mf_start;
 
+	if (in_next >= in_stop)
+		goto tail;
+	/* The first position has nothing to be compared with but itself. */
+	tab[SESS_HASH5(get_unaligned_le64(in_next), bits)] = first;
+	D_LIT(*in_next++);
+	D_FLUSH();
 	if (in_next >= in_stop)
 		goto tail;
 	next_hash = SESS_HASH5(get_unaligned_le64(in_next), bits);
@@ -3747,7 +3765,10 @@ search:
 	goto tail;
 
 found:
-	/* A match at in_next with the position 'cand'. */
+	/*
+	 * A match at in_next with the position 'cand', which is before
+	 * in_next: an entry of this input, or the input's first position.
+	 */
 	{
 		const u8 * const m = &in_cur_base[cand];
 		const u32 max_len = MIN((size_t)(in_end - in_next),
@@ -3801,31 +3822,44 @@ tail:
 
 /*
  * [session] The hash table is 4 bytes times 2^order: 128 KiB at the full
- * order of 15.  When a compressor's table does not stay in the CPU's caches
- * from one call to the next, a smaller one (order 13, 32 KiB) costs fewer
- * cache misses than it costs in extra candidates to look at.  See
- * libdeflate_session_set_order().  @count: also count the symbols, in c->freqs.
+ * order of 15.
+ *
+ * Two candidates: when a compressor's table does not stay in the CPU's caches
+ * from one call to the next, a smaller one (order 13, 32 KiB) can cost fewer
+ * cache misses than it costs in extra candidates to look at.
+ *
+ * One candidate: orders 11 to 13, by default 12 (16 KiB).  Measured on a
+ * Neoverse N2 and on a Xeon, on JSON requests of 3.7 KB, each of these was
+ * faster than the full table whether or not the caches were warm, for an
+ * output 0.1% (order 13) to 0.5% (order 11) larger.
+ *
+ * See libdeflate_session_set_order().  @count: also count the symbols, in
+ * c->freqs.
  */
 static size_t
 deflate_direct(struct libdeflate_compressor * restrict c,
 	       const u8 *in, size_t in_nbytes, u8 *out, bool count)
 {
-	const bool small = (c->s.order == 13);
-
 	if (c->s.single) {
-		if (count)
-			return small ?
-				deflate_direct_single_generic(c, in, in_nbytes, out, 13, true) :
-				deflate_direct_single_generic(c, in, in_nbytes, out, 15, true);
-		return small ?
-			deflate_direct_single_generic(c, in, in_nbytes, out, 13, false) :
-			deflate_direct_single_generic(c, in, in_nbytes, out, 15, false);
+		/* The order is a constant in each copy of the encoder. */
+#define D_CASE(order_)							\
+	(count ? deflate_direct_single_generic(c, in, in_nbytes, out,	\
+					       order_, true) :		\
+		 deflate_direct_single_generic(c, in, in_nbytes, out,	\
+					       order_, false))
+		if (c->s.order == 0 || c->s.order == 12)
+			return D_CASE(12);
+		if (c->s.order < 12)
+			return D_CASE(11);
+		return D_CASE(13);
+#undef D_CASE
 	}
-	if (count)
-		return small ?
+	if (SESS_SMALL_TABLE(c)) {
+		return count ?
 			deflate_direct_generic(c, in, in_nbytes, out, 13, true) :
-			deflate_direct_generic(c, in, in_nbytes, out, 15, true);
-	return small ? deflate_direct_generic(c, in, in_nbytes, out, 13, false) :
+			deflate_direct_generic(c, in, in_nbytes, out, 13, false);
+	}
+	return count ? deflate_direct_generic(c, in, in_nbytes, out, 15, true) :
 		       deflate_direct_generic(c, in, in_nbytes, out, 15, false);
 }
 
@@ -3940,7 +3974,7 @@ deflate_compress_fastest(struct libdeflate_compressor * restrict c,
 		return;
 	if (c->s.enabled && c->s.no_prefix) {
 		/* [session] the table order chosen for this session */
-		if (c->s.order == 13) {
+		if (SESS_SMALL_TABLE(c)) {
 			deflate_compress_fastest_generic(c, in, in_nbytes, os, 13);
 			return;
 		}
@@ -5488,7 +5522,7 @@ libdeflate_alloc_compressor_ex(int compression_level,
 	c->mf_next_pos = MATCHFINDER_WINDOW_SIZE;
 	c->ht_cleared_order = 0;
 	memset(&c->s, 0, offsetof(struct deflate_session, hdr));
-	c->s.order = HT_MATCHFINDER_HASH_ORDER;
+	c->s.order = 0;
 	c->s.single = false;
 	c->s.period = 1;
 	c->s.miss_limit = 3;
@@ -5676,7 +5710,7 @@ LIBDEFLATEAPI void
 libdeflate_session_set_order(struct libdeflate_compressor *c, int order)
 {
 	if (c->impl == deflate_compress_fastest)
-		c->s.order = order <= 13 ? 13 : 15;
+		c->s.order = order < 11 ? 11 : order > 15 ? 15 : order;
 }
 
 LIBDEFLATEAPI void

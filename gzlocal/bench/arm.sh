@@ -1,10 +1,12 @@
 #!/bin/sh
 # Measure on the machine that matters (for example one of your arm64 nodes).
-# Needs cargo and python3.  Takes a few minutes.  Prints microseconds per gzip
-# call for 3.7 KB synthetic bid requests in tokio with 2 workers: the lowest
-# median of 5 runs for stock libdeflate, gzip_with, gzip_codes_with and
-# gzip_fast_with (each also with the 32 KiB hash table), at three amounts of
-# other work per request.
+# Needs cargo and python3.  Takes several minutes.  Prints microseconds per
+# gzip call for 3.7 KB synthetic bid requests in tokio with 2 workers: the
+# lowest median of 5 runs for stock libdeflate, gzip_with, gzip_codes_with and
+# gzip_fast_with (with its 16 KiB table, and with 8 and 32 KiB), at three
+# amounts of other work per request.  Walking 4 MiB pushes the compressor's
+# tables out of the core's own caches; walking 64 MiB pushes much of them out
+# of the shared cache too, which is what a busy server does.
 #
 #   bench/arm.sh [file of your own payloads, one per line]
 set -e
@@ -17,19 +19,25 @@ echo "machine: $(uname -m), $(grep -c ^processor /proc/cpuinfo 2>/dev/null) CPUs
 F=/tmp/gzlocal_rtb_single.bin
 CUT=0
 if [ -n "$1" ]; then F=$1; CUT=lines; fi
-one() { "$@" | sed -n 's/.*median \([0-9.]*\) us.*out \([0-9.]*\)% of in.*/\1 \2/p'; }
-for other in 0 262144 4194304; do
+B=target/release/examples/tokio_bench
+row() {
+  name=$1; shift
+  echo "$name $("$@" | sed -n 's/.*median \([0-9.]*\) us.*out \([0-9.]*\)% of in.*/\1 \2/p')" >> /tmp/gzlocal_runs
+}
+for other in 0 4194304 67108864; do
+  n=16000
+  if [ $other = 67108864 ]; then n=1600; fi
   : > /tmp/gzlocal_runs
   for run in 1 2 3 4 5; do
-    echo "stock $(one target-stock/release/examples/tokio_bench $F $CUT 16000 2 $other inline)" >> /tmp/gzlocal_runs
-    echo "gzip_with $(one target/release/examples/tokio_bench $F $CUT 16000 2 $other inline)" >> /tmp/gzlocal_runs
-    echo "gzip_codes_with $(one target/release/examples/tokio_bench $F $CUT 16000 2 $other codes 1 15)" >> /tmp/gzlocal_runs
-    echo "gzip_codes_with,table_order_13 $(one target/release/examples/tokio_bench $F $CUT 16000 2 $other codes 1 13)" >> /tmp/gzlocal_runs
-    echo "gzip_fast_with $(one target/release/examples/tokio_bench $F $CUT 16000 2 $other fast 1 15)" >> /tmp/gzlocal_runs
-    echo "gzip_fast_with,table_order_13 $(one target/release/examples/tokio_bench $F $CUT 16000 2 $other fast 1 13)" >> /tmp/gzlocal_runs
+    row stock target-stock/release/examples/tokio_bench $F $CUT $n 2 $other inline
+    row gzip_with $B $F $CUT $n 2 $other inline
+    row gzip_codes_with $B $F $CUT $n 2 $other codes
+    row gzip_fast_with $B $F $CUT $n 2 $other fast
+    row gzip_fast_with,table_order_11 $B $F $CUT $n 2 $other fast 1 11
+    row gzip_fast_with,table_order_13 $B $F $CUT $n 2 $other fast 1 13
   done
-  echo "other work per request: $((other / 1024)) KiB"
-  for v in stock gzip_with gzip_codes_with gzip_codes_with,table_order_13 gzip_fast_with gzip_fast_with,table_order_13; do
+  echo "other work per request: walks $((other / 1024)) KiB"
+  for v in stock gzip_with gzip_codes_with gzip_fast_with gzip_fast_with,table_order_11 gzip_fast_with,table_order_13; do
     grep "^$v " /tmp/gzlocal_runs | sort -k2 -n | head -1 | awk '{printf "  %-32s %6.2f us   output %s%% of input\n", $1, $2, $3}'
   done
 done

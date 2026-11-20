@@ -73,11 +73,17 @@ libdeflate_set_session(struct libdeflate_compressor *compressor, int mode);
 
 /*
  * [session prototype] The size of the hash table that a session sharing codes
- * only (mode 2) searches with: 4 bytes times 2^@order, @order 13 or 15.
- * The default, 15 (128 KiB), is fastest when the table stays in the CPU's
- * caches between calls.  When it does not, because the thread does much else
- * between two calls, 13 (32 KiB) can be faster.  The output differs by a
- * fraction of a percent.
+ * only (mode 2) searches with: 4 bytes times 2^@order.  The output differs by
+ * a fraction of a percent between the sizes.
+ *
+ * Searching as libdeflate does (see libdeflate_session_set_search()): 13 or
+ * 15.  The default, 15 (128 KiB), is fastest when the table stays in the
+ * CPU's caches between calls.  When it does not, because the thread does much
+ * else between two calls, 13 (32 KiB) can be faster.
+ *
+ * With one candidate: 11, 12 or 13 (8, 16 or 32 KiB); the default is 12.
+ *
+ * The setting is kept when libdeflate_set_session() is called again.
  */
 LIBDEFLATEAPI void
 libdeflate_session_set_order(struct libdeflate_compressor *compressor,
@@ -92,10 +98,12 @@ libdeflate_session_own_codes(const struct libdeflate_compressor *compressor);
 /*
  * [session prototype] How a session sharing codes only (mode 2) searches:
  * 0 as libdeflate's level 1 does, with the last two positions of every hash
- * value (the default); 1 with the last position only and a hash of five
- * bytes instead of four, which is faster and makes the output a little larger
- * (about 1% on JSON requests of a few kilobytes, a few percent on text that
- * repeats itself a lot).
+ * value (the default); 1 with the last position only, a hash of five bytes
+ * instead of four and a small table, which is much faster and makes the
+ * output a little larger (about 1% on JSON requests of a few kilobytes, a few
+ * percent on text that repeats itself a lot).
+ *
+ * The setting is kept when libdeflate_set_session() is called again.
  */
 LIBDEFLATEAPI void
 libdeflate_session_set_search(struct libdeflate_compressor *compressor,

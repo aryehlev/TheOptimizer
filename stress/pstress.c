@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 			libdeflate_free_compressor(a); libdeflate_free_compressor(b);
 			a = libdeflate_alloc_compressor(1); b = NULL;
 			libdeflate_set_session(a, 1 + (int)below(2));
-			libdeflate_session_set_order(a, 11 + (int)below(6));	/* 12 to 15; out of range is clamped */
+			if (below(4)) libdeflate_session_set_order(a, 9 + (int)below(9));	/* 11 to 15, out of range is clamped; or the default */
 #ifdef HAVE_SEARCH_API
 			libdeflate_session_set_search(a, (int)below(2));
 #endif
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 				/* a second session of its own, fed every other input or so */
 				b = libdeflate_alloc_compressor(1);
 				libdeflate_set_session(b, 1 + (int)below(2));
-				libdeflate_session_set_order(b, 12 + (int)below(4));
+				if (below(4)) libdeflate_session_set_order(b, 10 + (int)below(7));
 #ifdef HAVE_SEARCH_API
 				libdeflate_session_set_search(b, (int)below(2));
 #endif
