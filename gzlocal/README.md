@@ -22,20 +22,19 @@ microseconds per call:
 
 | | nothing else on the thread | 64 MiB of other work per request | output |
 |---|---|---|---|
-| stock libdeflate, level 1 | 17.3 | 20.5 | 58.1% of the input |
-| `gzip_with` | 18.1 | 20.9 | the same bytes |
-| `gzip_codes_with` | 12.3 | 14.5 | 1.1% larger |
-| `gzip_fast_with` | 5.6 | 7.1 | 2.2% larger |
+| stock libdeflate, level 1 | 17.3 | 20.1 | 58.1% of the input |
+| `gzip_with` | 17.4 | 20.3 | the same bytes |
+| `gzip_codes_with` | 12.3 | 14.6 | 1.1% larger |
+| `gzip_fast_with` | 5.6 | 7.3 | 2.2% larger |
 
 The sizes are for those requests. Both sessions cost more on payloads that
 compress further, the fast one most (see "Output size" below), so measure your
 own before choosing: `sh bench/arm.sh payloads.jsonl`, one payload per line,
-prints both numbers for each of the four.
+prints the time and the output size of each.
 
 ## What each one does
 
-**`gzip_with`**: stock libdeflate's output, byte for byte, at its speed (within
-1% on x86-64 and 4% on arm64).
+**`gzip_with`**: stock libdeflate's output, byte for byte, at its speed.
 
 **`gzip_codes_with`** (`Session::Codes`). libdeflate parses a payload into
 literals and matches, counts them, builds Huffman codes for the counts and then
@@ -89,26 +88,27 @@ compressed as stock would compress it.
 Synthetic OpenRTB-style bid requests from `bench/rtbgen.py` (3.7 KB on average,
 each a different auction), level 1, `bench/arm.sh`: tokio with 2 workers,
 microseconds per gzip call, lowest median of 5 runs. Both machines are GitHub's
-hosted runners, measured in the same workflow run.
+hosted runners, measured in the same workflow run, 4 vCPUs each.
 
-Neoverse N2, 4 vCPUs, 1 MiB of second-level cache per core:
-
-| Other work per request | stock | `gzip_with` | `gzip_codes_with` | `gzip_fast_with` |
-|---|---|---|---|---|
-| none | 17.3 | 18.1 | 12.3 | 5.6 |
-| walks 4 MiB | 18.4 | 19.0 | 13.2 | 6.3 |
-| walks 64 MiB | 20.5 | 20.9 | 14.5 | 7.1 |
-
-Xeon 6975P-C, 4 vCPUs:
+Neoverse N2, 1 MiB of second-level cache per core, 128 MiB shared:
 
 | Other work per request | stock | `gzip_with` | `gzip_codes_with` | `gzip_fast_with` |
 |---|---|---|---|---|
-| none | 18.0 | 18.1 | 12.7 | 5.4 |
-| walks 4 MiB | 21.0 | 21.1 | 14.4 | 6.1 |
-| walks 64 MiB | 25.3 | 25.4 | 16.7 | 7.4 |
+| none | 17.3 | 17.4 | 12.3 | 5.6 |
+| walks 4 MiB | 18.3 | 18.5 | 13.3 | 6.3 |
+| walks 64 MiB | 20.1 | 20.3 | 14.6 | 7.3 |
 
-So `gzip_fast_with` takes 32 to 35% of stock's time on the N2 and 29 to 30% on
-the Xeon. A Neoverse N1 has not been timed: run `bench/arm.sh` on one.
+EPYC 7763, 512 KiB per core, 32 MiB shared:
+
+| Other work per request | stock | `gzip_with` | `gzip_codes_with` | `gzip_fast_with` |
+|---|---|---|---|---|
+| none | 21.5 | 21.1 | 15.2 | 7.2 |
+| walks 4 MiB | 22.5 | 22.0 | 16.1 | 7.6 |
+| walks 64 MiB | 31.4 | 31.7 | 20.7 | 9.9 |
+
+So `gzip_fast_with` takes 32 to 36% of stock's time on the N2 and 32 to 34% on
+the EPYC. On a Xeon 6975P-C, in the run before this one, it took 29 to 30%. A
+Neoverse N1 has not been timed: run `bench/arm.sh` on one.
 
 ### Cold caches, and what 0.3 got wrong
 
@@ -124,18 +124,18 @@ way to fetch it; without it the table comes in one cache miss at a time, in the
 order the search happens to touch it. With 0.3's table (still available:
 `set_table_order(15)`), same run as above:
 
-| Other work per request | N2 stock | N2 `gzip_codes_with`, 0.3's table | Xeon stock | Xeon `gzip_codes_with`, 0.3's table |
+| Other work per request | N2 stock | N2 `gzip_codes_with`, 0.3's table | EPYC stock | EPYC `gzip_codes_with`, 0.3's table |
 |---|---|---|---|---|
-| none | 17.3 | 11.5 | 18.0 | 10.7 |
-| walks 4 MiB | 18.4 | 13.9 | 21.0 | 13.7 |
-| walks 64 MiB | 20.5 | 20.4 | 25.3 | 23.9 |
+| none | 17.3 | 11.5 | 21.5 | 12.8 |
+| walks 4 MiB | 18.3 | 14.0 | 22.5 | 14.4 |
+| walks 64 MiB | 20.1 | 21.0 | 31.4 | 49.6 |
 
-At 64 MiB the gain is gone on the N2 and nearly gone on the Xeon, and both of
-those have a shared cache larger than the walk (128 and 480 MiB). An earlier
-run landed on an EPYC 9V74 with 32 MiB of it, and there the two functions as
-they were in 0.3 took 59.4 microseconds (`gzip_codes_with`) and 66.6
-(`gzip_with`) against stock's 34.2: slower than not using this crate. If you
-run 0.3, that is the case to check for.
+After 64 MiB of other work the gain is gone on the N2, whose shared cache is
+larger than the walk, and on the EPYC, whose shared cache is smaller, 0.3's
+table makes a call half again as slow as stock's. 0.3's `gzip_with` kept its
+table the same way: 25.9 against stock's 20.4 on the N2 and, on an EPYC 9V74
+with the same 32 MiB, 66.6 against 34.2. If you run 0.3 on a busy server,
+that is the case to check for.
 
 0.4 goes back to clearing: without a session exactly as stock does, with
 `Session::Codes` on a 32 KiB table, and with `Session::CodesFast` on the 8 to
@@ -160,8 +160,9 @@ mostly values (ids, URLs, user agents) are at the top of this table.
 
 With a fixed table, `gzip_fast_with` gives +2.3%, +2.0% and +1.9% on the bid
 requests for 8, 16 and 32 KiB (`set_fast_table_order(11)`, `12`, `13`). The
-three are within 3% of each other in time with warm caches and up to 8% apart
-with cold ones, the smallest being the fastest.
+three are within 3% of each other in time with warm caches. After 64 MiB of
+other work the 32 KiB table is 12% slower than the 8 KiB one on the N2 and 18%
+slower on the EPYC.
 
 ### Other gzip encoders on the same payloads
 
@@ -186,7 +187,7 @@ Each was built and timed on the N2 and on an x86-64 runner, one thread, pinned.
 
 - Keeping the table between calls (0.3): see above.
 - For the fast search, the 128 KiB table with a test for stale entries: 6.7
-  microseconds warm against 5.9, 10.8 against 6.6 after 64 MiB of other work.
+  microseconds warm against 5.9, 10.8 against 6.7 after 64 MiB of other work.
 - Looking at every other position after 64, 32 or 16 positions without a match:
   3%, 8% and 13% faster for 0.2%, 0.9% and 1.6% more output.
 - Entering every position of a match into the table: 0.5% less output on the
