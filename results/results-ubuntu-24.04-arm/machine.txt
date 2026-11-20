@@ -1,0 +1,9 @@
+aarch64
+CPU(s):                                  4
+Vendor ID:                               ARM
+Model name:                              Neoverse-N2
+Thread(s) per core:                      1
+BogoMIPS:                                2000.00
+L1d cache:                               256 KiB (4 instances)
+L2 cache:                                4 MiB (4 instances)
+L3 cache:                                128 MiB (1 instance)
