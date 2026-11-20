@@ -1,25 +1,28 @@
-machine: x86_64, AMD EPYC 9V74 80-Core Processor
+machine: x86_64, Intel(R) Xeon(R) 6975P-C
 other memory walked before each call: 0 KiB
-  stock                      23.80 us  100.0% of stock   output +0.00%
-  sessions_off               21.11 us   88.7% of stock   output +0.00%
-  codes                      14.27 us   60.0% of stock   output +1.00%
-  codes_32K                  16.25 us   68.3% of stock   output +1.06%
-  fast_8K                     8.82 us   37.1% of stock   output +2.26%
-  fast_16K_the_default        8.73 us   36.7% of stock   output +2.03%
-  fast_32K                    9.04 us   38.0% of stock   output +1.91%
+  stock                      18.35 us  100.0% of stock   output +0.00%
+  sessions_off               18.56 us  101.1% of stock   output +0.00%
+  codes                      13.28 us   72.4% of stock   output +1.06%
+  codes_128K_as_in_0.3       11.00 us   59.9% of stock   output +1.00%
+  fast                        5.66 us   30.8% of stock   output +2.19%
+  fast_8K                     5.59 us   30.5% of stock   output +2.26%
+  fast_16K                    5.61 us   30.6% of stock   output +2.03%
+  fast_32K                    5.61 us   30.6% of stock   output +1.91%
 other memory walked before each call: 4096 KiB
-  stock                      24.53 us  100.0% of stock   output +0.00%
-  sessions_off               22.83 us   93.1% of stock   output +0.00%
-  codes                      15.57 us   63.5% of stock   output +1.00%
-  codes_32K                  17.07 us   69.6% of stock   output +1.03%
-  fast_8K                     8.96 us   36.5% of stock   output +2.24%
-  fast_16K_the_default        9.08 us   37.0% of stock   output +2.02%
-  fast_32K                    9.61 us   39.2% of stock   output +1.88%
+  stock                      21.04 us  100.0% of stock   output +0.00%
+  sessions_off               21.32 us  101.3% of stock   output +0.00%
+  codes                      14.20 us   67.5% of stock   output +1.03%
+  codes_128K_as_in_0.3       14.29 us   67.9% of stock   output +1.00%
+  fast                        6.20 us   29.5% of stock   output +2.19%
+  fast_8K                     6.14 us   29.2% of stock   output +2.24%
+  fast_16K                    6.37 us   30.3% of stock   output +2.02%
+  fast_32K                    6.73 us   32.0% of stock   output +1.88%
 other memory walked before each call: 65536 KiB
-  stock                      28.75 us  100.0% of stock   output +0.00%
-  sessions_off               51.70 us  179.8% of stock   output +0.00%
-  codes                      45.28 us  157.5% of stock   output +1.00%
-  codes_32K                  30.80 us  107.1% of stock   output +1.03%
-  fast_8K                    11.95 us   41.6% of stock   output +2.25%
-  fast_16K_the_default       13.91 us   48.4% of stock   output +2.02%
-  fast_32K                   20.08 us   69.8% of stock   output +1.89%
+  stock                      22.70 us  100.0% of stock   output +0.00%
+  sessions_off               23.24 us  102.4% of stock   output +0.00%
+  codes                      15.25 us   67.2% of stock   output +1.03%
+  codes_128K_as_in_0.3       15.33 us   67.5% of stock   output +1.00%
+  fast                        7.02 us   30.9% of stock   output +2.19%
+  fast_8K                     7.00 us   30.8% of stock   output +2.25%
+  fast_16K                    7.18 us   31.6% of stock   output +2.02%
+  fast_32K                    7.59 us   33.4% of stock   output +1.89%

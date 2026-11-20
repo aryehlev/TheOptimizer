@@ -1,5 +1,6 @@
-ok: 40000 inputs, 104519357 bytes in, 62626131 out; 165 sessions and 105 second ones; 13213 large, 10057 exact-size and 10057 too-small buffers; 29922 inputs wi
-ok: 40000 inputs, 139248396 bytes in, 81866188 out; 178 sessions and 118 second ones; 13541 large, 9981 exact-size and 9981 too-small buffers; 13064 inputs with
-ok: 30000 inputs, 63405110 bytes in, 37305877 out with the session, 35749792 without (+4.35%)
-ok: 30000 inputs, 63509681 bytes in, 37216365 out with the session, 35771930 without (+4.04%)
+ok: 40000 inputs, 104519357 bytes in, 62629815 out; 165 sessions and 105 second ones; 13213 large, 10057 exact-size and 10057 too-small buffers; 29918 inputs wi
+ok: 40000 inputs, 139248396 bytes in, 81873858 out; 178 sessions and 118 second ones; 13541 large, 9981 exact-size and 9981 too-small buffers; 13058 inputs with
+ok: 30000 inputs, 63405110 bytes in, 37168843 out with the session, 35749792 without (+3.97%)
+ok: 30000 inputs, 63509681 bytes in, 37239002 out with the session, 35771930 without (+4.10%)
+ok: 30000 inputs, 62390265 bytes in, 36224253 out with the session, 35230368 without (+2.82%)
 ok: 30000 inputs, 62378152 bytes in, 33815726 out with the session, 31999460 without (+5.68%)

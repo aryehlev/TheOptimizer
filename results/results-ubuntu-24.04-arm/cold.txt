@@ -1,25 +1,28 @@
 machine: aarch64, Neoverse-N2
 other memory walked before each call: 0 KiB
-  stock                      17.75 us  100.0% of stock   output +0.00%
-  sessions_off               17.47 us   98.4% of stock   output +0.00%
-  codes                      12.08 us   68.1% of stock   output +1.00%
-  codes_32K                  12.95 us   73.0% of stock   output +1.06%
-  fast_8K                     6.17 us   34.8% of stock   output +2.26%
-  fast_16K_the_default        6.20 us   34.9% of stock   output +2.03%
-  fast_32K                    6.21 us   35.0% of stock   output +1.91%
+  stock                      17.73 us  100.0% of stock   output +0.00%
+  sessions_off               18.52 us  104.5% of stock   output +0.00%
+  codes                      13.23 us   74.6% of stock   output +1.06%
+  codes_128K_as_in_0.3       12.06 us   68.0% of stock   output +1.00%
+  fast                        5.89 us   33.2% of stock   output +2.19%
+  fast_8K                     5.82 us   32.8% of stock   output +2.26%
+  fast_16K                    5.86 us   33.1% of stock   output +2.03%
+  fast_32K                    6.00 us   33.8% of stock   output +1.91%
 other memory walked before each call: 4096 KiB
-  stock                      17.92 us  100.0% of stock   output +0.00%
-  sessions_off               19.17 us  107.0% of stock   output +0.00%
-  codes                      13.86 us   77.3% of stock   output +1.00%
-  codes_32K                  13.14 us   73.3% of stock   output +1.03%
-  fast_8K                     6.34 us   35.4% of stock   output +2.24%
-  fast_16K_the_default        6.53 us   36.4% of stock   output +2.02%
-  fast_32K                    6.71 us   37.4% of stock   output +1.88%
+  stock                      17.82 us  100.0% of stock   output +0.00%
+  sessions_off               18.61 us  104.4% of stock   output +0.00%
+  codes                      13.31 us   74.7% of stock   output +1.03%
+  codes_128K_as_in_0.3       13.82 us   77.6% of stock   output +1.00%
+  fast                        6.07 us   34.1% of stock   output +2.19%
+  fast_8K                     6.04 us   33.9% of stock   output +2.24%
+  fast_16K                    6.14 us   34.5% of stock   output +2.02%
+  fast_32K                    6.47 us   36.3% of stock   output +1.88%
 other memory walked before each call: 65536 KiB
-  stock                      18.78 us  100.0% of stock   output +0.00%
-  sessions_off               23.09 us  122.9% of stock   output +0.00%
-  codes                      17.08 us   90.9% of stock   output +1.00%
-  codes_32K                  13.81 us   73.5% of stock   output +1.03%
-  fast_8K                     6.77 us   36.0% of stock   output +2.25%
-  fast_16K_the_default        7.12 us   37.9% of stock   output +2.02%
-  fast_32K                    7.37 us   39.2% of stock   output +1.89%
+  stock                      18.75 us  100.0% of stock   output +0.00%
+  sessions_off               19.43 us  103.6% of stock   output +0.00%
+  codes                      13.74 us   73.3% of stock   output +1.03%
+  codes_128K_as_in_0.3       16.91 us   90.2% of stock   output +1.00%
+  fast                        6.46 us   34.5% of stock   output +2.19%
+  fast_8K                     6.38 us   34.0% of stock   output +2.25%
+  fast_16K                    6.75 us   36.0% of stock   output +2.02%
+  fast_32K                    7.00 us   37.3% of stock   output +1.89%

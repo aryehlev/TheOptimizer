@@ -1,8 +1,9 @@
-machine: x86_64, AMD EPYC 9V74 80-Core Processor; payloads: /tmp/exp_rtb_single.bin
+machine: x86_64, Intel(R) Xeon(R) 6975P-C; payloads: /tmp/exp_rtb_single.bin
 encoder                                  min_us   med_us     bytes     size    time
-stock                                     23.76    23.78    870103   +0.00%  100.0%
-sessions_off                              21.12    21.15    870103   +0.00%   88.9%
-codes                                     14.27    14.30    878804   +1.00%   60.1%
-fast_8K                                    8.80     8.84    889768   +2.26%   37.0%
-fast_16K_the_default                       8.73     8.75    887782   +2.03%   36.7%
-fast_32K                                   9.04     9.06    886696   +1.91%   38.0%
+stock                                     18.27    18.33    870103   +0.00%  100.0%
+sessions_off                              18.51    18.62    870103   +0.00%  101.3%
+codes                                     13.19    13.25    879308   +1.06%   72.2%
+codes_128K_as_in_0.3                      10.95    11.00    878804   +1.00%   59.9%
+fast                                       5.66     5.69    889196   +2.19%   31.0%
+fast_16K                                   5.60     5.63    887782   +2.03%   30.7%
+fast_32K                                   5.61     5.64    886696   +1.91%   30.7%
