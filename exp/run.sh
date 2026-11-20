@@ -9,21 +9,21 @@ ARCH=$( [ "$(uname -m)" = aarch64 ] && echo arm || echo x86 )
 mkdir -p bin
 build() {
   name=$1; tree=$2; shift 2
-  gcc -O2 -DNDEBUG -std=gnu11 -I"$tree" "$@" -o bin/$name sbench.c "$tree"/lib/*.c "$tree"/lib/$ARCH/*.c
+  gcc ${OPT:--O2} -DNDEBUG -std=gnu11 -I"$tree" "$@" -o bin/$name sbench.c "$tree"/lib/*.c "$tree"/lib/$ARCH/*.c
 }
 S="-DHAVE_SESSION -DHAVE_SEARCH_API"
 build stock ../gzlocal/vendor/stock
 build v1 ../gzlocal/vendor/patched -DHAVE_SESSION
-build prev sess9 $S -DSESS_HASH_BYTES=5 -DSESS_INSERT_FIRST=2 -DSESS_TOKEN_CHECK=32 -DSESS_NO_PREFETCH
-build new sess10 $S
-build new_f3 sess10 $S -DSESS_INSERT_FIRST=3
-build new_s64 sess10 $S -DSESS_SPARSE_AFTER=64
-build new_s32 sess10 $S -DSESS_SPARSE_AFTER=32
-build new_s16 sess10 $S -DSESS_SPARSE_AFTER=16
+build r10 sess10 $S
+build r11 sess11 $S
+build r11_s16 sess11 $S -DSESS_SAMPLE=16
+build r11_e64 sess11 $S -DSESS_SPARSE_AFTER=64
+OPT=-O3 build r11_o3 sess11 $S
+OPT=-O3 build stock_o3 ../gzlocal/vendor/stock
 python3 ../gzlocal/bench/rtbgen.py /tmp/exp_rtb 400 6 > /dev/null
 F=/tmp/exp_rtb_single.bin
 # name:binary:session:one_candidate:table_order
-V="stock:stock:0:0:15 v1_two_candidates:v1:2:0:15 previous_best:prev:2:1:15 restructured:new:2:1:15 restructured_first3:new_f3:2:1:15 every_other_after_64:new_s64:2:1:15 every_other_after_32:new_s32:2:1:15 every_other_after_16:new_s16:2:1:15"
+V="stock:stock:0:0:15 stock_O3:stock_o3:0:0:15 v1_two_candidates:v1:2:0:15 restructured:r10:2:1:15 next_word_ahead:r11:2:1:15 next_word_ahead_O3:r11_o3:2:1:15 next_word_ahead_count_1_in_16:r11_s16:2:1:15 next_word_ahead_every_other_after_64:r11_e64:2:1:15"
 rm -f /tmp/exp_*.txt
 CPU=$(( $(nproc) - 1 ))
 for round in 1 2 3 4 5 6 7 8 9 10 11; do

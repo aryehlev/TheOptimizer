@@ -531,6 +531,8 @@ struct deflate_output_bitstream;
 #ifndef SESS_SAMPLE
 #  define SESS_SAMPLE		8	/* one input in this many is not: a power of 2 */
 #endif
+/* In c->s.lit[], for a byte without a codeword: a length that is bit 15 */
+#define SESS_LIT_NONE		0x80000000u
 /* The most that one pass can write: header, 16 bits a byte, slack */
 #define SESS_DIRECT_BOUND(n)	(SESS_HDR_BYTES + 2 * (n) + 32)
 
@@ -621,6 +623,8 @@ struct libdeflate_compressor {
 		u32 calls;	/* inputs that could have been one pass */
 		unsigned long long own_codes;	/* inputs that did not use
 						 * the shared codes */
+		u32 lit[256];	/* a literal's length << 16 | codeword,
+				 * or SESS_LIT_NONE */
 		bool valid;	/* codes, length and hdr can be used */
 		bool track;	/* remember this input for the next one */
 		u8 mode;	/* for deflate_flush_block(): 0 none, 1 whole
@@ -659,7 +663,6 @@ struct libdeflate_compressor {
 		u8 dbuf[SESS_DIRECT_BOUND(SESS_MAX_IN)];
 		u8 order;	/* of the hash table, for sessions that share codes only */
 		bool single;	/* such sessions keep one position per hash value */
-		bool tab_ready;	/* (experiment) the table has been cleared once */
 	} s;
 
 	/*
@@ -3010,6 +3013,13 @@ do {									\
 	deflate_compute_full_len_codewords(c, &c->codes);
 	memcpy(&c->s.length, &c->o.length, sizeof(c->s.length));
 	c->s.codes = c->codes;
+	/* (What codewords[] holds for a symbol without a codeword is not 0.) */
+	for (sym = 0; sym < 256; sym++) {
+		const u32 len = c->codes.lens.litlen[sym];
+
+		c->s.lit[sym] = len == 0 ? SESS_LIT_NONE :
+			len << 16 | (c->codes.codewords.litlen[sym] & 0xFFFF);
+	}
 
 	/* Older inputs count for half as much in the next codes. */
 	for (sym = 0; sym < DEFLATE_NUM_LITLEN_SYMS; sym++)
@@ -3559,30 +3569,37 @@ do {									\
 }
 
 /*
- * [session] One pass with one candidate: as deflate_direct_generic(), but the
- * hash table is used as 2^(ht_order + 1) single positions instead of 2^ht_order
- * pairs.  The entries are the same memory and are fenced and cleared the same
- * way, so this and the two-candidate code can follow each other on one
- * compressor: an entry that the other left is a position of some earlier
- * input, which the fence excludes, or of nothing.
+ * [session] One pass with one candidate: as deflate_direct_generic(), but
+ *
+ *   - the hash table is used as 2^(ht_order + 1) single positions instead of
+ *     2^ht_order pairs.  The entries are the same memory and are fenced and
+ *     cleared the same way, so this and the two-candidate code can follow each
+ *     other on one compressor;
+ *   - five bytes are hashed, not four: a repetition of only four bytes saves
+ *     next to nothing and is no longer looked for;
+ *   - of the positions inside a match, only the first SESS_INSERT_FIRST and
+ *     the last are entered into the table;
+ *   - long tokens are not skipped: a lookup is cheap enough here.
+ *
+ * A step has the eight bytes at its position from the step before it: the
+ * low byte is the literal, the low four bytes are compared with the candidate.
+ * It reads the eight bytes of the next position and hashes five of them.
+ *
+ * A literal the codes lack is not tested for where it is written.  Its entry
+ * in c->s.lit[] has SESS_LIT_NONE as its length, which sets bit 15 of the bit
+ * count; the bit count is only ever used modulo 64, and every flush collects
+ * it into 'bad'.
  */
-#ifndef SESS_HASH_BYTES
-#  define SESS_HASH_BYTES	4
-#endif
-/* How many positions of a match are entered into the table: 0 for all */
 #ifndef SESS_INSERT_FIRST
-#  define SESS_INSERT_FIRST	0
+#  define SESS_INSERT_FIRST	2	/* 0: all the positions of a match */
 #endif
-/* Eight bytes are read at p for 5 and 6. */
-#if SESS_HASH_BYTES == 4
-#  define SESS_HASH(p, bits)	lz_hash(get_unaligned_le32(p), (bits))
-#  define SESS_HASH_READ	4
-#else
-#  define SESS_HASH(p, bits)						\
-	((u32)(((get_unaligned_le64(p) << (64 - 8 * SESS_HASH_BYTES)) *	\
-		0x9E3779B185EBCA87ULL) >> (64 - (bits))))
-#  define SESS_HASH_READ	8
+#ifndef SESS_SPARSE_AFTER
+#  define SESS_SPARSE_AFTER	0	/* (experiment) after this many positions
+					 * without a match, look at every other
+					 * one only; a multiple of 4, 0: never */
 #endif
+#define SESS_HASH5(x, bits)	/* of the low five bytes of x */	\
+	((u32)((((u64)(x) << 24) * 0x9E3779B185EBCA87ULL) >> (64 - (bits))))
 
 static forceinline size_t
 deflate_direct_single_generic(struct libdeflate_compressor * restrict c,
@@ -3591,50 +3608,55 @@ deflate_direct_single_generic(struct libdeflate_compressor * restrict c,
 			      const bool count)
 {
 	const struct deflate_codes * const codes = &c->s.codes;
+	const u32 * const lit = c->s.lit;
 	mf_pos_t * const tab = &c->p.f.ht_mf.hash_tab[0][0];
 	const unsigned bits = ht_order + 1;
-	const u8 *in_next = in;
 	const u8 * const in_end = in + in_nbytes;
-	const u8 *in_cur_base;
-	/* A position is hashed, and the one after it, only before this. */
-	const u8 * const in_stop = in_nbytes > SESS_HASH_READ + 1 ?
-				   in_end - (SESS_HASH_READ + 1) : in;
+	const u8 *in_next;
+	const u8 *base;		/* where position 0 would be */
+	size_t pos;		/* the current position: base + pos */
+	size_t stop;		/* no lookups from here on: eight bytes are
+				 * read at a position and at the one after */
+	size_t stop4;		/* before this, four positions in a row are
+				 * before 'stop' */
 	const u32 nb = c->s.hdr_nbits;
 	u8 *out_next = out;
 	u64 bitbuf;
 	unsigned bitcount;
-	u32 next_hash = 0;
-	u32 litrun = 0;		/* literals in a row, for the token check */
-	u32 bad = 0;		/* top bit: a symbol had no codeword */
+	u64 w;			/* the eight bytes at the current position */
+	u32 next_hash;		/* of the first five of them */
+	u32 bad = 0;		/* above 63: a symbol had no codeword */
 	u32 mf_start;
 	s32 cutoff;
+	s32 cand;
 
-	STATIC_ASSERT(7 + 4 * MAX_LITLEN_CODEWORD_LEN <= 64);
+	STATIC_ASSERT(7 + 4 * MAX_LITLEN_CODEWORD_LEN <= 63);
 	STATIC_ASSERT(7 + MAX_LITLEN_CODEWORD_LEN +
 		      DEFLATE_MAX_EXTRA_LENGTH_BITS + MAX_OFFSET_CODEWORD_LEN +
-		      DEFLATE_MAX_EXTRA_OFFSET_BITS <= 64);
+		      DEFLATE_MAX_EXTRA_OFFSET_BITS <= 63);
 	STATIC_ASSERT(HT_MATCHFINDER_BUCKET_SIZE == 2);
 	STATIC_ASSERT(HT_MATCHFINDER_HASH_ORDER + 1 <= 16);
+	STATIC_ASSERT(SESS_SPARSE_AFTER % 4 == 0);
 
 #define D_ADD(bits_, n_)						\
 do {									\
-	bitbuf |= (u64)(bits_) << bitcount;				\
+	bitbuf |= (u64)(bits_) << (bitcount & 63);			\
 	bitcount += (n_);						\
 } while (0)
 #define D_FLUSH()							\
 do {									\
 	put_unaligned_le64(bitbuf, out_next);				\
-	out_next += bitcount >> 3;					\
-	bitbuf >>= bitcount & ~7U;					\
+	bad |= bitcount;						\
+	out_next += (bitcount >> 3) & 7;				\
+	bitbuf >>= bitcount & 56;					\
 	bitcount &= 7;							\
 } while (0)
-#define D_LIT(b_)							\
+#define D_LIT(b_)	/* c->s.lit[]: length << 16 | codeword */	\
 do {									\
 	const unsigned b__ = (b_);					\
-	const u32 l__ = codes->lens.litlen[b__];			\
+	const u32 e__ = lit[b__];					\
 									\
-	D_ADD(codes->codewords.litlen[b__], l__);			\
-	bad |= l__ - 1;							\
+	D_ADD(e__ & 0xFFFF, e__ >> 16);					\
 	if (count)							\
 		c->freqs.litlen[b__]++;					\
 } while (0)
@@ -3673,6 +3695,44 @@ do {									\
 		c->freqs.offset[slot__]++;				\
 	}								\
 } while (0)
+/*
+ * One step, for the position pos + k_ whose eight bytes are in w: look it up
+ * and enter it into the table; go and write a match, or add a literal to the
+ * bit buffer and read the eight bytes of the next position.  Four literals
+ * fit in the bit buffer after a flush, so the steps come four to a flush.
+ */
+#define D_STEP(k_)							\
+do {									\
+	const u64 wn__ = get_unaligned_le64(base + pos + (k_) + 1);	\
+									\
+	cand = tab[next_hash];						\
+	tab[next_hash] = pos + (k_);					\
+	if (cand > cutoff &&						\
+	    get_unaligned_le32(base + cand) == (u32)w) {		\
+		pos += (k_);						\
+		goto found;						\
+	}								\
+	next_hash = SESS_HASH5(wn__, bits);				\
+	D_LIT(w & 0xFF);						\
+	w = wn__;							\
+} while (0)
+/* The same for two positions, of which only the first is looked up. */
+#define D_STEP2(k_)							\
+do {									\
+	const u64 wn__ = get_unaligned_le64(base + pos + (k_) + 2);	\
+									\
+	cand = tab[next_hash];						\
+	tab[next_hash] = pos + (k_);					\
+	if (cand > cutoff &&						\
+	    get_unaligned_le32(base + cand) == (u32)w) {		\
+		pos += (k_);						\
+		goto found;						\
+	}								\
+	next_hash = SESS_HASH5(wn__, bits);				\
+	D_LIT(w & 0xFF);						\
+	D_LIT((w >> 8) & 0xFF);						\
+	w = wn__;							\
+} while (0)
 
 	/* The block header, made when the codes were. */
 	memcpy(out_next, c->s.hdr, nb >> 3);
@@ -3683,20 +3743,6 @@ do {									\
 	c->s.prev_len = 0;	/* nothing here is kept for a next input */
 	if (mf_begin_input(&c->mf_next_pos, in_nbytes, &mf_start))
 		c->ht_cleared_order = 0;
-#ifdef SESS_SINGLE_NOCLEAR
-	/*
-	 * Experiment: the table is cleared once and never again.  An entry is
-	 * used only if it is a position of this input before the current one,
-	 * and then the bytes there are compared, so what other inputs left is
-	 * at worst a wasted comparison.
-	 */
-	if (!c->s.tab_ready) {
-		ht_matchfinder_clear(&c->p.f.ht_mf, 0, HT_MATCHFINDER_HASH_ORDER);
-		c->s.tab_ready = true;
-		c->ht_cleared_order = HT_MATCHFINDER_HASH_ORDER;
-	}
-	cutoff = mf_start;
-#else
 	if (c->ht_cleared_order < ht_order) {
 		ht_matchfinder_clear(&c->p.f.ht_mf, c->ht_cleared_order,
 				     ht_order);
@@ -3704,105 +3750,84 @@ do {									\
 	}
 	/* An entry is of this input if it is above this (see mf_begin_input()). */
 	cutoff = mf_stale_cutoff;
-#endif
-	in_cur_base = in - mf_start;
+	base = in - mf_start;
+	pos = mf_start;
+	stop = mf_start + (in_nbytes > 9 ? in_nbytes - 9 : 0);
+	stop4 = mf_start + (in_nbytes > 12 ? in_nbytes - 12 : 0);
 
-#ifdef SESS_SINGLE_NOCLEAR
-#  define SESS_CAND_OK(cand_)	((u32)((s32)(cand_) - cutoff) < (u32)(in_next - in))
-#else
-#  define SESS_CAND_OK(cand_)	((cand_) > cutoff)
-#endif
-#ifdef SESS_NO_PREFETCH
-#  define SESS_PREFETCH(p_)	((void)0)
-#else
-#  define SESS_PREFETCH(p_)	prefetchw(p_)
-#endif
-	/*
-	 * One step: look up the current position; write a match, or add a
-	 * literal to the bit buffer.  Four literals fit in the buffer after a
-	 * flush, so the steps come in groups of four with one flush at the end
-	 * of the group; a match flushes what is pending first.  (break ends
-	 * the step: it leaves the macro's own do-while.)
-	 */
-#define D_STEP()							\
-do {									\
-	u32 hash__;							\
-	mf_pos_t cand__;						\
-									\
-	if (in_next >= in_stop)						\
-		goto tail;						\
-	hash__ = next_hash;						\
-	cand__ = tab[hash__];						\
-	tab[hash__] = in_next - in_cur_base;				\
-	next_hash = SESS_HASH(in_next + 1, bits);			\
-	SESS_PREFETCH(&tab[next_hash]);					\
-	if (SESS_CAND_OK(cand__) &&					\
-	    load_u32_unaligned(&in_cur_base[cand__]) ==			\
-	    load_u32_unaligned(in_next)) {				\
-		const u8 * const m__ = &in_cur_base[cand__];		\
-		const u32 max_len__ = MIN((size_t)(in_end - in_next),	\
-					  DEFLATE_MAX_MATCH_LEN);	\
-		const u32 length__ = lz_extend(in_next, m__, 4, max_len__); \
-		const u8 * const match_end__ = in_next + length__;	\
-		const u8 *insert_end__ = MIN(match_end__, in_stop + 1);	\
-									\
-		D_FLUSH();						\
-		D_MATCH(length__, (u32)(in_next - m__));		\
-		/* The positions inside the match, or the first of them. */ \
-		if (SESS_INSERT_FIRST != 0) {				\
-			insert_end__ = MIN(insert_end__,		\
-					   in_next + 1 + SESS_INSERT_FIRST); \
-			if (match_end__ - 1 >= insert_end__ &&		\
-			    match_end__ - 1 <= in_stop)			\
-				tab[SESS_HASH(match_end__ - 1, bits)] =	\
-					(match_end__ - 1) - in_cur_base; \
-		}							\
-		for (in_next++; in_next < insert_end__; in_next++)	\
-			tab[SESS_HASH(in_next, bits)] = in_next - in_cur_base; \
-		in_next = match_end__;					\
-		litrun = 0;						\
-		if (in_next >= in_stop)					\
-			goto tail;					\
-		next_hash = SESS_HASH(in_next, bits);			\
-		SESS_PREFETCH(&tab[next_hash]);				\
-		break;   						\
-	}								\
-	D_LIT(*in_next++);						\
-	if (unlikely((++litrun & (SESS_TOKEN_CHECK - 1)) == 0) &&	\
-	    SESS_TOKEN_CHECK != 0) {					\
-		/* A long token: see the level 1 loop. */		\
-		const u8 *p__ = in_next;				\
-									\
-		D_FLUSH();						\
-		while (p__ != in_end &&					\
-		       (deflate_token_char[*p__] & SESS_TOKEN_MASK))	\
-			p__++;						\
-		if (p__ - in_next >= SESS_TOKEN_MIN) {			\
-			D_RUN(p__ - in_next);				\
-			if (in_next >= in_stop)				\
-				goto tail;				\
-			next_hash = SESS_HASH(in_next, bits);		\
-			break;   					\
-		}							\
-	}								\
-} while (0)
+	if (pos >= stop)
+		goto tail;
+search:
+	/* At most 7 bits are in the bit buffer here. */
+	w = get_unaligned_le64(base + pos);
+	next_hash = SESS_HASH5(w, bits);
+	if (SESS_SPARSE_AFTER != 0) {
+		const size_t dense_end = MIN(pos + SESS_SPARSE_AFTER, stop4);
 
-	if (in_next < in_stop) {
-		next_hash = SESS_HASH(in_next, bits);
-		for (;;) {
-			D_STEP();
-			D_STEP();
-			D_STEP();
-			D_STEP();
+		for (; pos < dense_end; pos += 4) {
+			D_STEP(0);
+			D_STEP(1);
+			D_STEP(2);
+			D_STEP(3);
+			D_FLUSH();
+		}
+		for (; pos < stop4; pos += 4) {
+			D_STEP2(0);
+			D_STEP2(2);
+			D_FLUSH();
+		}
+	} else {
+		for (; pos < stop4; pos += 4) {
+			D_STEP(0);
+			D_STEP(1);
+			D_STEP(2);
+			D_STEP(3);
 			D_FLUSH();
 		}
 	}
+	for (; pos < stop; pos++) {
+		D_STEP(0);
+		D_FLUSH();
+	}
+	goto tail;
+
+found:
+	/* A match at the position pos with the position cand. */
+	{
+		const u8 * const m = base + cand;
+		const u8 * const in_stop = base + stop;
+		const u8 *match_end, *insert_end;
+		u32 max_len, length;
+
+		in_next = base + pos;
+		max_len = MIN((size_t)(in_end - in_next),
+			      DEFLATE_MAX_MATCH_LEN);
+		length = lz_extend(in_next, m, 4, max_len);
+		match_end = in_next + length;
+		insert_end = MIN(match_end, in_stop + 1);
+
+		D_FLUSH();	/* the literals of this group of steps */
+		D_MATCH(length, (u32)(in_next - m));
+		/* The first positions inside the match, and the last. */
+		if (SESS_INSERT_FIRST != 0) {
+			insert_end = MIN(insert_end,
+					 in_next + 1 + SESS_INSERT_FIRST);
+			if (match_end - 1 >= insert_end &&
+			    match_end - 1 <= in_stop)
+				tab[SESS_HASH5(get_unaligned_le64(match_end - 1),
+					       bits)] = (match_end - 1) - base;
+		}
+		for (in_next++; in_next < insert_end; in_next++)
+			tab[SESS_HASH5(get_unaligned_le64(in_next), bits)] =
+				in_next - base;
+		pos = match_end - base;
+		if (pos < stop)
+			goto search;
+	}
 tail:
 	D_FLUSH();
-#undef D_STEP
-#undef SESS_CAND_OK
-#undef SESS_PREFETCH
 	/* The last few bytes, where nothing can be hashed. */
+	in_next = base + pos;
 	D_RUN(in_end - in_next);
 	D_ADD(codes->codewords.litlen[DEFLATE_END_OF_BLOCK],
 	      codes->lens.litlen[DEFLATE_END_OF_BLOCK]);
@@ -3812,8 +3837,10 @@ tail:
 #undef D_LIT
 #undef D_RUN
 #undef D_MATCH
+#undef D_STEP
+#undef D_STEP2
 	ASSERT(out_next + 8 <= out + SESS_DIRECT_BOUND(in_nbytes));
-	if (bad >> 31)
+	if (bad > 63)
 		return 0;
 	if (bitcount)
 		*out_next = (u8)bitbuf;
@@ -5511,7 +5538,6 @@ libdeflate_alloc_compressor_ex(int compression_level,
 	memset(&c->s, 0, offsetof(struct deflate_session, hdr));
 	c->s.order = HT_MATCHFINDER_HASH_ORDER;
 	c->s.single = false;
-	c->s.tab_ready = false;
 	c->s.period = 1;
 	c->s.miss_limit = 3;
 
