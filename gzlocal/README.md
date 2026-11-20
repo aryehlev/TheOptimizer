@@ -132,10 +132,10 @@ order the search happens to touch it. With 0.3's table (still available:
 
 After 64 MiB of other work the gain is gone on the N2, whose shared cache is
 larger than the walk, and on the EPYC, whose shared cache is smaller, 0.3's
-table makes a call half again as slow as stock's. 0.3's `gzip_with` kept its
-table the same way: 25.9 against stock's 20.4 on the N2 and, on an EPYC 9V74
-with the same 32 MiB, 66.6 against 34.2. If you run 0.3 on a busy server,
-that is the case to check for.
+table makes a call more than half again as slow as stock's. 0.3's `gzip_with`
+kept its table the same way; after 64 MiB of other work it took 25.9 against
+stock's 20.4 on the N2 and, on an EPYC 9V74 with the same 32 MiB, 66.6 against
+34.2. If you run 0.3 on a busy server, that is the case to check for.
 
 0.4 goes back to clearing: without a session exactly as stock does, with
 `Session::Codes` on a 32 KiB table, and with `Session::CodesFast` on the 8 to
@@ -143,7 +143,7 @@ that is the case to check for.
 
 ### Output size
 
-Against stock libdeflate at level 1, payloads all of one size:
+Against stock libdeflate at level 1:
 
 | Payloads | stock, % of input | `gzip_codes_with` | `gzip_fast_with` |
 |---|---|---|---|
@@ -195,7 +195,8 @@ Each was built and timed on the N2 and on an x86-64 runner, one thread, pinned.
 - Skipping long identifier-like runs (which `Session::Codes` does): no gain
   once a lookup is this cheap.
 - Hashing six bytes: 2% more output. A prefetch of the next table entry:
-  slower. Counting the symbols of one payload in 16 instead of one in 8: 1.5%.
+  slower. Counting the symbols of one payload in 16 instead of one in 8: 1.5%
+  faster, and slower to notice that the payloads have changed.
 - Reading the next position's bytes one step ahead, which saves instructions
   per step: no faster on either machine.
 - From 0.3: values compressed once and copied into later payloads (needs a
