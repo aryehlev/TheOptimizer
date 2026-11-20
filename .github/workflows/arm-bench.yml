@@ -43,6 +43,8 @@ jobs:
           [ "$(grep -c '^ok' out/stress.txt)" = 4 ]
       - name: Benchmark
         run: sh gzlocal/bench/arm.sh | tee out/bench.txt
+      - name: Experiments
+        run: sh exp/run.sh | tee out/explore.txt
       - uses: actions/upload-artifact@v4
         with:
           name: results-${{ matrix.runner }}
