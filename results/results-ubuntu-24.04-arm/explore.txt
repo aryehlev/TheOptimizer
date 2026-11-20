@@ -1,10 +1,7 @@
 machine: aarch64, Neoverse-N2; payloads: /tmp/exp_rtb_single.bin
-variant                                min_us   med_us     bytes     size    time
-stock                                   17.74    17.76    870103   +0.00%  100.0%
-v1_two_candidates                       11.97    11.99    878818   +1.00%   67.5%
-restructured                             6.67     6.68    885775   +1.80%   37.6%
-one_branch_test                          7.04     7.06    885775   +1.80%   39.7%
-insert_first_1                           6.57     6.58    886769   +1.92%   37.0%
-every_other_after_128                    6.59     6.60    886118   +1.84%   37.1%
-one_branch_test_every_other_after_64     6.84     6.86    887363   +1.98%   38.6%
-next_word_ahead                          6.78     6.80    885775   +1.80%   38.2%
+encoder                                  min_us   med_us     bytes     size    time
+stock                                     17.74    17.75    870103   +0.00%  100.0%
+sessions_off                              17.37    17.39    870103   +0.00%   97.9%
+shared_codes                              11.86    11.87    878804   +1.00%   66.9%
+shared_codes_fast_search                   6.67     6.68    885775   +1.80%   37.6%
+shared_codes_fast_search_small_table       7.05     7.06    886696   +1.91%   39.7%
