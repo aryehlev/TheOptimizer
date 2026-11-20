@@ -37,11 +37,12 @@ jobs:
           {
             /tmp/pstress /tmp/rtb_single.bin 40000 71
             PS_CALM=1 /tmp/pstress /tmp/rtb_single.bin 40000 91
-            SS_SEARCH=1 SS_ORDER=11 /tmp/sstress /tmp/rtb_single.bin 30000 81 2 1
+            SS_SEARCH=1 SS_ORDER=13 /tmp/sstress /tmp/rtb_single.bin 30000 81 2 1
             SS_SEARCH=1 /tmp/sstress /tmp/rtb_single.bin 30000 82 2 1
+            SS_ORDER=15 /tmp/sstress /tmp/rtb_single.bin 30000 83 2 1
             /tmp/sstress /tmp/rtb_fan_shared.bin 30000 84 1 1
           } 2>&1 | grep -v "shared codes" | cut -c1-160 | tee out/stress.txt
-          [ "$(grep -c '^ok' out/stress.txt)" = 5 ]
+          [ "$(grep -c '^ok' out/stress.txt)" = 6 ]
       - name: Benchmark
         run: sh gzlocal/bench/arm.sh | tee out/bench.txt
       - name: Single-thread harness

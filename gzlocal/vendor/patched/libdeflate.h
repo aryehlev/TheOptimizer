@@ -77,13 +77,16 @@ libdeflate_set_session(struct libdeflate_compressor *compressor, int mode);
  * a fraction of a percent between the sizes.
  *
  * Searching as libdeflate does (see libdeflate_session_set_search()): 13 or
- * 15.  The default, 15 (128 KiB), is fastest when the table stays in the
- * CPU's caches between calls.  When it does not, because the thread does much
- * else between two calls, 13 (32 KiB) can be faster.
+ * 15.  The default, 13 (32 KiB), is cleared for every input and costs little
+ * when the thread has done other work since the last one.  15 (128 KiB) is
+ * kept between inputs and is faster only while it stays in the CPU's caches.
  *
- * With one candidate: 11, 12 or 13 (8, 16 or 32 KiB); the default is 12.
+ * With one candidate: 11, 12 or 13 (8, 16 or 32 KiB).  By default the
+ * smallest that has a position for every byte of the input: 11 up to 4 KiB,
+ * 12 up to 8 KiB, 13 above.
  *
- * The setting is kept when libdeflate_set_session() is called again.
+ * Other values are taken as the nearest of these.  The setting is kept when
+ * libdeflate_set_session() is called again.
  */
 LIBDEFLATEAPI void
 libdeflate_session_set_order(struct libdeflate_compressor *compressor,

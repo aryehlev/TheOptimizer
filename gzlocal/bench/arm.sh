@@ -2,11 +2,12 @@
 # Measure on the machine that matters (for example one of your arm64 nodes).
 # Needs cargo and python3.  Takes several minutes.  Prints microseconds per
 # gzip call for 3.7 KB synthetic bid requests in tokio with 2 workers: the
-# lowest median of 5 runs for stock libdeflate, gzip_with, gzip_codes_with and
-# gzip_fast_with (with its 16 KiB table, and with 8 and 32 KiB), at three
-# amounts of other work per request.  Walking 4 MiB pushes the compressor's
-# tables out of the core's own caches; walking 64 MiB pushes much of them out
-# of the shared cache too, which is what a busy server does.
+# lowest median of 5 runs for stock libdeflate, gzip_with, gzip_codes_with (and
+# the same with the 128 KiB table that 0.3 used) and gzip_fast_with (and the
+# same with a fixed 16 KiB table), at three amounts of other work per request.
+# Walking 4 MiB pushes the compressor's tables out of the core's own caches;
+# walking 64 MiB pushes them out of a shared cache of up to that size too,
+# which is what a busy server does.
 #
 #   bench/arm.sh [file of your own payloads, one per line]
 set -e
@@ -32,12 +33,12 @@ for other in 0 4194304 67108864; do
     row stock target-stock/release/examples/tokio_bench $F $CUT $n 2 $other inline
     row gzip_with $B $F $CUT $n 2 $other inline
     row gzip_codes_with $B $F $CUT $n 2 $other codes
+    row gzip_codes_with,table_order_15 $B $F $CUT $n 2 $other codes 1 15
     row gzip_fast_with $B $F $CUT $n 2 $other fast
-    row gzip_fast_with,table_order_11 $B $F $CUT $n 2 $other fast 1 11
-    row gzip_fast_with,table_order_13 $B $F $CUT $n 2 $other fast 1 13
+    row gzip_fast_with,table_order_12 $B $F $CUT $n 2 $other fast 1 12
   done
   echo "other work per request: walks $((other / 1024)) KiB"
-  for v in stock gzip_with gzip_codes_with gzip_fast_with gzip_fast_with,table_order_11 gzip_fast_with,table_order_13; do
+  for v in stock gzip_with gzip_codes_with gzip_codes_with,table_order_15 gzip_fast_with gzip_fast_with,table_order_12; do
     grep "^$v " /tmp/gzlocal_runs | sort -k2 -n | head -1 | awk '{printf "  %-32s %6.2f us   output %s%% of input\n", $1, $2, $3}'
   done
 done

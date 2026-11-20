@@ -532,15 +532,13 @@ struct deflate_output_bitstream;
 #  define SESS_SAMPLE		8	/* one input in this many is not: a power of 2 */
 #endif
 /*
- * Searching as libdeflate does, with two candidates: use the 32 KiB table?
- * If it was asked for; and always in a session that searches with one
- * candidate, for the inputs that it writes in two passes after all (those
- * under 1 KiB, and those the shared codes do not fit), so that such a
- * session touches no more than the first 32 KiB of the table for inputs
- * of up to SESS_MAX_IN.
+ * Searching as libdeflate does, with two candidates, in a session that
+ * shares codes only: use the 32 KiB table?  Unless the full one was asked
+ * for; and always in a session that searches with one candidate, for the
+ * inputs that it writes in two passes after all (those under 1 KiB, and
+ * those the shared codes do not fit).
  */
-#define SESS_SMALL_TABLE(c)	\
-	((c)->s.single || ((c)->s.order != 0 && (c)->s.order <= 13))
+#define SESS_SMALL_TABLE(c)	((c)->s.single || (c)->s.order <= 13)
 /* In c->s.lit[], for a byte without a codeword: a length that is bit 15 */
 #define SESS_LIT_NONE		0x80000000u
 /* The most that one pass can write: header, 16 bits a byte, slack */
@@ -3505,6 +3503,9 @@ do {									\
 	bitcount = nb & 7;
 
 	c->s.prev_len = 0;	/* nothing here is kept for a next input */
+	/* A small table is cleared on every call: see the level 1 loop. */
+	if (ht_order <= HT_CLEAR_EVERY_CALL_MAX_ORDER)
+		c->mf_next_pos = MATCHFINDER_WINDOW_SIZE;
 	if (mf_begin_input(&c->mf_next_pos, in_nbytes, &mf_start))
 		c->ht_cleared_order = 0;
 	if (c->ht_cleared_order < ht_order) {
@@ -3582,24 +3583,24 @@ do {									\
 /*
  * [session] One pass with one candidate: as deflate_direct_generic(), but
  *
- *   - the hash table is used as 2^(ht_order + 1) single positions instead of
- *     2^ht_order pairs.  The entries are the same memory and are fenced and
- *     cleared the same way, so this and the two-candidate code can follow each
- *     other on one compressor;
- *   - the table is small, 8 to 32 KiB (see deflate_direct()), so that it is
- *     in the CPU's first-level cache while an input is written and costs
- *     little to fetch when the thread has done other work since the last one;
- *   - an entry that is not a position of this input is replaced by the
- *     input's first position instead of being skipped: the bytes there are
- *     compared like any candidate's, and there is one branch per position
- *     that is taken only for a match.  With two (is the entry of this input?
- *     are the bytes equal?) every chance meeting in a small table costs a
- *     mispredicted branch;
- *   - five bytes are hashed, not four: a repetition of only four bytes saves
- *     next to nothing and is no longer looked for;
+ *   - one earlier position is kept per hash value, not two, and five bytes
+ *     are hashed, not four: a repetition of only four bytes saves next to
+ *     nothing and is no longer looked for;
  *   - of the positions inside a match, only the first SESS_INSERT_FIRST and
  *     the last are entered into the table;
  *   - long tokens are not skipped: a lookup is cheap enough here.
+ *
+ * The table is the first 2^(ht_order + 1) entries of the level 1 hash table's
+ * memory, 8 to 32 KiB (see deflate_direct()), and is used differently:
+ *
+ *   - it is set to zero at the start of every input.  That is cheap for a
+ *     table of this size, and it walks the table front to back, which fetches
+ *     it far faster than the scattered first touches of the lookups would
+ *     when the thread has done other work since its last input;
+ *   - a position is the offset in the input, so an empty entry reads as the
+ *     input's first position.  The bytes there are compared like those of any
+ *     other candidate: no entry needs to be tested for being empty or stale,
+ *     and the only branch in a step is the one taken for a match.
  *
  * Each step reads eight bytes at the current position once: its low byte is
  * the literal, its low four bytes are compared with the candidate, and bytes
@@ -3628,7 +3629,6 @@ deflate_direct_single_generic(struct libdeflate_compressor * restrict c,
 	const unsigned bits = ht_order + 1;
 	const u8 *in_next = in;
 	const u8 * const in_end = in + in_nbytes;
-	const u8 *in_cur_base;
 	/*
 	 * Positions from here on are neither looked up nor entered into the
 	 * table: eight bytes are read at one that is.
@@ -3642,9 +3642,7 @@ deflate_direct_single_generic(struct libdeflate_compressor * restrict c,
 	unsigned bitcount;
 	u32 next_hash;
 	u32 bad = 0;		/* above 63: a symbol had no codeword */
-	u32 mf_start;
-	s32 first;		/* the position of in[0] */
-	s32 cand;
+	u32 cand;
 
 	STATIC_ASSERT(7 + 4 * MAX_LITLEN_CODEWORD_LEN <= 63);
 	STATIC_ASSERT(7 + MAX_LITLEN_CODEWORD_LEN +
@@ -3652,6 +3650,8 @@ deflate_direct_single_generic(struct libdeflate_compressor * restrict c,
 		      DEFLATE_MAX_EXTRA_OFFSET_BITS <= 63);
 	STATIC_ASSERT(HT_MATCHFINDER_BUCKET_SIZE == 2);
 	STATIC_ASSERT(HT_MATCHFINDER_HASH_ORDER + 1 <= 16);
+	/* A position has to fit in an entry as a number that is not negative. */
+	STATIC_ASSERT(SESS_MAX_IN <= MATCHFINDER_WINDOW_SIZE);
 
 #define D_ADD(bits_, n_)						\
 do {									\
@@ -3720,11 +3720,10 @@ do {									\
 	const u64 w__ = get_unaligned_le64(in_next);			\
 	const u32 hash__ = next_hash;					\
 									\
-	cand = tab[hash__];						\
-	tab[hash__] = in_next - in_cur_base;				\
+	cand = (u16)tab[hash__];					\
+	tab[hash__] = in_next - in;					\
 	next_hash = SESS_HASH5(w__ >> 8, bits);				\
-	cand = MAX(cand, first);					\
-	if (get_unaligned_le32(&in_cur_base[cand]) == (u32)w__)	\
+	if (get_unaligned_le32(&in[cand]) == (u32)w__)			\
 		goto found;						\
 	D_LIT(w__ & 0xFF);						\
 	in_next++;							\
@@ -3737,21 +3736,22 @@ do {									\
 	bitcount = nb & 7;
 
 	c->s.prev_len = 0;	/* nothing here is kept for a next input */
-	if (mf_begin_input(&c->mf_next_pos, in_nbytes, &mf_start))
-		c->ht_cleared_order = 0;
-	if (c->ht_cleared_order < ht_order) {
-		ht_matchfinder_clear(&c->p.f.ht_mf, c->ht_cleared_order,
-				     ht_order);
-		c->ht_cleared_order = ht_order;
-	}
-	/* An entry is of this input if it is not below this (see mf_begin_input()). */
-	first = mf_start;
-	in_cur_base = in - mf_start;
+	/*
+	 * The table, emptied.  What it will hold means nothing to the level 1
+	 * matchfinder whose memory this is: make that one start over, and
+	 * clear what it uses, when it is next used.
+	 */
+	ASSERT(in_nbytes <= SESS_MAX_IN);
+	memset(tab, 0, sizeof(tab[0]) << bits);
+	c->mf_next_pos = MATCHFINDER_WINDOW_SIZE;
+	c->ht_cleared_order = 0;
 
 	if (in_next >= in_stop)
 		goto tail;
-	/* The first position has nothing to be compared with but itself. */
-	tab[SESS_HASH5(get_unaligned_le64(in_next), bits)] = first;
+	/*
+	 * The first position has nothing to be compared with but itself, and
+	 * is in the table already: it is what an empty entry says.
+	 */
 	D_LIT(*in_next++);
 	D_FLUSH();
 	if (in_next >= in_stop)
@@ -3775,10 +3775,10 @@ search:
 found:
 	/*
 	 * A match at in_next with the position 'cand', which is before
-	 * in_next: an entry of this input, or the input's first position.
+	 * in_next: one that was entered into the table, or the first.
 	 */
 	{
-		const u8 * const m = &in_cur_base[cand];
+		const u8 * const m = &in[cand];
 		const u32 max_len = MIN((size_t)(in_end - in_next),
 					DEFLATE_MAX_MATCH_LEN);
 		const u32 length = lz_extend(in_next, m, 4, max_len);
@@ -3794,12 +3794,11 @@ found:
 			if (match_end - 1 >= insert_end &&
 			    match_end - 1 <= in_stop)
 				tab[SESS_HASH5(get_unaligned_le64(match_end - 1),
-					       bits)] =
-					(match_end - 1) - in_cur_base;
+					       bits)] = (match_end - 1) - in;
 		}
 		for (in_next++; in_next < insert_end; in_next++)
 			tab[SESS_HASH5(get_unaligned_le64(in_next), bits)] =
-				in_next - in_cur_base;
+				in_next - in;
 		in_next = match_end;
 		if (in_next < in_stop) {
 			next_hash = SESS_HASH5(get_unaligned_le64(in_next),
@@ -3830,35 +3829,37 @@ tail:
 
 /*
  * [session] The hash table is 4 bytes times 2^order: 128 KiB at the full
- * order of 15.
+ * order of 15.  A compressor that is used once per request finds little of
+ * its table in the CPU's caches at the next request, and then a table costs
+ * by its size.  See libdeflate_session_set_order().
  *
- * Two candidates: when a compressor's table does not stay in the CPU's caches
- * from one call to the next, a smaller one (order 13, 32 KiB) can cost fewer
- * cache misses than it costs in extra candidates to look at.
+ * Two candidates: order 13 (32 KiB) unless 15 was asked for.
  *
- * One candidate: orders 11 to 13, by default 12 (16 KiB).  Measured on a
- * Neoverse N2 and on a Xeon, on JSON requests of 3.7 KB, each of these was
- * faster than the full table whether or not the caches were warm, for an
- * output 0.1% (order 13) to 0.5% (order 11) larger.
+ * One candidate: order 11, 12 or 13 (4096, 8192 or 16384 positions); unless
+ * one of them was asked for, the smallest with a position for every byte of
+ * the input.
  *
- * See libdeflate_session_set_order().  @count: also count the symbols, in
- * c->freqs.
+ * @count: also count the symbols, in c->freqs.
  */
 static size_t
 deflate_direct(struct libdeflate_compressor * restrict c,
 	       const u8 *in, size_t in_nbytes, u8 *out, bool count)
 {
 	if (c->s.single) {
+		const unsigned order = c->s.order != 0 ? c->s.order :
+				       in_nbytes <= 4096 ? 11 :
+				       in_nbytes <= 8192 ? 12 : 13;
+
 		/* The order is a constant in each copy of the encoder. */
 #define D_CASE(order_)							\
 	(count ? deflate_direct_single_generic(c, in, in_nbytes, out,	\
 					       order_, true) :		\
 		 deflate_direct_single_generic(c, in, in_nbytes, out,	\
 					       order_, false))
-		if (c->s.order == 0 || c->s.order == 12)
-			return D_CASE(12);
-		if (c->s.order < 12)
+		if (order <= 11)
 			return D_CASE(11);
+		if (order == 12)
+			return D_CASE(12);
 		return D_CASE(13);
 #undef D_CASE
 	}
@@ -3983,8 +3984,8 @@ deflate_compress_fastest(struct libdeflate_compressor * restrict c,
 	if (c->s.enabled && c->s.no_prefix && SESS_SMALL_TABLE(c) &&
 	    (in_nbytes <= SESS_MAX_IN || c->s.order != 0)) {
 		/*
-		 * [session] The small table: for every input if it was asked
-		 * for, else for the inputs a session is meant for.
+		 * [session] The small table: for every input if a size was
+		 * asked for, else for the inputs a session is meant for.
 		 */
 		deflate_compress_fastest_generic(c, in, in_nbytes, os, 13);
 		return;
@@ -5681,6 +5682,19 @@ libdeflate_deflate_compress(struct libdeflate_compressor *c,
 	os.next = out;
 	os.end = os.next + out_nbytes_avail;
 	os.overflow = false;
+
+	/*
+	 * [no clear] Without a session every input starts with cleared tables,
+	 * as in stock libdeflate.  Keeping the tables from one input to the
+	 * next, with the old entries fenced off, saves the clearing; but the
+	 * clearing walks a table front to back, and when the table has left
+	 * the CPU's caches since the last input (a compressor used once per
+	 * request) that fetches it far faster than the scattered first
+	 * touches of the search do.  Measured with cold caches, not clearing
+	 * was slower than clearing, on one machine by half.
+	 */
+	if (!c->s.enabled)
+		c->mf_next_pos = MATCHFINDER_WINDOW_SIZE;
 
 	/* Call the actual compression function. */
 	(*c->impl)(c, in, in_nbytes, &os);

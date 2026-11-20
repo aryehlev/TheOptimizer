@@ -14,8 +14,8 @@ build stock ../gzlocal/vendor/stock
 build patched ../gzlocal/vendor/patched -DHAVE_SESSION -DHAVE_SEARCH_API
 python3 ../gzlocal/bench/rtbgen.py /tmp/exp_rtb 400 6 > /dev/null
 F=/tmp/exp_rtb_single.bin
-# name:binary:session:one_candidate:table_order
-V="stock:stock:0:0:15 sessions_off:patched:0:0:15 codes:patched:2:0:15 codes_32K:patched:2:0:13 fast_8K:patched:2:1:11 fast_16K_the_default:patched:2:1:12 fast_32K:patched:2:1:13"
+# name:binary:session:one_candidate:table_order (-: the default)
+V="stock:stock:0:0:- sessions_off:patched:0:0:- codes:patched:2:0:- codes_128K_as_in_0.3:patched:2:0:15 fast:patched:2:1:- fast_8K:patched:2:1:11 fast_16K:patched:2:1:12 fast_32K:patched:2:1:13"
 CPU=$(( $(nproc) - 1 ))
 echo "machine: $(uname -m), $(lscpu 2>/dev/null | sed -n 's/^Model name: *//p' | head -1)"
 for tb in 0 4194304 67108864; do
@@ -26,7 +26,8 @@ for tb in 0 4194304 67108864; do
   for round in $rounds; do
     for v in $V; do
       name=$(echo $v | cut -d: -f1); bin=$(echo $v | cut -d: -f2); sess=$(echo $v | cut -d: -f3); one=$(echo $v | cut -d: -f4); order=$(echo $v | cut -d: -f5)
-      SB_PASSES=$passes SB_SEEDS=$one SB_ORDER=$order taskset -c $CPU bin/$bin 1 $sess $tb $F >> /tmp/cold_$name.txt
+      if [ "$order" = "-" ]; then SB_PASSES=$passes SB_SEEDS=$one taskset -c $CPU bin/$bin 1 $sess $tb $F >> /tmp/cold_$name.txt
+      else SB_PASSES=$passes SB_SEEDS=$one SB_ORDER=$order taskset -c $CPU bin/$bin 1 $sess $tb $F >> /tmp/cold_$name.txt; fi
     done
   done
   base_t=$(sort -n /tmp/cold_stock.txt | head -1 | awk '{print $1}'); base_b=$(head -1 /tmp/cold_stock.txt | awk '{print $2}')

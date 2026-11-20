@@ -16,10 +16,10 @@
 //! came before on that thread. Nothing but the codes is kept between calls.
 //!
 //! `gzip_fast_with` is the same with a cheaper search for repetitions and a
-//! small table. It takes a little over a third of the time stock libdeflate
-//! takes, also when the thread has done a lot of other work since its last
-//! call, and the output is about 2% larger than stock's on JSON requests of a
-//! few kilobytes.
+//! table no larger than the payload needs. It takes about a third of the time
+//! stock libdeflate takes, also when the thread has done a lot of other work
+//! since its last call, and the output is about 2% larger than stock's on JSON
+//! requests of a few kilobytes.
 //!
 //! `gzip_session_with` also continues a payload that starts with the same
 //! bytes as the one before it (one request sent to several recipients, with
@@ -72,15 +72,17 @@ pub enum Session {
     /// Nothing: every payload is compressed on its own, as stock libdeflate would.
     Off,
     /// The Huffman codes. For payloads up to 16 KiB that resemble each other.
-    /// Payloads of 1 KiB and more are written in one pass.
+    /// Payloads of 1 KiB and more are written in one pass. The search is
+    /// libdeflate's, with a 32 KiB table.
     Codes,
     /// As `Codes`, with a cheaper search in that one pass: one earlier
     /// position is tried per hash value instead of two, five bytes are hashed
-    /// instead of four, and the table is 16 KiB instead of 128 KiB, so it is
-    /// cheap to have in the cache. Much faster, and it stays fast when the
-    /// thread does other work between calls; the output is about 1% larger
-    /// than with `Codes` on JSON requests of a few kilobytes, and a few
-    /// percent larger on text that repeats itself a lot.
+    /// instead of four, and the table is 8 to 32 KiB, as the payload needs,
+    /// and is fetched in one sweep at the start of a call. About twice as
+    /// fast as `Codes`, and it stays that fast when the thread does other
+    /// work between calls. The output is about 1% larger than with `Codes` on
+    /// JSON requests of a few kilobytes, and several percent larger on text
+    /// that repeats itself a lot.
     CodesFast,
     /// The codes, and the compressed form of a common beginning: a payload of
     /// up to 8 KiB that starts with the same bytes as the previous one is
@@ -132,13 +134,16 @@ impl Gzip {
     /// of two: 4 bytes times 2^`order`. The output differs by a fraction of
     /// a percent between the sizes.
     ///
-    /// `Session::CodesFast`: 11, 12 or 13 (8, 16 or 32 KiB). The default is
-    /// 12; there is rarely a reason to change it.
+    /// `Session::CodesFast`: 11, 12 or 13 (8, 16 or 32 KiB). Without this
+    /// call the table is sized to each payload: 8 KiB for payloads up to
+    /// 4 KiB, 16 KiB up to 8 KiB, 32 KiB above. There is rarely a reason to
+    /// change that.
     ///
-    /// `Session::Codes`: 13 or 15. The default, 15 (128 KiB), is fastest when
-    /// the table is still in the CPU's caches at the next call. If the thread
-    /// does a lot of other work between two calls it is not, and 13 (32 KiB)
-    /// can be faster.
+    /// `Session::Codes`: 13 or 15. The default, 13 (32 KiB), is cleared for
+    /// every payload. 15 (128 KiB) is kept between payloads instead; it is
+    /// faster while it stays in the CPU's caches from one call to the next,
+    /// and slower, on some machines much slower, when the thread does enough
+    /// other work in between to push it out.
     ///
     /// Other values are taken as the nearest of these.
     #[cfg(gzlocal_session)]
