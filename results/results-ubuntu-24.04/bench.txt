@@ -1,17 +1,17 @@
 tests: test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
-machine: x86_64, 4 CPUs, AMD EPYC 9V74 80-Core Processor
+machine: x86_64, 4 CPUs, Intel(R) Xeon(R) 6975P-C
 other work per request: 0 KiB
-  stock                             17.59 us   output 58.1% of input
-  gzip_with                         15.79 us   output 58.1% of input
-  gzip_codes_with                   10.57 us   output 58.7% of input
-  gzip_codes_with,table_order_13    12.07 us   output 58.7% of input
+  stock                             18.43 us   output 58.1% of input
+  gzip_with                         16.78 us   output 58.1% of input
+  gzip_codes_with                   10.69 us   output 58.7% of input
+  gzip_codes_with,table_order_13    12.49 us   output 58.7% of input
 other work per request: 256 KiB
-  stock                             17.69 us   output 58.1% of input
-  gzip_with                         15.91 us   output 58.1% of input
-  gzip_codes_with                   10.78 us   output 58.7% of input
-  gzip_codes_with,table_order_13    12.27 us   output 58.7% of input
+  stock                             18.54 us   output 58.1% of input
+  gzip_with                         16.88 us   output 58.1% of input
+  gzip_codes_with                   10.77 us   output 58.7% of input
+  gzip_codes_with,table_order_13    12.59 us   output 58.7% of input
 other work per request: 4096 KiB
-  stock                             18.67 us   output 58.1% of input
-  gzip_with                         17.66 us   output 58.1% of input
-  gzip_codes_with                   12.34 us   output 58.7% of input
-  gzip_codes_with,table_order_13    13.50 us   output 58.7% of input
+  stock                             21.42 us   output 58.1% of input
+  gzip_with                         19.73 us   output 58.1% of input
+  gzip_codes_with                   14.17 us   output 58.7% of input
+  gzip_codes_with,table_order_13    14.09 us   output 58.7% of input
