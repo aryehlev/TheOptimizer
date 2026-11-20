@@ -49,6 +49,8 @@ jobs:
         run: sh exp/run.sh | tee out/explore.txt
       - name: Cold caches
         run: sh exp/cold.sh | tee out/cold.txt
+      - name: Patch by patch, sessions off
+        run: sh exp/stages.sh | tee out/stages.txt
       - uses: actions/upload-artifact@v4
         with:
           name: results-${{ matrix.runner }}
