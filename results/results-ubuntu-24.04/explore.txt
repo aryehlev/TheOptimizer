@@ -1,10 +1,10 @@
 machine: x86_64, Intel(R) Xeon(R) 6975P-C; payloads: /tmp/exp_rtb_single.bin
 variant                                min_us   med_us     bytes     size    time
-stock                                   18.31    18.34    870103   +0.00%  100.0%
-v1_two_candidates                       11.27    11.28    878818   +1.00%   61.6%
-previous_best                            7.62     7.67    885839   +1.81%   41.6%
-restructured                             6.92     6.94    885775   +1.80%   37.8%
-restructured_first3                      6.98     7.02    884727   +1.68%   38.1%
-every_other_after_64                     6.58     6.60    887363   +1.98%   35.9%
-every_other_after_32                     6.32     6.33    893536   +2.69%   34.5%
-every_other_after_16                     5.94     5.97    899356   +3.36%   32.4%
+stock                                   18.31    18.36    870103   +0.00%  100.0%
+stock_O3                                18.47    18.50    870103   +0.00%  100.9%
+v1_two_candidates                       11.30    11.32    878818   +1.00%   61.7%
+restructured                             6.95     6.96    885775   +1.80%   38.0%
+next_word_ahead                          6.94     6.98    885775   +1.80%   37.9%
+next_word_ahead_O3                       6.90     6.93    885775   +1.80%   37.7%
+next_word_ahead_count_1_in_16            6.88     6.91    886398   +1.87%   37.6%
+next_word_ahead_every_other_after_64     6.60     6.64    887363   +1.98%   36.0%
