@@ -1,12 +1,10 @@
 machine: aarch64, Neoverse-N2; payloads: /tmp/exp_rtb_single.bin
 variant                                min_us   med_us     bytes     size    time
-stock                                   17.74    17.78    870103   +0.00%  100.0%
-v1_two_candidates                       11.96    12.00    878818   +1.00%   67.4%
-first2_token16                           7.54     7.55    887121   +1.96%   42.5%
-first2_token32                           7.51     7.53    885839   +1.81%   42.3%
-first2_token64                           7.45     7.47    885754   +1.80%   42.0%
-first2_no_token_skip                     7.53     7.54    885775   +1.80%   42.4%
-first3_token32                           7.63     7.64    884615   +1.67%   43.0%
-first2_token32_noclear                   8.18     8.20    885840   +1.81%   46.1%
-first2_token32_noprefetch                7.31     7.33    885839   +1.81%   41.2%
-first2_token32_noclear_noprefetch        7.98     7.99    885840   +1.81%   45.0%
+stock                                   17.75    17.77    870103   +0.00%  100.0%
+v1_two_candidates                       11.97    11.99    878818   +1.00%   67.4%
+previous_best                            7.32     7.33    885839   +1.81%   41.2%
+restructured                             6.67     6.68    885775   +1.80%   37.6%
+restructured_first3                      6.78     6.80    884727   +1.68%   38.2%
+every_other_after_64                     6.48     6.49    887363   +1.98%   36.5%
+every_other_after_32                     6.15     6.16    893536   +2.69%   34.6%
+every_other_after_16                     5.80     5.82    899356   +3.36%   32.7%

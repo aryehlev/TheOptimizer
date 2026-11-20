@@ -1,12 +1,10 @@
-machine: x86_64, Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz; payloads: /tmp/exp_rtb_single.bin
+machine: x86_64, Intel(R) Xeon(R) 6975P-C; payloads: /tmp/exp_rtb_single.bin
 variant                                min_us   med_us     bytes     size    time
-stock                                   22.66    22.72    870103   +0.00%  100.0%
-v1_two_candidates                       14.32    14.36    878818   +1.00%   63.2%
-first2_token16                          10.15    10.18    887121   +1.96%   44.8%
-first2_token32                          10.07    10.10    885839   +1.81%   44.4%
-first2_token64                           9.94     9.99    885754   +1.80%   43.9%
-first2_no_token_skip                     8.95     9.00    885775   +1.80%   39.5%
-first3_token32                          10.20    10.22    884615   +1.67%   45.0%
-first2_token32_noclear                  11.46    11.50    885840   +1.81%   50.6%
-first2_token32_noprefetch                9.65     9.71    885839   +1.81%   42.6%
-first2_token32_noclear_noprefetch       11.03    11.08    885840   +1.81%   48.7%
+stock                                   18.31    18.34    870103   +0.00%  100.0%
+v1_two_candidates                       11.27    11.28    878818   +1.00%   61.6%
+previous_best                            7.62     7.67    885839   +1.81%   41.6%
+restructured                             6.92     6.94    885775   +1.80%   37.8%
+restructured_first3                      6.98     7.02    884727   +1.68%   38.1%
+every_other_after_64                     6.58     6.60    887363   +1.98%   35.9%
+every_other_after_32                     6.32     6.33    893536   +2.69%   34.5%
+every_other_after_16                     5.94     5.97    899356   +3.36%   32.4%
