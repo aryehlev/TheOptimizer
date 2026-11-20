@@ -1,37 +1,25 @@
-machine: x86_64, Intel(R) Xeon(R) 6975P-C
+machine: x86_64, AMD EPYC 9V74 80-Core Processor
 other memory walked before each call: 0 KiB
-  stock                        18.32 us  100.0% of stock   870103 B in 400 calls
-  codes                        11.12 us   60.7% of stock   878804 B in 400 calls
-  fast_128K_two_branches        6.95 us   37.9% of stock   885775 B in 400 calls
-  fast_128K_one_branch          6.70 us   36.6% of stock   885775 B in 400 calls
-  fast_32K_two_branches         8.29 us   45.3% of stock   886696 B in 400 calls
-  fast_32K_one_branch           5.93 us   32.4% of stock   886696 B in 400 calls
-  fast_16K_two_branches         9.83 us   53.7% of stock   887782 B in 400 calls
-  fast_16K_one_branch           5.93 us   32.4% of stock   887782 B in 400 calls
-  fast_8K_two_branches         12.30 us   67.1% of stock   889768 B in 400 calls
-  fast_8K_one_branch            5.96 us   32.5% of stock   889768 B in 400 calls
-  fast_4K_one_branch            5.96 us   32.5% of stock   893437 B in 400 calls
+  stock                      23.80 us  100.0% of stock   output +0.00%
+  sessions_off               21.11 us   88.7% of stock   output +0.00%
+  codes                      14.27 us   60.0% of stock   output +1.00%
+  codes_32K                  16.25 us   68.3% of stock   output +1.06%
+  fast_8K                     8.82 us   37.1% of stock   output +2.26%
+  fast_16K_the_default        8.73 us   36.7% of stock   output +2.03%
+  fast_32K                    9.04 us   38.0% of stock   output +1.91%
 other memory walked before each call: 4096 KiB
-  stock                        20.75 us  100.0% of stock   870103 B in 400 calls
-  codes                        13.59 us   65.5% of stock   878779 B in 400 calls
-  fast_128K_two_branches        9.84 us   47.4% of stock   885704 B in 400 calls
-  fast_128K_one_branch         10.35 us   49.9% of stock   885704 B in 400 calls
-  fast_32K_two_branches         9.33 us   45.0% of stock   886503 B in 400 calls
-  fast_32K_one_branch           7.33 us   35.3% of stock   886503 B in 400 calls
-  fast_16K_two_branches        10.39 us   50.1% of stock   887703 B in 400 calls
-  fast_16K_one_branch           6.80 us   32.8% of stock   887703 B in 400 calls
-  fast_8K_two_branches         12.61 us   60.8% of stock   889618 B in 400 calls
-  fast_8K_one_branch            6.48 us   31.2% of stock   889618 B in 400 calls
-  fast_4K_one_branch            6.31 us   30.4% of stock   893756 B in 400 calls
+  stock                      24.53 us  100.0% of stock   output +0.00%
+  sessions_off               22.83 us   93.1% of stock   output +0.00%
+  codes                      15.57 us   63.5% of stock   output +1.00%
+  codes_32K                  17.07 us   69.6% of stock   output +1.03%
+  fast_8K                     8.96 us   36.5% of stock   output +2.24%
+  fast_16K_the_default        9.08 us   37.0% of stock   output +2.02%
+  fast_32K                    9.61 us   39.2% of stock   output +1.88%
 other memory walked before each call: 65536 KiB
-  stock                        22.41 us  100.0% of stock   870103 B in 400 calls
-  codes                        14.64 us   65.3% of stock   878814 B in 400 calls
-  fast_128K_two_branches       10.65 us   47.5% of stock   885704 B in 400 calls
-  fast_128K_one_branch         11.19 us   49.9% of stock   885704 B in 400 calls
-  fast_32K_two_branches        10.02 us   44.7% of stock   886554 B in 400 calls
-  fast_32K_one_branch           8.00 us   35.7% of stock   886554 B in 400 calls
-  fast_16K_two_branches        11.12 us   49.6% of stock   887702 B in 400 calls
-  fast_16K_one_branch           7.56 us   33.7% of stock   887702 B in 400 calls
-  fast_8K_two_branches         13.30 us   59.3% of stock   889679 B in 400 calls
-  fast_8K_one_branch            7.14 us   31.9% of stock   889679 B in 400 calls
-  fast_4K_one_branch            7.05 us   31.5% of stock   893800 B in 400 calls
+  stock                      28.75 us  100.0% of stock   output +0.00%
+  sessions_off               51.70 us  179.8% of stock   output +0.00%
+  codes                      45.28 us  157.5% of stock   output +1.00%
+  codes_32K                  30.80 us  107.1% of stock   output +1.03%
+  fast_8K                    11.95 us   41.6% of stock   output +2.25%
+  fast_16K_the_default       13.91 us   48.4% of stock   output +2.02%
+  fast_32K                   20.08 us   69.8% of stock   output +1.89%
