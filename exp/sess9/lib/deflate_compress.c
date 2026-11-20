@@ -659,6 +659,7 @@ struct libdeflate_compressor {
 		u8 dbuf[SESS_DIRECT_BOUND(SESS_MAX_IN)];
 		u8 order;	/* of the hash table, for sessions that share codes only */
 		bool single;	/* such sessions keep one position per hash value */
+		bool tab_ready;	/* (experiment) the table has been cleared once */
 	} s;
 
 	/*
@@ -3682,15 +3683,40 @@ do {									\
 	c->s.prev_len = 0;	/* nothing here is kept for a next input */
 	if (mf_begin_input(&c->mf_next_pos, in_nbytes, &mf_start))
 		c->ht_cleared_order = 0;
+#ifdef SESS_SINGLE_NOCLEAR
+	/*
+	 * Experiment: the table is cleared once and never again.  An entry is
+	 * used only if it is a position of this input before the current one,
+	 * and then the bytes there are compared, so what other inputs left is
+	 * at worst a wasted comparison.
+	 */
+	if (!c->s.tab_ready) {
+		ht_matchfinder_clear(&c->p.f.ht_mf, 0, HT_MATCHFINDER_HASH_ORDER);
+		c->s.tab_ready = true;
+		c->ht_cleared_order = HT_MATCHFINDER_HASH_ORDER;
+	}
+	cutoff = mf_start;
+#else
 	if (c->ht_cleared_order < ht_order) {
 		ht_matchfinder_clear(&c->p.f.ht_mf, c->ht_cleared_order,
 				     ht_order);
 		c->ht_cleared_order = ht_order;
 	}
-	in_cur_base = in - mf_start;
 	/* An entry is of this input if it is above this (see mf_begin_input()). */
 	cutoff = mf_stale_cutoff;
+#endif
+	in_cur_base = in - mf_start;
 
+#ifdef SESS_SINGLE_NOCLEAR
+#  define SESS_CAND_OK(cand_)	((u32)((s32)(cand_) - cutoff) < (u32)(in_next - in))
+#else
+#  define SESS_CAND_OK(cand_)	((cand_) > cutoff)
+#endif
+#ifdef SESS_NO_PREFETCH
+#  define SESS_PREFETCH(p_)	((void)0)
+#else
+#  define SESS_PREFETCH(p_)	prefetchw(p_)
+#endif
 	/*
 	 * One step: look up the current position; write a match, or add a
 	 * literal to the bit buffer.  Four literals fit in the buffer after a
@@ -3709,8 +3735,8 @@ do {									\
 	cand__ = tab[hash__];						\
 	tab[hash__] = in_next - in_cur_base;				\
 	next_hash = SESS_HASH(in_next + 1, bits);			\
-	prefetchw(&tab[next_hash]);					\
-	if (cand__ > cutoff &&						\
+	SESS_PREFETCH(&tab[next_hash]);					\
+	if (SESS_CAND_OK(cand__) &&					\
 	    load_u32_unaligned(&in_cur_base[cand__]) ==			\
 	    load_u32_unaligned(in_next)) {				\
 		const u8 * const m__ = &in_cur_base[cand__];		\
@@ -3738,7 +3764,7 @@ do {									\
 		if (in_next >= in_stop)					\
 			goto tail;					\
 		next_hash = SESS_HASH(in_next, bits);			\
-		prefetchw(&tab[next_hash]);				\
+		SESS_PREFETCH(&tab[next_hash]);				\
 		break;   						\
 	}								\
 	D_LIT(*in_next++);						\
@@ -3774,6 +3800,8 @@ do {									\
 tail:
 	D_FLUSH();
 #undef D_STEP
+#undef SESS_CAND_OK
+#undef SESS_PREFETCH
 	/* The last few bytes, where nothing can be hashed. */
 	D_RUN(in_end - in_next);
 	D_ADD(codes->codewords.litlen[DEFLATE_END_OF_BLOCK],
@@ -5483,6 +5511,7 @@ libdeflate_alloc_compressor_ex(int compression_level,
 	memset(&c->s, 0, offsetof(struct deflate_session, hdr));
 	c->s.order = HT_MATCHFINDER_HASH_ORDER;
 	c->s.single = false;
+	c->s.tab_ready = false;
 	c->s.period = 1;
 	c->s.miss_limit = 3;
 
