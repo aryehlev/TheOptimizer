@@ -15,15 +15,20 @@ S="-DHAVE_SESSION -DHAVE_SEARCH_API"
 build stock ../gzlocal/vendor/stock
 build v1 ../gzlocal/vendor/patched -DHAVE_SESSION
 build r10 sess10 $S
+build r10_bf sess10 $S -DSESS_BRANCHLESS_FENCE
+build r10_f1 sess10 $S -DSESS_INSERT_FIRST=1
+build r10_e128 sess10 $S -DSESS_SPARSE_AFTER=128
+build r10_bf_e64 sess10 $S -DSESS_BRANCHLESS_FENCE -DSESS_SPARSE_AFTER=64
 build r11 sess11 $S
-build r11_s16 sess11 $S -DSESS_SAMPLE=16
-build r11_e64 sess11 $S -DSESS_SPARSE_AFTER=64
-OPT=-O3 build r11_o3 sess11 $S
-OPT=-O3 build stock_o3 ../gzlocal/vendor/stock
+# the compiler's code for the one-pass functions, to read
+mkdir -p ../out
+for t in sess10 sess11; do
+  gcc -O2 -DNDEBUG -std=gnu11 -I$t -S -o - $t/lib/deflate_compress.c | awk '/^deflate_direct:/{p=1} p{print} p&&/size[ \t]+deflate_direct,/{exit}' | grep -v '^[ \t]*\.cfi' > ../out/direct_$t.s
+done
 python3 ../gzlocal/bench/rtbgen.py /tmp/exp_rtb 400 6 > /dev/null
 F=/tmp/exp_rtb_single.bin
 # name:binary:session:one_candidate:table_order
-V="stock:stock:0:0:15 stock_O3:stock_o3:0:0:15 v1_two_candidates:v1:2:0:15 restructured:r10:2:1:15 next_word_ahead:r11:2:1:15 next_word_ahead_O3:r11_o3:2:1:15 next_word_ahead_count_1_in_16:r11_s16:2:1:15 next_word_ahead_every_other_after_64:r11_e64:2:1:15"
+V="stock:stock:0:0:15 v1_two_candidates:v1:2:0:15 restructured:r10:2:1:15 one_branch_test:r10_bf:2:1:15 insert_first_1:r10_f1:2:1:15 every_other_after_128:r10_e128:2:1:15 one_branch_test_every_other_after_64:r10_bf_e64:2:1:15 next_word_ahead:r11:2:1:15"
 rm -f /tmp/exp_*.txt
 CPU=$(( $(nproc) - 1 ))
 for round in 1 2 3 4 5 6 7 8 9 10 11; do

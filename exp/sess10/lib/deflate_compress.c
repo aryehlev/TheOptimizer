@@ -3694,6 +3694,26 @@ do {									\
 	}								\
 } while (0)
 /*
+ * Is the candidate a match?  (Experiment, SESS_BRANCHLESS_FENCE: an entry that
+ * is not of this input is replaced by the input's first position, so that
+ * there is one branch here and not two.)
+ */
+#ifdef SESS_BRANCHLESS_FENCE
+#  define D_TEST(w_)							\
+do {									\
+	cand = MAX(cand, (s32)mf_start);				\
+	if (get_unaligned_le32(&in_cur_base[cand]) == (u32)(w_))	\
+		goto found;						\
+} while (0)
+#else
+#  define D_TEST(w_)							\
+do {									\
+	if (cand > cutoff &&						\
+	    get_unaligned_le32(&in_cur_base[cand]) == (u32)(w_))	\
+		goto found;						\
+} while (0)
+#endif
+/*
  * One step: look up the current position, enter it into the table, and either
  * go and write a match or add a literal to the bit buffer.  Four literals fit
  * in the buffer after a flush, so the steps come four to a flush.
@@ -3706,9 +3726,7 @@ do {									\
 	cand = tab[hash__];						\
 	tab[hash__] = in_next - in_cur_base;				\
 	next_hash = SESS_HASH5(w__ >> 8, bits);				\
-	if (cand > cutoff &&						\
-	    get_unaligned_le32(&in_cur_base[cand]) == (u32)w__)	\
-		goto found;						\
+	D_TEST(w__);							\
 	D_LIT(w__ & 0xFF);						\
 	in_next++;							\
 } while (0)
@@ -3721,9 +3739,7 @@ do {									\
 	cand = tab[hash__];						\
 	tab[hash__] = in_next - in_cur_base;				\
 	next_hash = SESS_HASH5(w__ >> 16, bits);			\
-	if (cand > cutoff &&						\
-	    get_unaligned_le32(&in_cur_base[cand]) == (u32)w__)	\
-		goto found;						\
+	D_TEST(w__);							\
 	D_LIT(w__ & 0xFF);						\
 	D_LIT((w__ >> 8) & 0xFF);					\
 	in_next += 2;							\
@@ -3749,6 +3765,15 @@ do {									\
 
 	if (in_next >= in_stop)
 		goto tail;
+#ifdef SESS_BRANCHLESS_FENCE
+	/* The first position has nothing to be compared with but itself. */
+	tab[SESS_HASH5(get_unaligned_le64(in_next), bits)] =
+		in_next - in_cur_base;
+	D_LIT(*in_next++);
+	D_FLUSH();
+	if (in_next >= in_stop)
+		goto tail;
+#endif
 	next_hash = SESS_HASH5(get_unaligned_le64(in_next), bits);
 search:
 	/* At most 7 bits are in the bit buffer here. */
@@ -3830,6 +3855,7 @@ tail:
 #undef D_MATCH
 #undef D_STEP
 #undef D_STEP2
+#undef D_TEST
 	ASSERT(out_next + 8 <= out + SESS_DIRECT_BOUND(in_nbytes));
 	if (bad > 63)
 		return 0;
