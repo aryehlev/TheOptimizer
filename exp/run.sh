@@ -12,22 +12,18 @@ build() {
   gcc -O2 -DNDEBUG -std=gnu11 -I"$tree" "$@" -o bin/$name sbench.c "$tree"/lib/*.c "$tree"/lib/$ARCH/*.c
 }
 S="-DHAVE_SESSION -DHAVE_SEARCH_API"
-H5="$S -DSESS_HASH_BYTES=5"
 build stock ../gzlocal/vendor/stock
 build v1 ../gzlocal/vendor/patched -DHAVE_SESSION
-B="$H5 -DSESS_INSERT_FIRST=2"
-build f2 sess9 $B
-build f2_t32 sess9 $B -DSESS_TOKEN_CHECK=32
-build f2_t64 sess9 $B -DSESS_TOKEN_CHECK=64
-build f2_t0 sess9 $B -DSESS_TOKEN_CHECK=0
-build f3_t32 sess9 $H5 -DSESS_INSERT_FIRST=3 -DSESS_TOKEN_CHECK=32
-build f2_t32_nc sess9 $B -DSESS_TOKEN_CHECK=32 -DSESS_SINGLE_NOCLEAR
-build f2_t32_np sess9 $B -DSESS_TOKEN_CHECK=32 -DSESS_NO_PREFETCH
-build f2_t32_nc_np sess9 $B -DSESS_TOKEN_CHECK=32 -DSESS_SINGLE_NOCLEAR -DSESS_NO_PREFETCH
+build prev sess9 $S -DSESS_HASH_BYTES=5 -DSESS_INSERT_FIRST=2 -DSESS_TOKEN_CHECK=32 -DSESS_NO_PREFETCH
+build new sess10 $S
+build new_f3 sess10 $S -DSESS_INSERT_FIRST=3
+build new_s64 sess10 $S -DSESS_SPARSE_AFTER=64
+build new_s32 sess10 $S -DSESS_SPARSE_AFTER=32
+build new_s16 sess10 $S -DSESS_SPARSE_AFTER=16
 python3 ../gzlocal/bench/rtbgen.py /tmp/exp_rtb 400 6 > /dev/null
 F=/tmp/exp_rtb_single.bin
 # name:binary:session:one_candidate:table_order
-V="stock:stock:0:0:15 v1_two_candidates:v1:2:0:15 first2_token16:f2:2:1:15 first2_token32:f2_t32:2:1:15 first2_token64:f2_t64:2:1:15 first2_no_token_skip:f2_t0:2:1:15 first3_token32:f3_t32:2:1:15 first2_token32_noclear:f2_t32_nc:2:1:15 first2_token32_noprefetch:f2_t32_np:2:1:15 first2_token32_noclear_noprefetch:f2_t32_nc_np:2:1:15"
+V="stock:stock:0:0:15 v1_two_candidates:v1:2:0:15 previous_best:prev:2:1:15 restructured:new:2:1:15 restructured_first3:new_f3:2:1:15 every_other_after_64:new_s64:2:1:15 every_other_after_32:new_s32:2:1:15 every_other_after_16:new_s16:2:1:15"
 rm -f /tmp/exp_*.txt
 CPU=$(( $(nproc) - 1 ))
 for round in 1 2 3 4 5 6 7 8 9 10 11; do
