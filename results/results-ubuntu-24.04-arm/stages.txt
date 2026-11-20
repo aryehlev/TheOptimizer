@@ -1,0 +1,11 @@
+machine: aarch64, Neoverse-N2
+s3 no-clear + sized table + clear small tables, s4 +sort used symbols, s5 +codewords for used symbols, s6 +precode items, s7 +sessions, s8 +literal run in a register, s9 +token skipping, s10 +one pass (the shipped tree)
+  stock    17.75 us  100.0% of stock   same bytes total
+  s3       17.98 us  101.3% of stock   same bytes total
+  s4       17.80 us  100.3% of stock   same bytes total
+  s5       17.47 us   98.4% of stock   same bytes total
+  s6       17.32 us   97.6% of stock   same bytes total
+  s7       17.86 us  100.6% of stock   same bytes total
+  s8       17.69 us   99.7% of stock   same bytes total
+  s9       18.44 us  103.9% of stock   same bytes total
+  s10      18.39 us  103.6% of stock   same bytes total
