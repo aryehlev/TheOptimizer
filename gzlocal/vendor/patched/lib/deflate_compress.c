@@ -531,8 +531,16 @@ struct deflate_output_bitstream;
 #ifndef SESS_SAMPLE
 #  define SESS_SAMPLE		8	/* one input in this many is not: a power of 2 */
 #endif
-/* Two candidates, as libdeflate searches: the 32 KiB table was asked for */
-#define SESS_SMALL_TABLE(c)	((c)->s.order != 0 && (c)->s.order <= 13)
+/*
+ * Searching as libdeflate does, with two candidates: use the 32 KiB table?
+ * If it was asked for; and always in a session that searches with one
+ * candidate, for the inputs that it writes in two passes after all (those
+ * under 1 KiB, and those the shared codes do not fit), so that such a
+ * session touches no more than the first 32 KiB of the table for inputs
+ * of up to SESS_MAX_IN.
+ */
+#define SESS_SMALL_TABLE(c)	\
+	((c)->s.single || ((c)->s.order != 0 && (c)->s.order <= 13))
 /* In c->s.lit[], for a byte without a codeword: a length that is bit 15 */
 #define SESS_LIT_NONE		0x80000000u
 /* The most that one pass can write: header, 16 bits a byte, slack */
@@ -3972,12 +3980,14 @@ deflate_compress_fastest(struct libdeflate_compressor * restrict c,
 	    in_nbytes >= SESS_DIRECT_MIN && in_nbytes <= SESS_MAX_IN &&
 	    c->s.direct_ok && deflate_direct_whole(c, in, in_nbytes, os))
 		return;
-	if (c->s.enabled && c->s.no_prefix) {
-		/* [session] the table order chosen for this session */
-		if (SESS_SMALL_TABLE(c)) {
-			deflate_compress_fastest_generic(c, in, in_nbytes, os, 13);
-			return;
-		}
+	if (c->s.enabled && c->s.no_prefix && SESS_SMALL_TABLE(c) &&
+	    (in_nbytes <= SESS_MAX_IN || c->s.order != 0)) {
+		/*
+		 * [session] The small table: for every input if it was asked
+		 * for, else for the inputs a session is meant for.
+		 */
+		deflate_compress_fastest_generic(c, in, in_nbytes, os, 13);
+		return;
 	}
 	if (c->s.enabled && !c->s.no_prefix && c->s.prev_len != 0 &&
 	    in_nbytes <= SESS_MAX_REUSE_IN) {
