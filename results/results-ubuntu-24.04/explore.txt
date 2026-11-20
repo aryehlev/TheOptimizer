@@ -1,10 +1,10 @@
-machine: x86_64, Intel(R) Xeon(R) 6975P-C; payloads: /tmp/exp_rtb_single.bin
+machine: x86_64, INTEL(R) XEON(R) PLATINUM 8573C; payloads: /tmp/exp_rtb_single.bin
 variant                                min_us   med_us     bytes     size    time
-stock                                   18.31    18.36    870103   +0.00%  100.0%
-stock_O3                                18.47    18.50    870103   +0.00%  100.9%
-v1_two_candidates                       11.30    11.32    878818   +1.00%   61.7%
-restructured                             6.95     6.96    885775   +1.80%   38.0%
-next_word_ahead                          6.94     6.98    885775   +1.80%   37.9%
-next_word_ahead_O3                       6.90     6.93    885775   +1.80%   37.7%
-next_word_ahead_count_1_in_16            6.88     6.91    886398   +1.87%   37.6%
-next_word_ahead_every_other_after_64     6.60     6.64    887363   +1.98%   36.0%
+stock                                   24.62    24.68    870103   +0.00%  100.0%
+v1_two_candidates                       14.60    14.68    878818   +1.00%   59.3%
+restructured                             9.18     9.24    885775   +1.80%   37.3%
+one_branch_test                          8.92     8.98    885775   +1.80%   36.2%
+insert_first_1                           9.06     9.17    886769   +1.92%   36.8%
+every_other_after_128                    8.78     8.93    886118   +1.84%   35.7%
+one_branch_test_every_other_after_64     8.56     8.69    887363   +1.98%   34.8%
+next_word_ahead                          9.06     9.10    885775   +1.80%   36.8%

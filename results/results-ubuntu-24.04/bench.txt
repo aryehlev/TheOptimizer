@@ -1,17 +1,17 @@
-tests: test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
-machine: x86_64, 4 CPUs, Intel(R) Xeon(R) 6975P-C
+tests: test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+machine: x86_64, 4 CPUs, INTEL(R) XEON(R) PLATINUM 8573C
 other work per request: 0 KiB
-  stock                             18.39 us   output 58.1% of input
-  gzip_with                         16.79 us   output 58.1% of input
-  gzip_codes_with                   10.73 us   output 58.7% of input
-  gzip_codes_with,table_order_13    12.48 us   output 58.7% of input
+  stock                             24.18 us   output 58.1% of input
+  gzip_with                         21.84 us   output 58.1% of input
+  gzip_codes_with                   14.27 us   output 58.7% of input
+  gzip_codes_with,table_order_13    16.56 us   output 58.7% of input
 other work per request: 256 KiB
-  stock                             18.54 us   output 58.1% of input
-  gzip_with                         16.86 us   output 58.1% of input
-  gzip_codes_with                   10.76 us   output 58.7% of input
-  gzip_codes_with,table_order_13    12.61 us   output 58.7% of input
+  stock                             24.20 us   output 58.1% of input
+  gzip_with                         21.90 us   output 58.1% of input
+  gzip_codes_with                   14.34 us   output 58.7% of input
+  gzip_codes_with,table_order_13    16.69 us   output 58.7% of input
 other work per request: 4096 KiB
-  stock                             21.36 us   output 58.1% of input
-  gzip_with                         19.50 us   output 58.1% of input
-  gzip_codes_with                   13.79 us   output 58.7% of input
-  gzip_codes_with,table_order_13    14.02 us   output 58.7% of input
+  stock                             26.97 us   output 58.1% of input
+  gzip_with                         24.80 us   output 58.1% of input
+  gzip_codes_with                   17.21 us   output 58.7% of input
+  gzip_codes_with,table_order_13    18.10 us   output 58.7% of input
