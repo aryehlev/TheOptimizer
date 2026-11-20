@@ -1,9 +1,10 @@
 //! How long does one gzip call take inside a tokio server?
 //!
-//!   tokio_bench <file> <payload_bytes|0> <requests> <workers> <other_work_bytes> <mode> [group] [table_order]
+//!   tokio_bench <file> <payload_bytes|0|lines> <requests> <workers> <other_work_bytes> <mode> [group] [table_order]
 //!
 //! <file> is cut into payloads of <payload_bytes>; with 0 it is a file of
-//! records ([u32 length][bytes] repeated, as bench/rtbgen.py writes).
+//! records ([u32 length][bytes] repeated, as bench/rtbgen.py writes); with
+//! "lines" every line of it is a payload (your own requests, one per line).
 //!
 //! Every "request" does some unrelated work on the worker thread (walks
 //! `other_work_bytes` of that thread's scratch memory, as request parsing and
@@ -16,11 +17,12 @@
 //!   session        gzlocal::gzip_session_with (shared codes and shared prefix)
 //!   codes          a thread-local Gzip::with_session(Session::Codes): shared
 //!                  codes, one pass
+//!   fast           the same with Session::CodesFast: the cheaper search
 //!   blocking       gzip_with moved to tokio's blocking pool with spawn_blocking
 //!   fresh          a new compressor for every payload
 //!
 //! [table_order] (12 to 15, default 15) is the size of the hash table for the
-//! mode codes: see Gzip::set_table_order.
+//! modes codes and fast: see Gzip::set_table_order.
 
 use std::cell::RefCell;
 use std::time::Instant;
@@ -36,6 +38,11 @@ static ORDER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(1
 thread_local! {
     static CODES_ONLY: RefCell<gzlocal::Gzip> = RefCell::new({
         let mut g = gzlocal::Gzip::with_session(gzlocal::Session::Codes);
+        g.set_table_order(ORDER.load(std::sync::atomic::Ordering::Relaxed));
+        g
+    });
+    static CODES_FAST: RefCell<gzlocal::Gzip> = RefCell::new({
+        let mut g = gzlocal::Gzip::with_session(gzlocal::Session::CodesFast);
         g.set_table_order(ORDER.load(std::sync::atomic::Ordering::Relaxed));
         g
     });
@@ -66,6 +73,7 @@ fn session(payload: &[u8], mode: &str) -> usize {
     {
         match mode {
             "codes" => CODES_ONLY.with(|g| g.borrow_mut().compress(payload).len()),
+            "fast" => CODES_FAST.with(|g| g.borrow_mut().compress(payload).len()),
             _ => gzlocal::gzip_session_with(payload, |gz| gz.len()),
         }
     }
@@ -79,18 +87,21 @@ fn session(payload: &[u8], mode: &str) -> usize {
 fn main() {
     let a: Vec<String> = std::env::args().collect();
     if a.len() < 7 {
-        eprintln!("usage: tokio_bench <file> <payload_bytes|0> <requests> <workers> <other_work_bytes> <inline|session|codes|blocking|fresh> [group] [table_order]");
+        eprintln!("usage: tokio_bench <file> <payload_bytes|0|lines> <requests> <workers> <other_work_bytes> <inline|session|codes|fast|blocking|fresh> [group] [table_order]");
         std::process::exit(1);
     }
     let data: &'static [u8] = Box::leak(std::fs::read(&a[1]).unwrap().into_boxed_slice());
-    let size: usize = a[2].parse().unwrap();
+    let lines = a[2] == "lines";
+    let size: usize = if lines { 0 } else { a[2].parse().unwrap() };
     let requests: usize = a[3].parse().unwrap();
     let workers: usize = a[4].parse().unwrap();
     let other: usize = a[5].parse().unwrap();
     let mode: &'static str = Box::leak(a[6].clone().into_boxed_str());
     let group: usize = a.get(7).map_or(1, |g| g.parse().unwrap());
     let mut list: Vec<&'static [u8]> = Vec::new();
-    if size == 0 {
+    if lines {
+        list.extend(data.split(|&b| b == b'\n').filter(|l| !l.is_empty()));
+    } else if size == 0 {
         let mut off = 0;
         while off + 4 <= data.len() {
             let n = u32::from_le_bytes(data[off..off + 4].try_into().unwrap()) as usize;
@@ -127,12 +138,12 @@ fn main() {
                         let t0 = Instant::now();
                         let n = match mode {
                             "inline" => gzlocal::gzip_with(&payload, |gz| gz.len()),
-                            "session" | "codes" | "session-codes" => session(&payload, if mode == "session-codes" { "codes" } else { mode }),
+                            "session" | "codes" | "fast" => session(&payload, mode),
                             "fresh" => gzlocal::Gzip::new(gzlocal::LEVEL).compress(&payload).len(),
                             "blocking" => tokio::task::spawn_blocking(move || gzlocal::gzip_with(&payload, |gz| gz.len()))
                                 .await
                                 .unwrap(),
-                            _ => panic!("mode must be inline, session, codes, blocking or fresh"),
+                            _ => panic!("mode must be inline, session, codes, fast, blocking or fresh"),
                         };
                         times.push(t0.elapsed().as_nanos() as u64);
                         out_bytes += n;

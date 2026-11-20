@@ -58,6 +58,9 @@ int main(int argc, char **argv)
 			a = libdeflate_alloc_compressor(1); b = NULL;
 			libdeflate_set_session(a, 1 + (int)below(2));
 			libdeflate_session_set_order(a, 11 + (int)below(6));	/* 12 to 15; out of range is clamped */
+#ifdef HAVE_SEARCH_API
+			libdeflate_session_set_search(a, (int)below(2));
+#endif
 			out = malloc(libdeflate_gzip_compress_bound(a, MAXIN));
 			for (k = 0; k < train; k++) {
 				size_t r = below(nrec);
@@ -70,6 +73,9 @@ int main(int argc, char **argv)
 				b = libdeflate_alloc_compressor(1);
 				libdeflate_set_session(b, 1 + (int)below(2));
 				libdeflate_session_set_order(b, 12 + (int)below(4));
+#ifdef HAVE_SEARCH_API
+				libdeflate_session_set_search(b, (int)below(2));
+#endif
 				n_copy++;
 			}
 			n_frozen++;

@@ -531,6 +531,8 @@ struct deflate_output_bitstream;
 #ifndef SESS_SAMPLE
 #  define SESS_SAMPLE		8	/* one input in this many is not: a power of 2 */
 #endif
+/* In c->s.lit[], for a byte without a codeword: a length that is bit 15 */
+#define SESS_LIT_NONE		0x80000000u
 /* The most that one pass can write: header, 16 bits a byte, slack */
 #define SESS_DIRECT_BOUND(n)	(SESS_HDR_BYTES + 2 * (n) + 32)
 
@@ -621,6 +623,8 @@ struct libdeflate_compressor {
 		u32 calls;	/* inputs that could have been one pass */
 		unsigned long long own_codes;	/* inputs that did not use
 						 * the shared codes */
+		u32 lit[256];	/* a literal's length << 16 | codeword,
+				 * or SESS_LIT_NONE */
 		bool valid;	/* codes, length and hdr can be used */
 		bool track;	/* remember this input for the next one */
 		u8 mode;	/* for deflate_flush_block(): 0 none, 1 whole
@@ -658,6 +662,7 @@ struct libdeflate_compressor {
 		/* Where one pass writes if the caller's buffer may be too small */
 		u8 dbuf[SESS_DIRECT_BOUND(SESS_MAX_IN)];
 		u8 order;	/* of the hash table, for sessions that share codes only */
+		bool single;	/* such sessions keep one position per hash value */
 	} s;
 
 	/*
@@ -3008,6 +3013,13 @@ do {									\
 	deflate_compute_full_len_codewords(c, &c->codes);
 	memcpy(&c->s.length, &c->o.length, sizeof(c->s.length));
 	c->s.codes = c->codes;
+	/* (What codewords[] holds for a symbol without a codeword is not 0.) */
+	for (sym = 0; sym < 256; sym++) {
+		const u32 len = c->codes.lens.litlen[sym];
+
+		c->s.lit[sym] = len == 0 ? SESS_LIT_NONE :
+			len << 16 | (c->codes.codewords.litlen[sym] & 0xFFFF);
+	}
 
 	/* Older inputs count for half as much in the next codes. */
 	for (sym = 0; sym < DEFLATE_NUM_LITLEN_SYMS; sym++)
@@ -3394,7 +3406,8 @@ deflate_compress_fastest_generic(struct libdeflate_compressor * restrict c,
 static forceinline size_t
 deflate_direct_generic(struct libdeflate_compressor * restrict c,
 		       const u8 * const in, const size_t in_nbytes,
-		       u8 * const out, const unsigned ht_order)
+		       u8 * const out, const unsigned ht_order,
+		       const bool count)
 {
 	const struct deflate_codes * const codes = &c->s.codes;
 	const u8 *in_next = in;
@@ -3435,6 +3448,8 @@ do {									\
 									\
 	D_ADD(codes->codewords.litlen[b__], l__);			\
 	bad |= l__ - 1;							\
+	if (count)							\
+		c->freqs.litlen[b__]++;					\
 } while (0)
 #define D_RUN(n_)	/* the next n_ bytes as literals */		\
 do {									\
@@ -3465,6 +3480,11 @@ do {									\
 	D_ADD(off__ - deflate_offset_slot_base[slot__],			\
 	      deflate_extra_offset_bits[slot__]);			\
 	D_FLUSH();							\
+	if (count) {							\
+		c->freqs.litlen[DEFLATE_FIRST_LEN_SYM +			\
+				deflate_length_slot[len__]]++;		\
+		c->freqs.offset[slot__]++;				\
+	}								\
 } while (0)
 
 	/* The block header, made when the codes were. */
@@ -3549,30 +3569,306 @@ do {									\
 }
 
 /*
+ * [session] One pass with one candidate: as deflate_direct_generic(), but
+ *
+ *   - the hash table is used as 2^(ht_order + 1) single positions instead of
+ *     2^ht_order pairs.  The entries are the same memory and are fenced and
+ *     cleared the same way, so this and the two-candidate code can follow each
+ *     other on one compressor;
+ *   - five bytes are hashed, not four: a repetition of only four bytes saves
+ *     next to nothing and is no longer looked for;
+ *   - of the positions inside a match, only the first SESS_INSERT_FIRST and
+ *     the last are entered into the table;
+ *   - long tokens are not skipped: a lookup is cheap enough here.
+ *
+ * Each step reads eight bytes at the current position once: its low byte is
+ * the literal, its low four bytes are compared with the candidate, and bytes
+ * 1 to 5 are hashed for the next position.
+ *
+ * A literal the codes lack is not tested for where it is written.  Its entry
+ * in c->s.lit[] has SESS_LIT_NONE as its length, which sets bit 15 of the bit
+ * count; the bit count is only ever used modulo 64, and every flush collects
+ * it into 'bad'.
+ */
+#ifndef SESS_INSERT_FIRST
+#  define SESS_INSERT_FIRST	2	/* 0: all the positions of a match */
+#endif
+#define SESS_HASH5(x, bits)	/* of the low five bytes of x */	\
+	((u32)((((u64)(x) << 24) * 0x9E3779B185EBCA87ULL) >> (64 - (bits))))
+
+static forceinline size_t
+deflate_direct_single_generic(struct libdeflate_compressor * restrict c,
+			      const u8 * const in, const size_t in_nbytes,
+			      u8 * const out, const unsigned ht_order,
+			      const bool count)
+{
+	const struct deflate_codes * const codes = &c->s.codes;
+	const u32 * const lit = c->s.lit;
+	mf_pos_t * const tab = &c->p.f.ht_mf.hash_tab[0][0];
+	const unsigned bits = ht_order + 1;
+	const u8 *in_next = in;
+	const u8 * const in_end = in + in_nbytes;
+	const u8 *in_cur_base;
+	/*
+	 * Positions from here on are neither looked up nor entered into the
+	 * table: eight bytes are read at one that is.
+	 */
+	const u8 * const in_stop = in_nbytes > 9 ? in_end - 9 : in;
+	/* Before this, four positions in a row are before in_stop. */
+	const u8 * const in_stop4 = in_nbytes > 12 ? in_end - 12 : in;
+	const u32 nb = c->s.hdr_nbits;
+	u8 *out_next = out;
+	u64 bitbuf;
+	unsigned bitcount;
+	u32 next_hash;
+	u32 bad = 0;		/* above 63: a symbol had no codeword */
+	u32 mf_start;
+	s32 cutoff;
+	s32 cand;
+
+	STATIC_ASSERT(7 + 4 * MAX_LITLEN_CODEWORD_LEN <= 63);
+	STATIC_ASSERT(7 + MAX_LITLEN_CODEWORD_LEN +
+		      DEFLATE_MAX_EXTRA_LENGTH_BITS + MAX_OFFSET_CODEWORD_LEN +
+		      DEFLATE_MAX_EXTRA_OFFSET_BITS <= 63);
+	STATIC_ASSERT(HT_MATCHFINDER_BUCKET_SIZE == 2);
+	STATIC_ASSERT(HT_MATCHFINDER_HASH_ORDER + 1 <= 16);
+
+#define D_ADD(bits_, n_)						\
+do {									\
+	bitbuf |= (u64)(bits_) << (bitcount & 63);			\
+	bitcount += (n_);						\
+} while (0)
+#define D_FLUSH()							\
+do {									\
+	put_unaligned_le64(bitbuf, out_next);				\
+	bad |= bitcount;						\
+	out_next += (bitcount >> 3) & 7;				\
+	bitbuf >>= bitcount & 56;					\
+	bitcount &= 7;							\
+} while (0)
+#define D_LIT(b_)	/* c->s.lit[]: length << 16 | codeword */	\
+do {									\
+	const unsigned b__ = (b_);					\
+	const u32 e__ = lit[b__];					\
+									\
+	D_ADD(e__ & 0xFFFF, e__ >> 16);					\
+	if (count)							\
+		c->freqs.litlen[b__]++;					\
+} while (0)
+#define D_RUN(n_)	/* the next n_ bytes as literals */		\
+do {									\
+	size_t n__ = (n_);						\
+									\
+	for (; n__ >= 4; n__ -= 4, in_next += 4) {			\
+		D_LIT(in_next[0]);					\
+		D_LIT(in_next[1]);					\
+		D_LIT(in_next[2]);					\
+		D_LIT(in_next[3]);					\
+		D_FLUSH();						\
+	}								\
+	for (; n__ != 0; n__--) {					\
+		D_LIT(*in_next++);					\
+		D_FLUSH();						\
+	}								\
+} while (0)
+#define D_MATCH(length_, offset_)					\
+do {									\
+	const u32 len__ = (length_);					\
+	const u32 off__ = (offset_);					\
+	const unsigned slot__ = deflate_get_offset_slot(off__);		\
+	const u32 ol__ = codes->lens.offset[slot__];			\
+									\
+	D_ADD(c->s.length.codewords[len__], c->s.length.lens[len__]);	\
+	D_ADD(codes->codewords.offset[slot__], ol__);			\
+	bad |= ol__ - 1;						\
+	D_ADD(off__ - deflate_offset_slot_base[slot__],			\
+	      deflate_extra_offset_bits[slot__]);			\
+	D_FLUSH();							\
+	if (count) {							\
+		c->freqs.litlen[DEFLATE_FIRST_LEN_SYM +			\
+				deflate_length_slot[len__]]++;		\
+		c->freqs.offset[slot__]++;				\
+	}								\
+} while (0)
+/*
+ * One step: look up the current position, enter it into the table, and either
+ * go and write a match or add a literal to the bit buffer.  Four literals fit
+ * in the buffer after a flush, so the steps come four to a flush.
+ */
+#define D_STEP()							\
+do {									\
+	const u64 w__ = get_unaligned_le64(in_next);			\
+	const u32 hash__ = next_hash;					\
+									\
+	cand = tab[hash__];						\
+	tab[hash__] = in_next - in_cur_base;				\
+	next_hash = SESS_HASH5(w__ >> 8, bits);				\
+	if (cand > cutoff &&						\
+	    get_unaligned_le32(&in_cur_base[cand]) == (u32)w__)	\
+		goto found;						\
+	D_LIT(w__ & 0xFF);						\
+	in_next++;							\
+} while (0)
+
+	/* The block header, made when the codes were. */
+	memcpy(out_next, c->s.hdr, nb >> 3);
+	out_next += nb >> 3;
+	bitbuf = c->s.hdr[nb >> 3] & ((1U << (nb & 7)) - 1);
+	bitcount = nb & 7;
+
+	c->s.prev_len = 0;	/* nothing here is kept for a next input */
+	if (mf_begin_input(&c->mf_next_pos, in_nbytes, &mf_start))
+		c->ht_cleared_order = 0;
+	if (c->ht_cleared_order < ht_order) {
+		ht_matchfinder_clear(&c->p.f.ht_mf, c->ht_cleared_order,
+				     ht_order);
+		c->ht_cleared_order = ht_order;
+	}
+	/* An entry is of this input if it is above this (see mf_begin_input()). */
+	cutoff = mf_stale_cutoff;
+	in_cur_base = in - mf_start;
+
+	if (in_next >= in_stop)
+		goto tail;
+	next_hash = SESS_HASH5(get_unaligned_le64(in_next), bits);
+search:
+	/* At most 7 bits are in the bit buffer here. */
+	while (in_next < in_stop4) {
+		D_STEP();
+		D_STEP();
+		D_STEP();
+		D_STEP();
+		D_FLUSH();
+	}
+	while (in_next < in_stop) {
+		D_STEP();
+		D_FLUSH();
+	}
+	goto tail;
+
+found:
+	/* A match at in_next with the position 'cand'. */
+	{
+		const u8 * const m = &in_cur_base[cand];
+		const u32 max_len = MIN((size_t)(in_end - in_next),
+					DEFLATE_MAX_MATCH_LEN);
+		const u32 length = lz_extend(in_next, m, 4, max_len);
+		const u8 * const match_end = in_next + length;
+		const u8 *insert_end = MIN(match_end, in_stop + 1);
+
+		D_FLUSH();	/* the literals of this group of steps */
+		D_MATCH(length, (u32)(in_next - m));
+		/* The first positions inside the match, and the last. */
+		if (SESS_INSERT_FIRST != 0) {
+			insert_end = MIN(insert_end,
+					 in_next + 1 + SESS_INSERT_FIRST);
+			if (match_end - 1 >= insert_end &&
+			    match_end - 1 <= in_stop)
+				tab[SESS_HASH5(get_unaligned_le64(match_end - 1),
+					       bits)] =
+					(match_end - 1) - in_cur_base;
+		}
+		for (in_next++; in_next < insert_end; in_next++)
+			tab[SESS_HASH5(get_unaligned_le64(in_next), bits)] =
+				in_next - in_cur_base;
+		in_next = match_end;
+		if (in_next < in_stop) {
+			next_hash = SESS_HASH5(get_unaligned_le64(in_next),
+					       bits);
+			goto search;
+		}
+	}
+tail:
+	D_FLUSH();
+	/* The last few bytes, where nothing can be hashed. */
+	D_RUN(in_end - in_next);
+	D_ADD(codes->codewords.litlen[DEFLATE_END_OF_BLOCK],
+	      codes->lens.litlen[DEFLATE_END_OF_BLOCK]);
+	D_FLUSH();
+#undef D_ADD
+#undef D_FLUSH
+#undef D_LIT
+#undef D_RUN
+#undef D_MATCH
+#undef D_STEP
+	ASSERT(out_next + 8 <= out + SESS_DIRECT_BOUND(in_nbytes));
+	if (bad > 63)
+		return 0;
+	if (bitcount)
+		*out_next = (u8)bitbuf;
+	return 8 * (size_t)(out_next - out) + bitcount;
+}
+
+/*
  * [session] The hash table is 4 bytes times 2^order: 128 KiB at the full
  * order of 15.  When a compressor's table does not stay in the CPU's caches
- * from one call to the next, a smaller one costs fewer cache misses than it
- * costs in extra candidates to look at.  See libdeflate_session_set_order().
+ * from one call to the next, a smaller one (order 13, 32 KiB) costs fewer
+ * cache misses than it costs in extra candidates to look at.  See
+ * libdeflate_session_set_order().  @count: also count the symbols, in c->freqs.
  */
 static size_t
 deflate_direct(struct libdeflate_compressor * restrict c,
-	       const u8 *in, size_t in_nbytes, u8 *out)
+	       const u8 *in, size_t in_nbytes, u8 *out, bool count)
 {
-	switch (c->s.order) {
-	case 12:
-		return deflate_direct_generic(c, in, in_nbytes, out, 12);
-	case 13:
-		return deflate_direct_generic(c, in, in_nbytes, out, 13);
-	case 14:
-		return deflate_direct_generic(c, in, in_nbytes, out, 14);
-	default:
-		return deflate_direct_generic(c, in, in_nbytes, out, 15);
+	const bool small = (c->s.order == 13);
+
+	if (c->s.single) {
+		if (count)
+			return small ?
+				deflate_direct_single_generic(c, in, in_nbytes, out, 13, true) :
+				deflate_direct_single_generic(c, in, in_nbytes, out, 15, true);
+		return small ?
+			deflate_direct_single_generic(c, in, in_nbytes, out, 13, false) :
+			deflate_direct_single_generic(c, in, in_nbytes, out, 15, false);
 	}
+	if (count)
+		return small ?
+			deflate_direct_generic(c, in, in_nbytes, out, 13, true) :
+			deflate_direct_generic(c, in, in_nbytes, out, 15, true);
+	return small ? deflate_direct_generic(c, in, in_nbytes, out, 13, false) :
+		       deflate_direct_generic(c, in, in_nbytes, out, 15, false);
+}
+
+/*
+ * [session] Do the shared codes fit the symbols counted in c->freqs (without
+ * the end-of-block symbol)?  The same test as in deflate_flush_block(): no
+ * code can use fewer bits than the symbols' entropy, and codes that need 3%
+ * more than that (and 8 bytes) fit badly.
+ */
+static bool
+deflate_session_fits(const struct libdeflate_compressor *c)
+{
+	const struct deflate_codes * const codes = &c->s.codes;
+	u32 sym_cost = codes->lens.litlen[DEFLATE_END_OF_BLOCK];
+	u32 n_litlen = 1, n_offset = 0, flog = 0;
+	u32 entropy;
+	unsigned sym;
+
+	for (sym = 0; sym < DEFLATE_NUM_LITLEN_SYMS; sym++) {
+		if (sym == DEFLATE_END_OF_BLOCK)
+			continue;
+		sym_cost += c->freqs.litlen[sym] * codes->lens.litlen[sym];
+		n_litlen += c->freqs.litlen[sym];
+		flog += sess_flog2(c->freqs.litlen[sym]);
+	}
+	for (sym = 0; sym < DEFLATE_NUM_OFFSET_SYMS; sym++) {
+		sym_cost += c->freqs.offset[sym] * codes->lens.offset[sym];
+		n_offset += c->freqs.offset[sym];
+		flog += sess_flog2(c->freqs.offset[sym]);
+	}
+	entropy = (sess_flog2(n_litlen) + sess_flog2(n_offset) - flog) >> 8;
+	return sym_cost <= entropy + (entropy >> 5) + 64;
 }
 
 /*
  * [session] A whole input in one pass.  False if it was not written: it has a
- * byte the codes lack, or would get larger than stored.
+ * byte the codes lack, it would get larger than stored, or (when the symbols
+ * were counted) the codes turn out to fit it badly.  The caller then goes the
+ * two-pass way, which deals with each of these.
+ *
+ * One input in SESS_SAMPLE, and each one after which the codes are due to be
+ * remade, has its symbols counted as it is written.  The counts go into the
+ * next codes and say whether the current ones still fit.
  */
 static bool
 deflate_direct_whole(struct libdeflate_compressor *c,
@@ -3582,11 +3878,28 @@ deflate_direct_whole(struct libdeflate_compressor *c,
 	const size_t avail = os->end - os->next;
 	u8 * const dst = avail >= SESS_DIRECT_BOUND(in_nbytes) ? os->next :
 								 c->s.dbuf;
-	const size_t nbits = deflate_direct(c, in, in_nbytes, dst);
-	const size_t nbytes = (nbits + 7) / 8;
+	const bool count = (++c->s.calls & (SESS_SAMPLE - 1)) == 0 ||
+			   c->s.since_build + 1 >= c->s.period;
+	size_t nbits, nbytes;
+	unsigned sym;
 
+	if (count)
+		deflate_reset_symbol_frequencies(c);
+	nbits = deflate_direct(c, in, in_nbytes, dst, count);
+	nbytes = (nbits + 7) / 8;
 	if (nbits == 0 || nbytes > in_nbytes + 5 || nbytes > avail)
 		return false;
+	if (count) {
+		if (!deflate_session_fits(c))
+			return false;
+		c->freqs.litlen[DEFLATE_END_OF_BLOCK] = 1;
+		for (sym = 0; sym < DEFLATE_NUM_LITLEN_SYMS; sym++)
+			c->s.acc_litlen[sym] += c->freqs.litlen[sym];
+		for (sym = 0; sym < DEFLATE_NUM_OFFSET_SYMS; sym++)
+			c->s.acc_offset[sym] += c->freqs.offset[sym];
+		c->s.misses = 0;
+		c->s.miss_limit = 3;
+	}
 	if (dst != os->next)
 		memcpy(os->next, dst, nbytes);
 	os->next += nbits / 8;
@@ -3594,6 +3907,8 @@ deflate_direct_whole(struct libdeflate_compressor *c,
 	os->bitbuf = os->bitcount ? *os->next : 0;
 	c->s.since_build++;
 	SESS_COUNT(7, 1);
+	if (count && c->s.since_build >= c->s.period)
+		deflate_session_build(c);	/* for the inputs that follow */
 	return true;
 }
 
@@ -3616,27 +3931,17 @@ deflate_compress_fastest(struct libdeflate_compressor * restrict c,
 {
 	STATIC_ASSERT(HT_MATCHFINDER_HASH_ORDER == 15);
 	/*
-	 * [session] In one pass, except now and then: the two-pass way is
-	 * where the counts for the next codes come from and where the fit of
-	 * the current ones is checked.
+	 * [session] In one pass, as long as the last input that was looked
+	 * at used the shared codes.
 	 */
 	if (c->s.enabled && c->s.valid && c->s.no_prefix &&
 	    in_nbytes >= SESS_DIRECT_MIN && in_nbytes <= SESS_MAX_IN &&
-	    c->s.direct_ok && c->s.since_build + 1 < c->s.period &&
-	    (++c->s.calls & (SESS_SAMPLE - 1)) != 0 &&
-	    deflate_direct_whole(c, in, in_nbytes, os))
+	    c->s.direct_ok && deflate_direct_whole(c, in, in_nbytes, os))
 		return;
 	if (c->s.enabled && c->s.no_prefix) {
 		/* [session] the table order chosen for this session */
-		switch (c->s.order) {
-		case 12:
-			deflate_compress_fastest_generic(c, in, in_nbytes, os, 12);
-			return;
-		case 13:
+		if (c->s.order == 13) {
 			deflate_compress_fastest_generic(c, in, in_nbytes, os, 13);
-			return;
-		case 14:
-			deflate_compress_fastest_generic(c, in, in_nbytes, os, 14);
 			return;
 		}
 	}
@@ -5184,6 +5489,7 @@ libdeflate_alloc_compressor_ex(int compression_level,
 	c->ht_cleared_order = 0;
 	memset(&c->s, 0, offsetof(struct deflate_session, hdr));
 	c->s.order = HT_MATCHFINDER_HASH_ORDER;
+	c->s.single = false;
 	c->s.period = 1;
 	c->s.miss_limit = 3;
 
@@ -5370,7 +5676,14 @@ LIBDEFLATEAPI void
 libdeflate_session_set_order(struct libdeflate_compressor *c, int order)
 {
 	if (c->impl == deflate_compress_fastest)
-		c->s.order = order < 12 ? 12 : order > 15 ? 15 : order;
+		c->s.order = order <= 13 ? 13 : 15;
+}
+
+LIBDEFLATEAPI void
+libdeflate_session_set_search(struct libdeflate_compressor *c, int one_candidate)
+{
+	if (c->impl == deflate_compress_fastest)
+		c->s.single = (one_candidate != 0);
 }
 
 LIBDEFLATEAPI unsigned long long

@@ -59,6 +59,9 @@ int main(int argc, char **argv)
 	out = malloc(bound); out2 = malloc(bound);
 	libdeflate_set_session(c, session);
 	if (getenv("SS_ORDER")) libdeflate_session_set_order(c, atoi(getenv("SS_ORDER")));
+#ifdef HAVE_SEARCH_API
+	if (getenv("SS_SEARCH")) libdeflate_session_set_search(c, atoi(getenv("SS_SEARCH")));
+#endif
 	for (long it = 0; it < iters; it++) {
 		size_t n = 0, got, back_n = 0, avail;
 		unsigned mode = rnd() % 16;

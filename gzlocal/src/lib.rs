@@ -15,6 +15,10 @@
 //! output is ordinary gzip, about 1% larger, and depends on the payloads that
 //! came before on that thread. Nothing but the codes is kept between calls.
 //!
+//! `gzip_fast_with` is the same with a cheaper search for repetitions. It
+//! takes a little over a third of the time stock libdeflate takes, and the
+//! output is about 2% larger than stock's on JSON requests of a few kilobytes.
+//!
 //! `gzip_session_with` also continues a payload that starts with the same
 //! bytes as the one before it (one request sent to several recipients, with
 //! what differs per recipient written last).
@@ -49,6 +53,7 @@ extern "C" {
 extern "C" {
     fn libdeflate_set_session(c: *mut RawCompressor, mode: c_int);
     fn libdeflate_session_set_order(c: *mut RawCompressor, order: c_int);
+    fn libdeflate_session_set_search(c: *mut RawCompressor, one_candidate: c_int);
     fn libdeflate_session_own_codes(c: *const RawCompressor) -> std::os::raw::c_ulonglong;
 }
 
@@ -67,6 +72,12 @@ pub enum Session {
     /// The Huffman codes. For payloads up to 16 KiB that resemble each other.
     /// Payloads of 1 KiB and more are written in one pass.
     Codes,
+    /// As `Codes`, with a cheaper search in that one pass: one earlier
+    /// position is tried per hash value instead of two, and five bytes are
+    /// hashed instead of four. Clearly faster; the output is about 1% larger
+    /// than with `Codes` on JSON requests of a few kilobytes, and a few
+    /// percent larger on text that repeats itself a lot.
+    CodesFast,
     /// The codes, and the compressed form of a common beginning: a payload of
     /// up to 8 KiB that starts with the same bytes as the previous one is
     /// continued from that one's output. Two passes.
@@ -104,15 +115,18 @@ impl Gzip {
         let mode = match session {
             Session::Off => 0,
             Session::CodesAndPrefix => 1,
-            Session::Codes => 2,
+            Session::Codes | Session::CodesFast => 2,
         };
-        unsafe { libdeflate_set_session(g.c.as_ptr(), mode) };
+        unsafe {
+            libdeflate_set_session(g.c.as_ptr(), mode);
+            libdeflate_session_set_search(g.c.as_ptr(), (session == Session::CodesFast) as c_int);
+        }
         g
     }
 
     /// The size of the hash table this compressor searches with, as a power
     /// of two: 4 bytes times 2^`order`, `order` from 12 to 15. It applies to
-    /// `Session::Codes`.
+    /// `Session::Codes` and `Session::CodesFast`.
     ///
     /// The default, 15 (128 KiB), is fastest when the table is still in the
     /// CPU's caches at the next call. If the thread does a lot of other work
@@ -186,12 +200,17 @@ thread_local! {
         g.set_table_order(CODES_TABLE_ORDER.load(Ordering::Relaxed));
         g
     });
+    static LOCAL_FAST: RefCell<Gzip> = RefCell::new({
+        let mut g = Gzip::with_session(Session::CodesFast);
+        g.set_table_order(CODES_TABLE_ORDER.load(Ordering::Relaxed));
+        g
+    });
     static LOCAL_SESSION: RefCell<Gzip> = RefCell::new(Gzip::with_session(Session::CodesAndPrefix));
 }
 
 /// The table order (see [`Gzip::set_table_order`]) of the compressors that
-/// `gzip_codes_with` creates, one per thread, from now on. Call it once at
-/// startup, before the worker threads compress anything.
+/// `gzip_codes_with` and `gzip_fast_with` create, one per thread, from now on.
+/// Call it once at startup, before the worker threads compress anything.
 #[cfg(gzlocal_session)]
 pub fn set_codes_table_order(order: u32) {
     CODES_TABLE_ORDER.store(order.clamp(12, 15), Ordering::Relaxed);
@@ -211,6 +230,21 @@ pub fn codes_own_codes() -> u64 {
 #[cfg(gzlocal_session)]
 pub fn gzip_codes_with<R>(payload: &[u8], f: impl FnOnce(&[u8]) -> R) -> R {
     LOCAL_CODES.with(|g| f(g.borrow_mut().compress(payload)))
+}
+
+/// Like `gzip_codes_with`, with this thread's `Session::CodesFast` compressor:
+/// the fastest of the three, for an output about 1% larger than that of
+/// `gzip_codes_with`. It has a compressor of its own, so a thread that calls
+/// both keeps two sets of codes.
+#[cfg(gzlocal_session)]
+pub fn gzip_fast_with<R>(payload: &[u8], f: impl FnOnce(&[u8]) -> R) -> R {
+    LOCAL_FAST.with(|g| f(g.borrow_mut().compress(payload)))
+}
+
+/// [`Gzip::own_codes`] of this thread's `gzip_fast_with` compressor.
+#[cfg(gzlocal_session)]
+pub fn fast_own_codes() -> u64 {
+    LOCAL_FAST.with(|g| g.borrow().own_codes())
 }
 
 /// Like `gzip_with`, with this thread's `Session::CodesAndPrefix` compressor:
@@ -281,7 +315,7 @@ mod tests {
     #[cfg(gzlocal_session)]
     #[test]
     fn sessions_round_trip() {
-        for session in [Session::Codes, Session::CodesAndPrefix, Session::Off] {
+        for session in [Session::Codes, Session::CodesFast, Session::CodesAndPrefix, Session::Off] {
             let mut g = Gzip::with_session(session);
             let mut plain = Gzip::new(1);
             let (mut with, mut without) = (0usize, 0usize);
@@ -332,7 +366,7 @@ mod tests {
     #[cfg(gzlocal_session)]
     #[test]
     fn session_odd_inputs() {
-        for session in [Session::CodesAndPrefix, Session::Codes] {
+        for session in [Session::CodesAndPrefix, Session::Codes, Session::CodesFast] {
             let mut g = Gzip::with_session(session);
             for round in 0..3 {
                 for (i, p) in odd_inputs().iter().enumerate() {
@@ -345,44 +379,70 @@ mod tests {
     #[cfg(gzlocal_session)]
     #[test]
     fn one_pass_sessions_use_the_shared_codes() {
-        let mut g = Gzip::with_session(Session::Codes);
-        let mut plain = Gzip::new(1);
-        let (mut with, mut without) = (0usize, 0usize);
+        for session in [Session::Codes, Session::CodesFast] {
+            let mut g = Gzip::with_session(session);
+            let mut plain = Gzip::new(1);
+            let (mut with, mut without) = (0usize, 0usize);
+            for auction in 0..600u32 {
+                let p = payload(auction, auction % 6);
+                let gz = g.compress(&p).to_vec();
+                assert_eq!(gunzip(&gz), p, "{session:?} auction {auction}");
+                with += gz.len();
+                without += plain.compress(&p).len();
+            }
+            // These payloads are one phrase over and over, which is where the
+            // cheaper search costs most: about 5% against 1% to 2% on requests.
+            let allowed = if session == Session::CodesFast { without / 12 } else { without / 20 };
+            assert!(with < without + allowed, "{session:?}: {with} vs {without}");
+            assert!(g.own_codes() < 30, "{session:?}: {} of 600 payloads did not use the shared codes", g.own_codes());
+            // What the codes cannot encode, or fit badly, still comes out right, and is counted.
+            let before = g.own_codes();
+            for (i, p) in odd_inputs().iter().enumerate() {
+                assert_eq!(&gunzip(g.compress(p)), p, "{session:?} case {i}");
+            }
+            assert!(g.own_codes() > before);
+        }
+    }
+
+    /// The two searches are different encoders: the fast one must not be the
+    /// other under a new name, and must not cost much size.
+    #[cfg(gzlocal_session)]
+    #[test]
+    fn the_fast_search_is_its_own_encoder() {
+        let mut codes = Gzip::with_session(Session::Codes);
+        let mut fast = Gzip::with_session(Session::CodesFast);
+        let (mut a, mut b, mut differ) = (0usize, 0usize, 0usize);
         for auction in 0..600u32 {
             let p = payload(auction, auction % 6);
-            let gz = g.compress(&p).to_vec();
-            assert_eq!(gunzip(&gz), p, "auction {auction}");
-            with += gz.len();
-            without += plain.compress(&p).len();
+            let x = codes.compress(&p).to_vec();
+            let y = fast.compress(&p).to_vec();
+            assert_eq!(gunzip(&y), p);
+            differ += (x != y) as usize;
+            a += x.len();
+            b += y.len();
         }
-        assert!(with < without + without / 20, "{with} vs {without}");
-        assert!(g.own_codes() < 30, "{} of 600 payloads did not use the shared codes", g.own_codes());
-        // What the codes cannot encode, or fit badly, still comes out right, and is counted.
-        let before = g.own_codes();
-        for (i, p) in odd_inputs().iter().enumerate() {
-            assert_eq!(&gunzip(g.compress(p)), p, "case {i}");
-        }
-        assert!(g.own_codes() > before);
+        assert!(differ > 500, "only {differ} of 600 outputs differ");
+        assert!(b < a + a / 20, "fast {b} vs codes {a}");
     }
 
     #[cfg(gzlocal_session)]
     #[test]
     fn table_orders_give_the_same_payloads() {
         let mut sizes = Vec::new();
-        for order in [0u32, 12, 13, 14, 15, 99] {
-            let mut s = Gzip::with_session(Session::Codes);
+        for (order, session) in [0u32, 12, 13, 14, 15, 99].into_iter().flat_map(|o| [(o, Session::Codes), (o, Session::CodesFast)]) {
+            let mut s = Gzip::with_session(session);
             s.set_table_order(order);
             let mut total = 0usize;
             for auction in 0..300u32 {
                 let p = payload(auction, auction % 6);
                 let gz = s.compress(&p).to_vec();
-                assert_eq!(gunzip(&gz), p, "order {order} auction {auction}");
+                assert_eq!(gunzip(&gz), p, "{session:?} order {order} auction {auction}");
                 total += gz.len();
             }
             sizes.push(total);
         }
         let (min, max) = (*sizes.iter().min().unwrap(), *sizes.iter().max().unwrap());
-        assert!(max < min + min / 50, "the table size should hardly change the output: {sizes:?}");
+        assert!(max < min + min / 25, "the table size and the search should hardly change the output: {sizes:?}");
     }
 
     #[cfg(gzlocal_session)]
@@ -396,10 +456,12 @@ mod tests {
                         for a in 0..80u32 {
                             let p = payload(a * 4 + t, round);
                             gzip_codes_with(&p, |gz| assert_eq!(gunzip(gz), p, "thread {t} round {round} auction {a}"));
+                            gzip_fast_with(&p, |gz| assert_eq!(gunzip(gz), p, "fast, thread {t} round {round} auction {a}"));
                             gzip_session_with(&p, |gz| assert_eq!(gunzip(gz), p));
                         }
                     }
                     assert!(codes_own_codes() < 30);
+                    assert!(fast_own_codes() < 30);
                 });
             }
         });
