@@ -331,9 +331,7 @@ hc_matchfinder_longest_match(struct hc_matchfinder * const mf,
 	}
 
 	in_base = *in_base_p;
-	/* [no-clear prototype] also fence off nodes left by earlier inputs */
-	cutoff = MAX((s32)cur_pos - (s32)MATCHFINDER_WINDOW_SIZE,
-		     mf_stale_cutoff);
+	cutoff = cur_pos - MATCHFINDER_WINDOW_SIZE;
 
 	if (unlikely(max_len < 5)) /* can we read 4 bytes from 'in_next + 1'? */
 		goto out;

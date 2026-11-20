@@ -96,7 +96,8 @@ ht_matchfinder_longest_match(struct ht_matchfinder * const mf,
 			     const u32 nice_len,
 			     u32 * const next_hash,
 			     u32 * const offset_ret,
-			     const unsigned ht_order)
+			     const unsigned ht_order,
+			     const s32 stale_cutoff)
 {
 	u32 best_len = 0;
 	const u8 *best_matchptr = in_next;
@@ -124,9 +125,11 @@ ht_matchfinder_longest_match(struct ht_matchfinder * const mf,
 		cur_pos = 0;
 	}
 	in_base = *in_base_p;
-	/* [no-clear prototype] also fence off nodes left by earlier inputs */
-	cutoff = MAX((s32)cur_pos - (s32)MATCHFINDER_WINDOW_SIZE,
-		     mf_stale_cutoff);
+	/*
+	 * [no-clear prototype] also fence off nodes left by earlier inputs:
+	 * @stale_cutoff is what mf_begin_input() set mf_stale_cutoff to.
+	 */
+	cutoff = MAX((s32)cur_pos - (s32)MATCHFINDER_WINDOW_SIZE, stale_cutoff);
 
 	hash = *next_hash;
 	STATIC_ASSERT(HT_MATCHFINDER_REQUIRED_NBYTES == 5);

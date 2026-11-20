@@ -3283,6 +3283,7 @@ deflate_compress_fastest_generic(struct libdeflate_compressor * restrict c,
 			    in_nbytes <= SESS_MAX_IN;
 
 	u32 mf_start;
+	s32 stale;	/* see mf_begin_input() */
 
 	/*
 	 * [sized table] Clear only the buckets this input's hash order needs
@@ -3309,6 +3310,7 @@ deflate_compress_fastest_generic(struct libdeflate_compressor * restrict c,
 		c->ht_cleared_order = ht_order;
 	}
 	in_cur_base = in - mf_start;
+	stale = mf_stale_cutoff;
 
 	do {
 		/* Starting a new DEFLATE block */
@@ -3344,7 +3346,7 @@ deflate_compress_fastest_generic(struct libdeflate_compressor * restrict c,
 							      nice_len,
 							      &next_hash,
 							      &offset,
-							      ht_order);
+							      ht_order, stale);
 			if (length) {
 				/* Match found */
 				seq->litrunlen_and_length = litrunlen;
@@ -3431,6 +3433,7 @@ deflate_direct_generic(struct libdeflate_compressor * restrict c,
 	u32 litrun = 0;		/* literals in a row, for the token check */
 	u32 bad = 0;		/* top bit: a symbol had no codeword */
 	u32 mf_start;
+	s32 stale;		/* see mf_begin_input() */
 
 	/* Up to 7 bits are left after a flush; then 4 literals or a match fit. */
 	STATIC_ASSERT(7 + 4 * MAX_LITLEN_CODEWORD_LEN <= 64);
@@ -3514,6 +3517,7 @@ do {									\
 		c->ht_cleared_order = ht_order;
 	}
 	in_cur_base = in - mf_start;
+	stale = mf_stale_cutoff;
 
 	while (in_next != in_end) {
 		const size_t remaining = in_end - in_next;
@@ -3534,7 +3538,7 @@ do {									\
 						      &in_cur_base, in_next,
 						      max_len, nice_len,
 						      &next_hash, &offset,
-						      ht_order);
+						      ht_order, stale);
 		if (length) {
 			D_MATCH(length, offset);
 			ht_matchfinder_skip_bytes(&c->p.f.ht_mf, &in_cur_base,
