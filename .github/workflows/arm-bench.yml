@@ -2,6 +2,7 @@ name: gzlocal arm64 benchmark
 on:
   push:
     branches: [gzlocal-arm-bench]
+    paths-ignore: ['exp/real/**', '.github/workflows/**', 'results/**', 'README.md']
 permissions:
   contents: write
 jobs:
