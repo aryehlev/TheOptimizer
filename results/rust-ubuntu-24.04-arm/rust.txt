@@ -1,57 +1,88 @@
 machine: aarch64, 4 CPUs, Neoverse-N2
 rustc 1.100.0 (0ef1bc386 2026-11-09)
+tests, debug build:    17 passed, 0 failed
+tests, checked build:  17 passed, 0 failed
+stress, checked build: ok: seed 1, 50000 payloads, 280986946 -> 93620887 bytes, Stats { one_pass: 1235, two_pass: 27, own_codes: 3010, fixed: 757, stored: 283, rebuilds: 67 }
+stress, checked build: ok: seed 2, 50000 payloads, 264047879 -> 86011910 bytes, Stats { one_pass: 4036, two_pass: 60, own_codes: 6397, fixed: 1697, stored: 492, rebuilds: 107 }
+stress, checked build: ok: seed 3, 50000 payloads, 287241321 -> 94585295 bytes, Stats { one_pass: 365, two_pass: 13, own_codes: 2831, fixed: 620, stored: 214, rebuilds: 43 }
+stress, checked build: ok: seed 4, 50000 payloads, 264344303 -> 87326160 bytes, Stats { one_pass: 6138, two_pass: 91, own_codes: 5537, fixed: 1515, stored: 411, rebuilds: 117 }
+other decoders: 50000 outputs read back by 1.3 (280986946 -> 93620887 bytes)
+other decoders: 1516 of them also by gzip 1.12
+Miri (rustc 1.102.0-nightly (c7d5ba59d 2026-11-20)): 9 passed, 0 failed
+the library with Rust 1.83:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.11s
 
-variants, one thread: the lowest of 9 turns of 12 passes, and the output against stock
-  capture.bin:         variant 0     2.502 us  +3.13%
-  capture.bin:         variant 1     2.493 us  +3.13%
-  capture.bin:         variant 2     2.489 us  +3.13%
-  capture.bin:         variant 4     2.508 us  +3.13%
-  capture.bin:         variant 8     2.487 us  +3.13%
-  capture.bin:         variant 16    2.518 us  +3.13%
-  capture.bin:         variant 31    2.495 us  +3.13%
-  mixed_exchange.bin:  variant 0     1.968 us  +4.64%
-  mixed_exchange.bin:  variant 1     1.970 us  +4.64%
-  mixed_exchange.bin:  variant 2     1.966 us  +4.64%
-  mixed_exchange.bin:  variant 4     1.981 us  +4.64%
-  mixed_exchange.bin:  variant 8     1.953 us  +4.64%
-  mixed_exchange.bin:  variant 16    1.993 us  +4.64%
-  mixed_exchange.bin:  variant 31    1.978 us  +4.64%
-  rtb_single.bin:      variant 0     5.363 us  +2.14%
-  rtb_single.bin:      variant 1     5.416 us  +2.14%
-  rtb_single.bin:      variant 2     5.332 us  +2.14%
-  rtb_single.bin:      variant 4     5.358 us  +2.14%
-  rtb_single.bin:      variant 8     5.354 us  +2.14%
-  rtb_single.bin:      variant 16    5.435 us  +2.14%
-  rtb_single.bin:      variant 31    5.403 us  +2.14%
-variants, in tokio after walking 0 KiB: the lowest median of 3 runs
-  capture              variant 0      2.49 us
-  capture              variant 1      2.46 us
-  capture              variant 2      2.46 us
-  capture              variant 4      2.48 us
-  capture              variant 8      2.46 us
-  capture              variant 16     2.50 us
-  capture              variant 31     2.46 us
-  rtb                  variant 0      5.20 us
-  rtb                  variant 1      5.19 us
-  rtb                  variant 2      5.15 us
-  rtb                  variant 4      5.17 us
-  rtb                  variant 8      5.15 us
-  rtb                  variant 16     5.25 us
-  rtb                  variant 31     5.22 us
-variants, in tokio after walking 65536 KiB: the lowest median of 3 runs
-  capture              variant 0      3.42 us
-  capture              variant 1      3.43 us
-  capture              variant 2      3.34 us
-  capture              variant 4      3.39 us
-  capture              variant 8      3.38 us
-  capture              variant 16     3.40 us
-  capture              variant 31     3.34 us
-  rtb                  variant 0      6.67 us
-  rtb                  variant 1      6.67 us
-  rtb                  variant 2      6.42 us
-  rtb                  variant 4      6.35 us
-  rtb                  variant 8      6.49 us
-  rtb                  variant 16     6.62 us
-  rtb                  variant 31     6.63 us
+one thread, the best of 40 passes:
+rtb_single.bin: 400 payloads, 3744 B on average
+  libdeflate level 1      18.300 us/call  100.0% of stock time    58.09% of in    +0.00% vs stock
+  C Session::Codes        13.425 us/call   73.4% of stock time    58.70% of in    +1.06% vs stock
+  C Session::CodesFast     6.031 us/call   33.0% of stock time    59.36% of in    +2.19% vs stock
+  gzhot (Rust)             5.558 us/call   30.4% of stock time    59.33% of in    +2.13% vs stock
+  gzhot: Stats { one_pass: 16399, two_pass: 1, own_codes: 0, fixed: 0, stored: 0, rebuilds: 25 }
+capture.bin: 1000 payloads, 1771 B on average
+  libdeflate level 1       9.349 us/call  100.0% of stock time    75.01% of in    +0.00% vs stock
+  C Session::Codes         4.123 us/call   44.1% of stock time    78.84% of in    +5.10% vs stock
+  C Session::CodesFast     2.797 us/call   29.9% of stock time    77.46% of in    +3.26% vs stock
+  gzhot (Rust)             2.530 us/call   27.1% of stock time    77.26% of in    +3.00% vs stock
+  gzhot: Stats { one_pass: 40998, two_pass: 2, own_codes: 0, fixed: 0, stored: 0, rebuilds: 49 }
+mixed_exchange.bin: 70 payloads, 1453 B on average
+  libdeflate level 1       8.936 us/call  100.0% of stock time    58.24% of in    +0.00% vs stock
+  C Session::Codes         5.740 us/call   64.2% of stock time    60.41% of in    +3.72% vs stock
+  C Session::CodesFast     2.412 us/call   27.0% of stock time    61.35% of in    +5.33% vs stock
+  gzhot (Rust)             2.134 us/call   23.9% of stock time    61.07% of in    +4.85% vs stock
+  gzhot: Stats { one_pass: 2815, two_pass: 28, own_codes: 27, fixed: 0, stored: 0, rebuilds: 11 }
+rtb_x6.bin: 66 payloads, 22477 B on average
+  libdeflate level 1      83.505 us/call  100.0% of stock time    39.89% of in    +0.00% vs stock
+  C Session::Codes        85.898 us/call  102.9% of stock time    39.89% of in    +0.00% vs stock
+  C Session::CodesFast    85.296 us/call  102.1% of stock time    39.89% of in    +0.00% vs stock
+  gzhot (Rust)            28.470 us/call   34.1% of stock time    40.35% of in    +1.16% vs stock
+  gzhot: Stats { one_pass: 5407, two_pass: 5, own_codes: 0, fixed: 0, stored: 0, rebuilds: 14 }
+rtb_cut500.bin: 400 payloads, 500 B on average
+  libdeflate level 1       4.945 us/call  100.0% of stock time    71.67% of in    +0.00% vs stock
+  C Session::Codes         2.499 us/call   50.5% of stock time    75.85% of in    +5.82% vs stock
+  C Session::CodesFast     2.431 us/call   49.2% of stock time    75.85% of in    +5.82% vs stock
+  gzhot (Rust)             1.377 us/call   27.9% of stock time    75.92% of in    +5.93% vs stock
+  gzhot: Stats { one_pass: 0, two_pass: 16400, own_codes: 0, fixed: 0, stored: 0, rebuilds: 25 }
 
-the one-pass encoder for 1 to 4 KiB: 391 instructions (scan_12_emit.s)
+in tokio, 2 workers, 3.7 KB synthetic bid requests:
+  other work per request: walks 0 KiB
+    stock_libdeflate    17.34 us  100.0% of stock   output 58.1% of input
+    C_gzip_fast_with     5.58 us   32.2% of stock   output 59.4% of input
+    Rust_gzhot           5.18 us   29.9% of stock   output 59.3% of input
+  other work per request: walks 4096 KiB
+    stock_libdeflate    18.49 us  100.0% of stock   output 58.1% of input
+    C_gzip_fast_with     6.26 us   33.9% of stock   output 59.4% of input
+    Rust_gzhot           5.56 us   30.1% of stock   output 59.3% of input
+  other work per request: walks 65536 KiB
+    stock_libdeflate    19.78 us  100.0% of stock   output 58.0% of input
+    C_gzip_fast_with     7.17 us   36.2% of stock   output 59.3% of input
+    Rust_gzhot           6.54 us   33.1% of stock   output 59.3% of input
+
+in tokio, 2 workers, the capture of 1,000 requests of one exchange (1.8 KB):
+  other work per request: walks 0 KiB
+    stock_libdeflate     9.55 us  100.0% of stock   output 75.0% of input
+    C_gzip_fast_with     2.59 us   27.1% of stock   output 77.4% of input
+    Rust_gzhot           2.47 us   25.9% of stock   output 77.2% of input
+  other work per request: walks 4096 KiB
+    stock_libdeflate    10.53 us  100.0% of stock   output 75.0% of input
+    C_gzip_fast_with     3.18 us   30.2% of stock   output 77.5% of input
+    Rust_gzhot           2.78 us   26.4% of stock   output 77.3% of input
+  other work per request: walks 65536 KiB
+    stock_libdeflate    12.14 us  100.0% of stock   output 75.0% of input
+    C_gzip_fast_with     3.97 us   32.7% of stock   output 77.4% of input
+    Rust_gzhot           3.42 us   28.2% of stock   output 77.2% of input
+
+in tokio, 2 workers, 22 KB payloads (six synthetic requests in an array):
+  other work per request: walks 0 KiB
+    stock_libdeflate    78.57 us  100.0% of stock   output 39.9% of input
+    C_gzip_fast_with    84.31 us  107.3% of stock   output 39.9% of input
+    Rust_gzhot          27.38 us   34.8% of stock   output 40.3% of input
+  other work per request: walks 4096 KiB
+    stock_libdeflate    79.70 us  100.0% of stock   output 39.9% of input
+    C_gzip_fast_with    85.84 us  107.7% of stock   output 39.9% of input
+    Rust_gzhot          27.95 us   35.1% of stock   output 40.3% of input
+  other work per request: walks 65536 KiB
+    stock_libdeflate    81.70 us  100.0% of stock   output 39.9% of input
+    C_gzip_fast_with    87.28 us  106.8% of stock   output 39.9% of input
+    Rust_gzhot          29.25 us   35.8% of stock   output 40.3% of input
+
+the one-pass encoder for 1 to 4 KiB: 423 instructions (scan_12_emit.s)
