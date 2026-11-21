@@ -1,0 +1,46 @@
+name: the encoder without unsafe code
+on:
+  push:
+    branches: [gzlocal-arm-bench]
+    paths: ['exp/safe/**', '.github/workflows/safe.yml']
+permissions:
+  contents: write
+jobs:
+  safe:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04-arm, ubuntu-24.04]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust
+        run: |
+          command -v cargo || { curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal; echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"; }
+      - name: Tests, identity, checks and timings
+        run: |
+          mkdir -p out
+          { uname -m; lscpu | grep -E "Model name|L1d|L2|L3"; } > out/machine.txt
+          OUT=$PWD/out sh exp/safe/run.sh 2>&1 | tee out/safe.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: safe-${{ matrix.runner }}
+          path: out/
+  publish:
+    needs: safe
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: results
+      - name: Commit the results to this branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results
+          git commit -m "Results: the encoder without unsafe code [skip ci]" || exit 0
+          git pull --rebase
+          git push

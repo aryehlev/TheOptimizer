@@ -1,0 +1,11 @@
+[package]
+name = "ident"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+fastgzip = { path = "../fastgzip" }
+fastgzip-safe = { path = "../fastgzip-safe" }
+
+[profile.release]
+debug = 1

@@ -1,0 +1,15 @@
+[package]
+name = "rsbench"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+gzlocal = { path = "../../../gzlocal" }
+fastgzip = { path = "../fastgzip" }
+fastgzip-u2 = { path = "../fastgzip-u2" }
+fastgzip-safe = { path = "../fastgzip-safe" }
+fastgzip-safe-s1 = { path = "../fastgzip-safe-s1" }
+flate2 = "1"
+
+[profile.release]
+debug = 1
