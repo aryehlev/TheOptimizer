@@ -16,6 +16,8 @@ categories = ["compression"]
 # one thing here that takes an `unsafe` block.  Without it the crate forbids
 # unsafe code.
 prefetch = []
+# An experiment, not for use: see `Gzip::compress`.
+zerofirst = []
 
 [dependencies]
 crc32fast = "1.5"

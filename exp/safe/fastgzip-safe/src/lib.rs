@@ -199,6 +199,10 @@ impl Gzip {
             // also brings it into the cache for the copy that follows.
             let crc = crc32fast::hash(payload);
             st.out[..10].copy_from_slice(&GZIP_HEADER);
+            // An experiment: zero the copy's place first.  Zeroing can take
+            // hold of cache lines without fetching what they held.
+            #[cfg(feature = "zerofirst")]
+            st.inp[..n].fill(0);
             st.inp[..n].copy_from_slice(payload);
             let o = st.block(n).div_ceil(8);
             st.out[o..o + 4].copy_from_slice(&crc.to_le_bytes());
