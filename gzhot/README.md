@@ -30,22 +30,22 @@ caches when the next payload arrives.
 
 | payloads | other work | stock libdeflate, level 1 | gzlocal 0.4 `gzip_fast_with` (C) | gzhot | gzhot's share of stock's time |
 |---|---|---|---|---|---|
-| synthetic bid requests, 3.7 KB | none | 17.34 | 5.58 | **5.16** | 29.8% |
-| | 4 MiB | 18.21 | 6.21 | **5.46** | 30.0% |
-| | 64 MiB | 19.86 | 6.94 | **6.28** | 31.6% |
-| requests of one exchange (a published capture), 1.8 KB | none | 9.56 | 2.60 | **2.47** | 25.8% |
-| | 4 MiB | 10.44 | 3.22 | **2.70** | 25.9% |
-| | 64 MiB | 11.44 | 3.77 | **3.26** | 28.5% |
-| six synthetic requests in an array, 22 KB | none | 78.47 | 84.26 | **27.34** | 34.8% |
-| | 4 MiB | 79.43 | 85.61 | **27.62** | 34.8% |
-| | 64 MiB | 80.95 | 87.03 | **28.86** | 35.7% |
+| synthetic bid requests, 3.7 KB | none | 17.34 | 5.57 | **5.16** | 29.8% |
+| | 4 MiB | 18.08 | 6.10 | **5.44** | 30.1% |
+| | 64 MiB | 19.99 | 6.92 | **6.22** | 31.1% |
+| requests of one exchange (a published capture), 1.8 KB | none | 9.55 | 2.60 | **2.47** | 25.9% |
+| | 4 MiB | 10.41 | 3.06 | **2.73** | 26.2% |
+| | 64 MiB | 11.78 | 3.70 | **3.14** | 26.7% |
+| six synthetic requests in an array, 22 KB | none | 78.44 | 84.28 | **27.29** | 34.8% |
+| | 4 MiB | 79.42 | 85.56 | **27.69** | 34.9% |
+| | 64 MiB | 80.99 | 87.39 | **28.97** | 35.8% |
 
 The output is 2.1%, 3.0% and 1.2% larger than stock libdeflate's for these
 three kinds; see Output size for others.
 
 On the x86-64 runner of the same run (Xeon 6975P-C) the 3.7 KB requests take
-17.91 / 20.86 / 23.20 with stock libdeflate, 5.33 / 6.15 / 7.23 with the C
-version and 4.89 / 5.47 / 6.42 with gzhot.
+17.98 / 21.05 / 23.19 with stock libdeflate, 5.36 / 6.15 / 7.29 with the C
+version and 4.89 / 5.48 / 6.42 with gzhot.
 
 Each figure is the lowest median of five runs. The scripts and their output
 are in the branch `gzlocal-arm-bench` (`exp/rust/run.sh`,
