@@ -1,4 +1,4 @@
-0000000000043730 <gzhot::enc::scan::<12, true, false>>:
+0000000000043730 <fastgzip::enc::scan::<12, true, false>>:
    43730:	push   %rbp
    43731:	push   %r15
    43733:	push   %r14
@@ -13,7 +13,7 @@
    43751:	bt     $0x20,%r12
    43756:	mov    %r9,0x10(%rsp)
    4375b:	mov    %rsi,0x8(%rsp)
-   43760:	jb     43790 <gzhot::enc::scan::<12, true, false>+0x60>
+   43760:	jb     43790 <fastgzip::enc::scan::<12, true, false>+0x60>
    43762:	movzbl (%rdi),%eax
    43765:	mov    $0xffffffffffffffff,%rbp
    4376c:	mov    %r12d,%ecx
@@ -24,14 +24,14 @@
    43778:	mov    %r12,%r15
    4377b:	mov    0x60(%rsp),%r12
    43780:	cmpb   $0x0,0x68(%rsp)
-   43785:	jne    43850 <gzhot::enc::scan::<12, true, false>+0x120>
-   4378b:	jmp    4386f <gzhot::enc::scan::<12, true, false>+0x13f>
+   43785:	jne    43850 <fastgzip::enc::scan::<12, true, false>+0x120>
+   4378b:	jmp    4386f <fastgzip::enc::scan::<12, true, false>+0x13f>
    43790:	mov    0x890(%r14),%r15d
    43797:	mov    %r15d,%ebx
    4379a:	shr    $0x3,%ebx
    4379d:	lea    0x894(%r14),%rax
    437a4:	cmp    $0x3ff,%r15
-   437ab:	ja     437ed <gzhot::enc::scan::<12, true, false>+0xbd>
+   437ab:	ja     437ed <fastgzip::enc::scan::<12, true, false>+0xbd>
    437ad:	movups 0x70(%rax),%xmm0
    437b1:	movups %xmm0,0x70(%rdi)
    437b5:	movups 0x60(%rax),%xmm0
@@ -48,7 +48,7 @@
    437e0:	movups %xmm2,0x20(%rdi)
    437e4:	movups %xmm1,0x10(%rdi)
    437e8:	movups %xmm0,(%rdi)
-   437eb:	jmp    4381b <gzhot::enc::scan::<12, true, false>+0xeb>
+   437eb:	jmp    4381b <fastgzip::enc::scan::<12, true, false>+0xeb>
    437ed:	mov    %rax,%rsi
    437f0:	mov    %rbx,%rdx
    437f3:	mov    %rax,%rbp
@@ -58,7 +58,7 @@
    43804:	mov    0x10(%rsp),%r9
    43809:	mov    0x70(%rsp),%rdi
    4380e:	cmp    $0x11ff,%r15d
-   43815:	ja     43fac <gzhot::enc::scan::<12, true, false>+0x87c>
+   43815:	ja     43fac <fastgzip::enc::scan::<12, true, false>+0x87c>
    4381b:	and    $0x7,%r15d
    4381f:	mov    $0xffffffff,%ebp
    43824:	mov    %r15d,%ecx
@@ -67,13 +67,13 @@
    4382d:	not    %ebp
    4382f:	and    %eax,%ebp
    43831:	bt     $0x28,%r12
-   43836:	jb     43844 <gzhot::enc::scan::<12, true, false>+0x114>
+   43836:	jb     43844 <fastgzip::enc::scan::<12, true, false>+0x114>
    43838:	test   %rbx,%rbx
-   4383b:	je     43f83 <gzhot::enc::scan::<12, true, false>+0x853>
+   4383b:	je     43f83 <fastgzip::enc::scan::<12, true, false>+0x853>
    43841:	andb   $0xfe,(%rdi)
    43844:	mov    0x60(%rsp),%r12
    43849:	cmpb   $0x0,0x68(%rsp)
-   4384e:	je     4386f <gzhot::enc::scan::<12, true, false>+0x13f>
+   4384e:	je     4386f <fastgzip::enc::scan::<12, true, false>+0x13f>
    43850:	mov    $0x2000,%edx
    43855:	mov    %rsi,%rdi
    43858:	xor    %esi,%esi
@@ -89,20 +89,20 @@
    43880:	cmovb  %rax,%r9
    43884:	mov    %r9,0x20(%rsp)
    43889:	test   %r12,%r12
-   4388c:	je     43898 <gzhot::enc::scan::<12, true, false>+0x168>
+   4388c:	je     43898 <fastgzip::enc::scan::<12, true, false>+0x168>
    4388e:	cmp    %r8,%r12
-   43891:	jae    438a5 <gzhot::enc::scan::<12, true, false>+0x175>
-   43893:	jmp    43adc <gzhot::enc::scan::<12, true, false>+0x3ac>
+   43891:	jae    438a5 <fastgzip::enc::scan::<12, true, false>+0x175>
+   43893:	jmp    43adc <fastgzip::enc::scan::<12, true, false>+0x3ac>
    43898:	cmp    $0x2,%r8
-   4389c:	jae    43a99 <gzhot::enc::scan::<12, true, false>+0x369>
+   4389c:	jae    43a99 <fastgzip::enc::scan::<12, true, false>+0x369>
    438a2:	xor    %r12d,%r12d
    438a5:	lea    0x4(%r12),%rax
    438aa:	mov    0x10(%rsp),%r11
    438af:	cmp    %r11,%rax
-   438b2:	jbe    438c1 <gzhot::enc::scan::<12, true, false>+0x191>
+   438b2:	jbe    438c1 <fastgzip::enc::scan::<12, true, false>+0x191>
    438b4:	mov    %r12,%rdi
    438b7:	mov    0x70(%rsp),%r10
-   438bc:	jmp    43976 <gzhot::enc::scan::<12, true, false>+0x246>
+   438bc:	jmp    43976 <fastgzip::enc::scan::<12, true, false>+0x246>
    438c1:	mov    0x70(%rsp),%r10
    438c6:	cs nopw 0x0(%rax,%rax,1)
    438d0:	movzbl 0x0(%r13,%r12,1),%eax
@@ -151,22 +151,22 @@
    43966:	add    $0x8,%r12
    4396a:	cmp    %r11,%r12
    4396d:	mov    %rdi,%r12
-   43970:	jbe    438d0 <gzhot::enc::scan::<12, true, false>+0x1a0>
+   43970:	jbe    438d0 <fastgzip::enc::scan::<12, true, false>+0x1a0>
    43976:	cmp    %rdi,%r11
-   43979:	jbe    4399a <gzhot::enc::scan::<12, true, false>+0x26a>
+   43979:	jbe    4399a <fastgzip::enc::scan::<12, true, false>+0x26a>
    4397b:	mov    %r11d,%eax
    4397e:	sub    %edi,%eax
    43980:	lea    0x1(%rdi),%rdx
    43984:	test   $0x1,%al
    43986:	mov    0x80(%rsp),%r9
-   4398e:	jne    439aa <gzhot::enc::scan::<12, true, false>+0x27a>
+   4398e:	jne    439aa <fastgzip::enc::scan::<12, true, false>+0x27a>
    43990:	cmp    %rdx,%r11
-   43993:	jne    439d4 <gzhot::enc::scan::<12, true, false>+0x2a4>
-   43995:	jmp    43a1f <gzhot::enc::scan::<12, true, false>+0x2ef>
+   43993:	jne    439d4 <fastgzip::enc::scan::<12, true, false>+0x2a4>
+   43995:	jmp    43a1f <fastgzip::enc::scan::<12, true, false>+0x2ef>
    4399a:	mov    %r15d,%eax
    4399d:	mov    %rbp,%rsi
    439a0:	mov    0x80(%rsp),%r9
-   439a8:	jmp    43a1f <gzhot::enc::scan::<12, true, false>+0x2ef>
+   439a8:	jmp    43a1f <fastgzip::enc::scan::<12, true, false>+0x2ef>
    439aa:	movzbl 0x0(%r13,%rdi,1),%eax
    439b0:	mov    (%r14,%rax,4),%eax
    439b4:	movzwl %ax,%esi
@@ -179,7 +179,7 @@
    439c9:	mov    %rsi,%rbp
    439cc:	mov    %eax,%r15d
    439cf:	cmp    %rdx,%r11
-   439d2:	je     43a1f <gzhot::enc::scan::<12, true, false>+0x2ef>
+   439d2:	je     43a1f <fastgzip::enc::scan::<12, true, false>+0x2ef>
    439d4:	mov    %rbp,%rsi
    439d7:	mov    %r15d,%eax
    439da:	nopw   0x0(%rax,%rax,1)
@@ -201,7 +201,7 @@
    43a14:	add    %edx,%eax
    43a16:	add    $0x2,%rdi
    43a1a:	cmp    %rdi,%r11
-   43a1d:	jne    439e0 <gzhot::enc::scan::<12, true, false>+0x2b0>
+   43a1d:	jne    439e0 <fastgzip::enc::scan::<12, true, false>+0x2b0>
    43a1f:	mov    %rsi,(%r10,%rbx,1)
    43a23:	mov    %eax,%edx
    43a25:	shr    $0x3,%edx
@@ -210,7 +210,7 @@
    43a2e:	mov    %eax,%edi
    43a30:	and    $0xffff8007,%edi
    43a36:	bt     $0x30,%r9
-   43a3b:	jae    43a7b <gzhot::enc::scan::<12, true, false>+0x34b>
+   43a3b:	jae    43a7b <fastgzip::enc::scan::<12, true, false>+0x34b>
    43a3d:	mov    %eax,%ecx
    43a3f:	and    $0x38,%cl
    43a42:	shr    %cl,%rsi
@@ -272,7 +272,7 @@
    43afe:	shr    $0x34,%r11
    43b02:	mov    %r8,%rdi
    43b05:	cmp    0x20(%rsp),%r8
-   43b0a:	jae    43ca0 <gzhot::enc::scan::<12, true, false>+0x570>
+   43b0a:	jae    43ca0 <fastgzip::enc::scan::<12, true, false>+0x570>
    43b10:	mov    %r12,%rdx
    43b13:	mov    0x0(%r13,%r12,1),%rbx
    43b18:	movzwl (%rsi,%r11,2),%edi
@@ -285,7 +285,7 @@
    43b3b:	mov    0x0(%r13,%rdi,1),%rcx
    43b40:	xor    %rbx,%rcx
    43b43:	test   %ecx,%ecx
-   43b45:	je     43d4f <gzhot::enc::scan::<12, true, false>+0x61f>
+   43b45:	je     43d4f <fastgzip::enc::scan::<12, true, false>+0x61f>
    43b4b:	movzbl %bl,%eax
    43b4e:	mov    (%rsp),%r8
    43b52:	mov    (%r8,%rax,4),%eax
@@ -306,7 +306,7 @@
    43b8b:	mov    0x0(%r13,%rdi,1),%rcx
    43b90:	xor    %rbx,%rcx
    43b93:	test   %ecx,%ecx
-   43b95:	je     43d70 <gzhot::enc::scan::<12, true, false>+0x640>
+   43b95:	je     43d70 <fastgzip::enc::scan::<12, true, false>+0x640>
    43b9b:	mov    %rdx,%r15
    43b9e:	movzbl %bl,%ecx
    43ba1:	mov    (%r8,%rcx,4),%edx
@@ -328,7 +328,7 @@
    43bdb:	mov    0x0(%r13,%rdi,1),%rcx
    43be0:	xor    %rbx,%rcx
    43be3:	test   %ecx,%ecx
-   43be5:	je     43d62 <gzhot::enc::scan::<12, true, false>+0x632>
+   43be5:	je     43d62 <fastgzip::enc::scan::<12, true, false>+0x632>
    43beb:	movzbl %bl,%eax
    43bee:	mov    (%r8,%rax,4),%eax
    43bf2:	movzwl %ax,%esi
@@ -350,7 +350,7 @@
    43c2b:	mov    0x0(%r13,%rdi,1),%rcx
    43c30:	xor    %rbx,%rcx
    43c33:	test   %ecx,%ecx
-   43c35:	je     43ec8 <gzhot::enc::scan::<12, true, false>+0x798>
+   43c35:	je     43ec8 <fastgzip::enc::scan::<12, true, false>+0x798>
    43c3b:	mov    %r15,%rdi
    43c3e:	movzbl %bl,%ecx
    43c41:	mov    (%r8,%rcx,4),%r15d
@@ -373,7 +373,7 @@
    43c7d:	inc    %r12
    43c80:	cmp    0x20(%rsp),%r12
    43c85:	mov    %rdx,%r13
-   43c88:	jb     43b10 <gzhot::enc::scan::<12, true, false>+0x3e0>
+   43c88:	jb     43b10 <fastgzip::enc::scan::<12, true, false>+0x3e0>
    43c8e:	add    $0x4,%rdi
    43c92:	data16 data16 data16 data16 cs nopw 0x0(%rax,%rax,1)
    43ca0:	mov    %r10,%rbx
@@ -384,7 +384,7 @@
    43cb1:	cmp    %rdx,%rdi
    43cb4:	movabs $0xb185ebca87000000,%r8
    43cbe:	mov    (%rsp),%r14
-   43cc2:	jae    438a5 <gzhot::enc::scan::<12, true, false>+0x175>
+   43cc2:	jae    438a5 <fastgzip::enc::scan::<12, true, false>+0x175>
    43cc8:	nopl   0x0(%rax,%rax,1)
    43cd0:	mov    0x0(%r13,%r12,1),%rbx
    43cd5:	movzwl (%rsi,%r11,2),%edi
@@ -396,7 +396,7 @@
    43cee:	mov    0x0(%r13,%rdi,1),%rcx
    43cf3:	xor    %rbx,%rcx
    43cf6:	test   %ecx,%ecx
-   43cf8:	je     43d70 <gzhot::enc::scan::<12, true, false>+0x640>
+   43cf8:	je     43d70 <fastgzip::enc::scan::<12, true, false>+0x640>
    43cfa:	movzbl %bl,%ecx
    43cfd:	mov    (%r14,%rcx,4),%r15d
    43d01:	movzwl %r15w,%ebp
@@ -420,20 +420,20 @@
    43d3f:	mov    %rbp,%r9
    43d42:	mov    %r15d,%eax
    43d45:	cmp    %rdx,%r12
-   43d48:	jb     43cd0 <gzhot::enc::scan::<12, true, false>+0x5a0>
-   43d4a:	jmp    438a5 <gzhot::enc::scan::<12, true, false>+0x175>
+   43d48:	jb     43cd0 <fastgzip::enc::scan::<12, true, false>+0x5a0>
+   43d4a:	jmp    438a5 <fastgzip::enc::scan::<12, true, false>+0x175>
    43d4f:	mov    %r15d,%eax
    43d52:	mov    %rbp,%r9
    43d55:	mov    %rdx,%r12
    43d58:	test   %rcx,%rcx
-   43d5b:	jne    43d79 <gzhot::enc::scan::<12, true, false>+0x649>
-   43d5d:	jmp    43ee0 <gzhot::enc::scan::<12, true, false>+0x7b0>
+   43d5b:	jne    43d79 <fastgzip::enc::scan::<12, true, false>+0x649>
+   43d5d:	jmp    43ee0 <fastgzip::enc::scan::<12, true, false>+0x7b0>
    43d62:	add    $0x2,%r15
    43d66:	mov    %edx,%eax
    43d68:	mov    %r15,%r12
    43d6b:	nopl   0x0(%rax,%rax,1)
    43d70:	test   %rcx,%rcx
-   43d73:	je     43ee0 <gzhot::enc::scan::<12, true, false>+0x7b0>
+   43d73:	je     43ee0 <fastgzip::enc::scan::<12, true, false>+0x7b0>
    43d79:	tzcnt  %rcx,%r8
    43d7e:	shr    $0x3,%r8d
    43d82:	mov    (%rsp),%r14
@@ -444,7 +444,7 @@
    43d93:	xor    $0x1f,%ecx
    43d96:	mov    %edi,%edx
    43d98:	cmp    $0x2,%edi
-   43d9b:	jb     43db3 <gzhot::enc::scan::<12, true, false>+0x683>
+   43d9b:	jb     43db3 <fastgzip::enc::scan::<12, true, false>+0x683>
    43d9d:	mov    $0x1e,%edx
    43da2:	sub    %ecx,%edx
    43da4:	bt     %edx,%edi
@@ -515,7 +515,7 @@
    43e8b:	add    %r12,%r8
    43e8e:	and    $0xffff8007,%r15d
    43e95:	cmp    0x18(%rsp),%r8
-   43e9a:	jae    43f9d <gzhot::enc::scan::<12, true, false>+0x86d>
+   43e9a:	jae    43f9d <fastgzip::enc::scan::<12, true, false>+0x86d>
    43ea0:	lea    -0x1(%r8),%rax
    43ea4:	mov    -0x1(%r13,%r8,1),%r11
    43ea9:	mov    %r11,%rcx
@@ -525,12 +525,12 @@
    43eb9:	shr    $0x8,%r11
    43ebd:	mov    %r8,%r12
    43ec0:	mov    %r9,%rsi
-   43ec3:	jmp    43afa <gzhot::enc::scan::<12, true, false>+0x3ca>
+   43ec3:	jmp    43afa <fastgzip::enc::scan::<12, true, false>+0x3ca>
    43ec8:	add    $0x3,%r15
    43ecc:	mov    %r15,%r12
    43ecf:	mov    %rdx,%r13
    43ed2:	test   %rcx,%rcx
-   43ed5:	jne    43d79 <gzhot::enc::scan::<12, true, false>+0x649>
+   43ed5:	jne    43d79 <fastgzip::enc::scan::<12, true, false>+0x649>
    43edb:	nopl   0x0(%rax,%rax,1)
    43ee0:	mov    0x10(%rsp),%r15
    43ee5:	sub    %r12,%r15
@@ -542,45 +542,45 @@
    43f00:	mov    $0x8,%r8d
    43f06:	cmp    $0x10,%r15
    43f0a:	mov    (%rsp),%r14
-   43f0e:	jb     43f3d <gzhot::enc::scan::<12, true, false>+0x80d>
+   43f0e:	jb     43f3d <fastgzip::enc::scan::<12, true, false>+0x80d>
    43f10:	mov    $0x8,%r15d
    43f16:	cs nopw 0x0(%rax,%rax,1)
    43f20:	mov    (%rdx,%r15,1),%r8
    43f24:	mov    (%rsi,%r15,1),%rbp
    43f28:	cmp    %rbp,%r8
-   43f2b:	jne    43f6f <gzhot::enc::scan::<12, true, false>+0x83f>
+   43f2b:	jne    43f6f <fastgzip::enc::scan::<12, true, false>+0x83f>
    43f2d:	lea    0x8(%r15),%r8
    43f31:	add    $0x10,%r15
    43f35:	cmp    %rcx,%r15
    43f38:	mov    %r8,%r15
-   43f3b:	jbe    43f20 <gzhot::enc::scan::<12, true, false>+0x7f0>
+   43f3b:	jbe    43f20 <fastgzip::enc::scan::<12, true, false>+0x7f0>
    43f3d:	cmp    %rcx,%r8
-   43f40:	jae    43d86 <gzhot::enc::scan::<12, true, false>+0x656>
+   43f40:	jae    43d86 <fastgzip::enc::scan::<12, true, false>+0x656>
    43f46:	cs nopw 0x0(%rax,%rax,1)
    43f50:	movzbl (%rdx,%r8,1),%ebp
    43f55:	cmp    (%rsi,%r8,1),%bpl
-   43f59:	jne    43d86 <gzhot::enc::scan::<12, true, false>+0x656>
+   43f59:	jne    43d86 <fastgzip::enc::scan::<12, true, false>+0x656>
    43f5f:	inc    %r8
    43f62:	cmp    %r8,%rcx
-   43f65:	jne    43f50 <gzhot::enc::scan::<12, true, false>+0x820>
+   43f65:	jne    43f50 <fastgzip::enc::scan::<12, true, false>+0x820>
    43f67:	mov    %rcx,%r8
-   43f6a:	jmp    43d86 <gzhot::enc::scan::<12, true, false>+0x656>
+   43f6a:	jmp    43d86 <fastgzip::enc::scan::<12, true, false>+0x656>
    43f6f:	xor    %r8,%rbp
    43f72:	tzcnt  %rbp,%r8
    43f77:	shr    $0x3,%r8d
    43f7b:	add    %r15,%r8
-   43f7e:	jmp    43d86 <gzhot::enc::scan::<12, true, false>+0x656>
+   43f7e:	jmp    43d86 <fastgzip::enc::scan::<12, true, false>+0x656>
    43f83:	and    $0xfffffffe,%ebp
    43f86:	xor    %ebx,%ebx
    43f88:	mov    0x60(%rsp),%r12
    43f8d:	cmpb   $0x0,0x68(%rsp)
-   43f92:	jne    43850 <gzhot::enc::scan::<12, true, false>+0x120>
-   43f98:	jmp    4386f <gzhot::enc::scan::<12, true, false>+0x13f>
+   43f92:	jne    43850 <fastgzip::enc::scan::<12, true, false>+0x120>
+   43f98:	jmp    4386f <fastgzip::enc::scan::<12, true, false>+0x13f>
    43f9d:	mov    %r10,%rbx
    43fa0:	mov    %r8,%r12
    43fa3:	mov    (%rsp),%r14
-   43fa7:	jmp    438a5 <gzhot::enc::scan::<12, true, false>+0x175>
-   43fac:	lea    0x67aa5(%rip),%rdx        # aba58 <anon.d91998d8fdf8c68441992754ee7655f1.20.llvm.5307011345859626740+0x350>
+   43fa7:	jmp    438a5 <fastgzip::enc::scan::<12, true, false>+0x175>
+   43fac:	lea    0x67aa5(%rip),%rdx        # aba58 <anon.9a8ee20c923099169509f5f41579f7ce.20.llvm.9853074210643997691+0x350>
    43fb3:	mov    $0x240,%esi
    43fb8:	mov    %rbx,%rdi
    43fbb:	call   *0x6b4f7(%rip)        # af4b8 <_DYNAMIC+0x400>

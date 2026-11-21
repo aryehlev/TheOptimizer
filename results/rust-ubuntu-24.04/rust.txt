@@ -1,4 +1,4 @@
-machine: x86_64, 4 CPUs, Intel(R) Xeon(R) 6975P-C
+machine: x86_64, 4 CPUs, AMD EPYC 9V74 80-Core Processor
 rustc 1.100.0 (0ef1bc386 2026-11-09)
 tests, debug build:    18 passed, 0 failed
 tests, checked build:  18 passed, 0 failed
@@ -9,80 +9,80 @@ stress, checked build: ok: seed 4, 50000 payloads, 264344303 -> 87326160 bytes, 
 other decoders: 50000 outputs read back by 1.3 (280986946 -> 93620887 bytes)
 other decoders: 1516 of them also by gzip 1.12
 Miri (rustc 1.102.0-nightly (c7d5ba59d 2026-11-20)): 10 passed, 0 failed
-the library with Rust 1.83:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.86s
+the library with Rust 1.83:     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.81s
 
 one thread, the best of 40 passes:
 rtb_single.bin: 400 payloads, 3744 B on average
-  libdeflate level 1      18.232 us/call  100.0% of stock time    58.09% of in    +0.00% vs stock
-  C Session::Codes        13.217 us/call   72.5% of stock time    58.70% of in    +1.06% vs stock
-  C Session::CodesFast     5.783 us/call   31.7% of stock time    59.36% of in    +2.19% vs stock
-  gzhot (Rust)             5.289 us/call   29.0% of stock time    59.33% of in    +2.13% vs stock
-  gzhot: Stats { one_pass: 16399, two_pass: 1, own_codes: 0, fixed: 0, stored: 0, rebuilds: 25 }
+  libdeflate level 1      18.225 us/call  100.0% of stock time    58.09% of in    +0.00% vs stock
+  C Session::Codes        13.248 us/call   72.7% of stock time    58.70% of in    +1.06% vs stock
+  C Session::CodesFast     6.376 us/call   35.0% of stock time    59.36% of in    +2.19% vs stock
+  fastgzip (Rust)          5.967 us/call   32.7% of stock time    59.33% of in    +2.13% vs stock
+  fastgzip: Stats { one_pass: 16399, two_pass: 1, own_codes: 0, fixed: 0, stored: 0, rebuilds: 25 }
 capture.bin: 1000 payloads, 1771 B on average
-  libdeflate level 1       9.014 us/call  100.0% of stock time    75.01% of in    +0.00% vs stock
-  C Session::Codes         3.729 us/call   41.4% of stock time    78.84% of in    +5.10% vs stock
-  C Session::CodesFast     2.362 us/call   26.2% of stock time    77.46% of in    +3.26% vs stock
-  gzhot (Rust)             2.188 us/call   24.3% of stock time    77.26% of in    +3.00% vs stock
-  gzhot: Stats { one_pass: 40998, two_pass: 2, own_codes: 0, fixed: 0, stored: 0, rebuilds: 49 }
+  libdeflate level 1       9.383 us/call  100.0% of stock time    75.01% of in    +0.00% vs stock
+  C Session::Codes         4.043 us/call   43.1% of stock time    78.84% of in    +5.10% vs stock
+  C Session::CodesFast     2.857 us/call   30.5% of stock time    77.46% of in    +3.26% vs stock
+  fastgzip (Rust)          2.675 us/call   28.5% of stock time    77.26% of in    +3.00% vs stock
+  fastgzip: Stats { one_pass: 40998, two_pass: 2, own_codes: 0, fixed: 0, stored: 0, rebuilds: 49 }
 mixed_exchange.bin: 70 payloads, 1453 B on average
   libdeflate level 1       9.194 us/call  100.0% of stock time    58.24% of in    +0.00% vs stock
-  C Session::Codes         5.577 us/call   60.7% of stock time    60.41% of in    +3.72% vs stock
-  C Session::CodesFast     2.254 us/call   24.5% of stock time    61.35% of in    +5.33% vs stock
-  gzhot (Rust)             2.009 us/call   21.9% of stock time    61.07% of in    +4.85% vs stock
-  gzhot: Stats { one_pass: 2815, two_pass: 28, own_codes: 27, fixed: 0, stored: 0, rebuilds: 11 }
+  C Session::Codes         5.665 us/call   61.6% of stock time    60.41% of in    +3.72% vs stock
+  C Session::CodesFast     2.535 us/call   27.6% of stock time    61.35% of in    +5.33% vs stock
+  fastgzip (Rust)          2.285 us/call   24.9% of stock time    61.07% of in    +4.85% vs stock
+  fastgzip: Stats { one_pass: 2815, two_pass: 28, own_codes: 27, fixed: 0, stored: 0, rebuilds: 11 }
 rtb_x6.bin: 66 payloads, 22477 B on average
-  libdeflate level 1      82.671 us/call  100.0% of stock time    39.89% of in    +0.00% vs stock
-  C Session::Codes        89.275 us/call  108.0% of stock time    39.89% of in    +0.00% vs stock
-  C Session::CodesFast    89.208 us/call  107.9% of stock time    39.89% of in    +0.00% vs stock
-  gzhot (Rust)            29.728 us/call   36.0% of stock time    40.35% of in    +1.16% vs stock
-  gzhot: Stats { one_pass: 5407, two_pass: 5, own_codes: 0, fixed: 0, stored: 0, rebuilds: 14 }
+  libdeflate level 1      83.293 us/call  100.0% of stock time    39.89% of in    +0.00% vs stock
+  C Session::Codes        85.331 us/call  102.4% of stock time    39.89% of in    +0.00% vs stock
+  C Session::CodesFast    84.995 us/call  102.0% of stock time    39.89% of in    +0.00% vs stock
+  fastgzip (Rust)         32.694 us/call   39.3% of stock time    40.35% of in    +1.16% vs stock
+  fastgzip: Stats { one_pass: 5407, two_pass: 5, own_codes: 0, fixed: 0, stored: 0, rebuilds: 14 }
 rtb_cut500.bin: 400 payloads, 500 B on average
-  libdeflate level 1       5.393 us/call  100.0% of stock time    71.67% of in    +0.00% vs stock
-  C Session::Codes         2.386 us/call   44.2% of stock time    75.85% of in    +5.82% vs stock
-  C Session::CodesFast     2.302 us/call   42.7% of stock time    75.85% of in    +5.82% vs stock
-  gzhot (Rust)             1.208 us/call   22.4% of stock time    75.92% of in    +5.93% vs stock
-  gzhot: Stats { one_pass: 0, two_pass: 16400, own_codes: 0, fixed: 0, stored: 0, rebuilds: 25 }
+  libdeflate level 1       5.777 us/call  100.0% of stock time    71.67% of in    +0.00% vs stock
+  C Session::Codes         2.412 us/call   41.8% of stock time    75.85% of in    +5.82% vs stock
+  C Session::CodesFast     2.328 us/call   40.3% of stock time    75.85% of in    +5.82% vs stock
+  fastgzip (Rust)          1.373 us/call   23.8% of stock time    75.92% of in    +5.93% vs stock
+  fastgzip: Stats { one_pass: 0, two_pass: 16400, own_codes: 0, fixed: 0, stored: 0, rebuilds: 25 }
 
 in tokio, 2 workers, 3.7 KB synthetic bid requests:
   other work per request: walks 0 KiB
-    stock_libdeflate    17.98 us  100.0% of stock   output 58.1% of input
-    C_gzip_fast_with     5.36 us   29.8% of stock   output 59.4% of input
-    Rust_gzhot           4.89 us   27.2% of stock   output 59.3% of input
+    stock_libdeflate    17.81 us  100.0% of stock   output 58.1% of input
+    C_gzip_fast_with     5.81 us   32.6% of stock   output 59.4% of input
+    Rust_fastgzip        5.51 us   30.9% of stock   output 59.3% of input
   other work per request: walks 4096 KiB
-    stock_libdeflate    21.05 us  100.0% of stock   output 58.1% of input
-    C_gzip_fast_with     6.15 us   29.2% of stock   output 59.4% of input
-    Rust_gzhot           5.48 us   26.0% of stock   output 59.3% of input
+    stock_libdeflate    18.99 us  100.0% of stock   output 58.1% of input
+    C_gzip_fast_with     6.25 us   32.9% of stock   output 59.4% of input
+    Rust_fastgzip        5.86 us   30.9% of stock   output 59.3% of input
   other work per request: walks 65536 KiB
-    stock_libdeflate    23.19 us  100.0% of stock   output 58.0% of input
-    C_gzip_fast_with     7.29 us   31.4% of stock   output 59.3% of input
-    Rust_gzhot           6.42 us   27.7% of stock   output 59.3% of input
+    stock_libdeflate    30.00 us  100.0% of stock   output 58.0% of input
+    C_gzip_fast_with    10.55 us   35.2% of stock   output 59.3% of input
+    Rust_fastgzip        9.42 us   31.4% of stock   output 59.3% of input
 
 in tokio, 2 workers, the capture of 1,000 requests of one exchange (1.8 KB):
   other work per request: walks 0 KiB
-    stock_libdeflate     9.55 us  100.0% of stock   output 75.0% of input
-    C_gzip_fast_with     2.22 us   23.2% of stock   output 77.4% of input
-    Rust_gzhot           2.10 us   22.0% of stock   output 77.3% of input
+    stock_libdeflate     9.78 us  100.0% of stock   output 75.0% of input
+    C_gzip_fast_with     2.64 us   27.0% of stock   output 77.4% of input
+    Rust_fastgzip        2.57 us   26.3% of stock   output 77.3% of input
   other work per request: walks 4096 KiB
-    stock_libdeflate    12.29 us  100.0% of stock   output 75.0% of input
-    C_gzip_fast_with     2.86 us   23.3% of stock   output 77.4% of input
-    Rust_gzhot           2.62 us   21.3% of stock   output 77.3% of input
+    stock_libdeflate    10.42 us  100.0% of stock   output 75.0% of input
+    C_gzip_fast_with     2.85 us   27.4% of stock   output 77.4% of input
+    Rust_fastgzip        2.72 us   26.1% of stock   output 77.3% of input
   other work per request: walks 65536 KiB
-    stock_libdeflate    14.90 us  100.0% of stock   output 75.0% of input
-    C_gzip_fast_with     3.89 us   26.1% of stock   output 77.3% of input
-    Rust_gzhot           3.33 us   22.3% of stock   output 77.3% of input
+    stock_libdeflate    20.34 us  100.0% of stock   output 75.0% of input
+    C_gzip_fast_with     6.92 us   34.0% of stock   output 77.3% of input
+    Rust_fastgzip        5.60 us   27.5% of stock   output 77.3% of input
 
 in tokio, 2 workers, 22 KB payloads (six synthetic requests in an array):
   other work per request: walks 0 KiB
-    stock_libdeflate    81.35 us  100.0% of stock   output 39.9% of input
-    C_gzip_fast_with    86.50 us  106.3% of stock   output 39.9% of input
-    Rust_gzhot          28.32 us   34.8% of stock   output 40.3% of input
+    stock_libdeflate    82.02 us  100.0% of stock   output 39.9% of input
+    C_gzip_fast_with    84.57 us  103.1% of stock   output 39.9% of input
+    Rust_fastgzip       31.06 us   37.9% of stock   output 40.3% of input
   other work per request: walks 4096 KiB
-    stock_libdeflate    84.46 us  100.0% of stock   output 39.9% of input
-    C_gzip_fast_with    89.98 us  106.5% of stock   output 39.9% of input
-    Rust_gzhot          29.59 us   35.0% of stock   output 40.3% of input
+    stock_libdeflate    83.59 us  100.0% of stock   output 39.9% of input
+    C_gzip_fast_with    86.13 us  103.0% of stock   output 39.9% of input
+    Rust_fastgzip       32.27 us   38.6% of stock   output 40.3% of input
   other work per request: walks 65536 KiB
-    stock_libdeflate    86.81 us  100.0% of stock   output 39.9% of input
-    C_gzip_fast_with    92.80 us  106.9% of stock   output 39.9% of input
-    Rust_gzhot          30.96 us   35.7% of stock   output 40.3% of input
+    stock_libdeflate    95.24 us  100.0% of stock   output 39.9% of input
+    C_gzip_fast_with    98.28 us  103.2% of stock   output 39.9% of input
+    Rust_fastgzip       37.77 us   39.7% of stock   output 40.3% of input
 
 the one-pass encoder for 1 to 4 KiB: 601 instructions (scan_12_emit.s)
