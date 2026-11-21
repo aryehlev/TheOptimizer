@@ -17,6 +17,19 @@ pub(crate) const CHUNK: usize = 16384;
 pub(crate) const MAX_TAB_BITS: u32 = 14;
 /// A match is at least four bytes long.
 pub(crate) const MAX_SEQS: usize = CHUNK / 4 + 1;
+/// Experiments, chosen when compiling: GZHOT_EXP=<bits>.
+pub(crate) const EXP: usize = match option_env!("GZHOT_EXP") {
+    Some(s) => {
+        let b = s.as_bytes();
+        let (mut i, mut v) = (0, 0);
+        while i < b.len() {
+            v = v * 10 + (b[i] - b'0') as usize;
+            i += 1;
+        }
+        v
+    }
+    None => 0,
+};
 
 /// The bytes a block of `n` input bytes may write before it is known how
 /// large it is: the header, at most 14 bits per byte, and eight bytes that a
@@ -82,7 +95,7 @@ unsafe fn start_block(c: &Codes, out: *mut u8, cap: usize, last: bool) -> (usize
     let nb = c.hdr_bits as usize;
     let full = nb >> 3;
     debug_assert!(cap >= HDR_BYTES);
-    if full < 128 {
+    if full < 128 && EXP & 4 == 0 {
         // The usual header is 60 to 90 bytes.  A copy of a fixed size is a
         // few vector moves; one of `full` bytes is a call that first has to
         // find out how long it is.  What is copied beyond the header is
@@ -323,9 +336,16 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
             if pos >= stop {
                 break 'tail;
             }
-            let v = rd64(ip, pos - 1, n);
-            *tp.add(hash5::<BITS>(v)) = (pos - 1) as u16;
-            next_hash = hash5::<BITS>(v >> 8);
+            if EXP & 1 != 0 {
+                let v = rd64(ip, pos - 2, n);
+                *tp.add(hash5::<BITS>(v)) = (pos - 2) as u16;
+                *tp.add(hash5::<BITS>(v >> 8)) = (pos - 1) as u16;
+                next_hash = hash5::<BITS>(v >> 16);
+            } else {
+                let v = rd64(ip, pos - 1, n);
+                *tp.add(hash5::<BITS>(v)) = (pos - 1) as u16;
+                next_hash = hash5::<BITS>(v >> 8);
+            }
         }
     }
 

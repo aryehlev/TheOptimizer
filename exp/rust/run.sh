@@ -104,6 +104,38 @@ echo
 echo "in tokio, 2 workers, the capture of 1,000 requests of one exchange (1.8 KB):"
 tokio $W/capture.jsonl lines
 
+# Variants of the encoder, chosen when compiling (GZHOT_EXP, see gzhot/src/enc.rs).
+EXPS="0 1 2 4"
+if [ -n "$EXPS" ]; then
+  for e in $EXPS; do
+    (cd $HERE/rsbench && GZHOT_EXP=$e CARGO_TARGET_DIR=$W/t_$e cargo build --release > /dev/null 2>&1)
+    (cd $ROOT/gzhot && GZHOT_EXP=$e CARGO_TARGET_DIR=$W/g_$e cargo build --release --examples > /dev/null 2>&1)
+  done
+  : > $W/ab
+  for turn in 1 2 3 4 5 6 7; do
+    for e in $EXPS; do
+      taskset -c $CPU $W/t_$e/release/rsbench 12 $W/rtb_single.bin $W/capture.bin $W/mixed_exchange.bin |
+        awk -v e=$e '/bin:/{set=$1} /gzhot \(/{print e, set, $3, $(NF-2)}' >> $W/ab
+    done
+  done
+  echo
+  echo "variants, one thread: the lowest of 7 turns of 12 passes, and the output against stock"
+  sort -k2,2 -k1,1n -k3,3n $W/ab | awk '{k=$2" "$1} !(k in seen){seen[k]=1; printf "  %-20s variant %-3s %7.3f us  %s\n", $2, $1, $3, $4}'
+  for other in 0 67108864; do
+    n=16000
+    if [ $other = 67108864 ]; then n=1600; fi
+    : > $W/ab2
+    for turn in 1 2 3 4 5; do
+      for e in $EXPS; do
+        echo "$e rtb $($W/g_$e/release/examples/tokio_bench $W/rtb_single.bin 0 $n 2 $other local | sed -n 's/.*median \([0-9.]*\) us.*/\1/p')" >> $W/ab2
+        echo "$e capture $($W/g_$e/release/examples/tokio_bench $W/capture.jsonl lines $n 2 $other local | sed -n 's/.*median \([0-9.]*\) us.*/\1/p')" >> $W/ab2
+      done
+    done
+    echo "variants, in tokio after walking $((other / 1024)) KiB: the lowest median of 5 runs"
+    sort -k2,2 -k1,1n -k3,3n $W/ab2 | awk '{k=$2" "$1} !(k in seen){seen[k]=1; printf "  %-20s variant %-3s %7.2f us\n", $2, $1, $3}'
+  done
+fi
+
 # The machine code of the encoder, for reading.
 objdump -d --no-show-raw-insn -C $R | awk '/^[0-9a-f]+ <gzhot::enc::scan::<12, true, false>>:/{p=1} p&&/^$/{exit} p' > $OUT/scan_12_emit.s
 echo

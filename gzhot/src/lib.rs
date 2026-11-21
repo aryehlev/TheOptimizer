@@ -44,12 +44,15 @@ use tables::*;
 /// shorter one the header of a dynamic block is a large part of the output,
 /// and whether the fixed codes would do better has to be worked out.
 const MIN_ONE_PASS: usize = 1024;
-/// One block in this many has its symbols counted while it is written in one
-/// pass.  A power of two.
-const SAMPLE: u32 = 8;
 /// The shared codes are remade after 1, 2, 4 ... and then every this many
-/// blocks.
-const MAX_PERIOD: u32 = 64;
+/// blocks.  Making codes takes about as long as compressing a payload, so in
+/// the long run it should be rare; early on, when the codes have seen little,
+/// it pays at once.
+const MAX_PERIOD: u32 = 1024;
+/// About this many blocks per period have their symbols counted while they
+/// are written in one pass (all of them while the period is this short).
+/// Counting makes a block some 15% slower.
+const SAMPLES_PER_PERIOD: u32 = 32;
 /// Offset slots that the shared codes always have a codeword for: all that a
 /// block of `CHUNK` bytes can use.
 const SHARED_OFF_SLOTS: usize = 28;
@@ -212,6 +215,7 @@ macro_rules! scan_sized {
     ($n:expr, $emit:literal, $count:literal, $($arg:expr),+) => {
         match $n {
             0..=1024 => scan::<10, $emit, $count>($($arg),+),
+            1025..=2048 if enc::EXP & 2 != 0 => scan::<11, $emit, $count>($($arg),+),
             1025..=4096 => scan::<12, $emit, $count>($($arg),+),
             4097..=8192 => scan::<13, $emit, $count>($($arg),+),
             _ => scan::<14, $emit, $count>($($arg),+),
@@ -228,10 +232,12 @@ impl State {
         let n = inp.len();
         if n >= MIN_ONE_PASS && self.valid && self.direct_ok {
             self.calls = self.calls.wrapping_add(1);
-            // Count the symbols of one block in SAMPLE, and of the block
-            // after which the codes are due to be remade.  The counts go
-            // into the next codes and say whether the current ones still fit.
-            let count = self.calls % SAMPLE == 0 || self.since_build + 1 >= self.period;
+            // Count the symbols of some blocks, and of the block after which
+            // the codes are due to be remade.  The counts go into the next
+            // codes and say whether the current ones still fit.  The period
+            // is a power of two, and so is the interval.
+            let interval = (self.period / SAMPLES_PER_PERIOD).max(1);
+            let count = self.calls & (interval - 1) == 0 || self.since_build + 1 >= self.period;
             let bits = if count {
                 self.freq = Freq { ll: [0; NUM_LL], off: [0; NUM_OFF] };
                 scan_sized!(
