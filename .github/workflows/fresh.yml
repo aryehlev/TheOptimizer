@@ -1,0 +1,45 @@
+name: new compressor per call
+on:
+  push:
+    branches: [gzlocal-arm-bench]
+    paths: ['exp/fresh/**', '.github/workflows/fresh.yml']
+permissions:
+  contents: write
+jobs:
+  fresh:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04-arm, ubuntu-24.04]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust
+        run: |
+          command -v cargo || { curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal; echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"; }
+      - name: A new compressor per call against one per thread
+        run: |
+          mkdir -p out
+          { uname -m; lscpu | grep -E "Model name|L1d|L2|L3"; } > out/machine.txt
+          sh exp/fresh/run.sh 2>&1 | tee out/fresh.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fresh-${{ matrix.runner }}
+          path: out/
+  publish:
+    needs: fresh
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: results
+      - name: Commit the results to this branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results
+          git commit -m "Results: a new compressor per call [skip ci]" || exit 0
+          git push
