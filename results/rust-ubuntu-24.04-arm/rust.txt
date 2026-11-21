@@ -1,93 +1,57 @@
 machine: aarch64, 4 CPUs, Neoverse-N2
 rustc 1.100.0 (0ef1bc386 2026-11-09)
-tests, debug build:    19 passed, 0 failed
-tests, checked build:  19 passed, 0 failed
-stress, checked build: ok: seed 1, 50000 payloads, 280986946 -> 94962848 bytes, Stats { one_pass: 1145, two_pass: 26, own_codes: 3102, fixed: 756, stored: 283, rebuilds: 72 }
-stress, checked build: ok: seed 2, 50000 payloads, 264047879 -> 87034096 bytes, Stats { one_pass: 4171, two_pass: 53, own_codes: 6280, fixed: 1686, stored: 492, rebuilds: 108 }
-stress, checked build: ok: seed 3, 50000 payloads, 287241321 -> 96061624 bytes, Stats { one_pass: 277, two_pass: 13, own_codes: 2921, fixed: 618, stored: 214, rebuilds: 44 }
-stress, checked build: ok: seed 4, 50000 payloads, 264344303 -> 88432725 bytes, Stats { one_pass: 6112, two_pass: 101, own_codes: 5561, fixed: 1507, stored: 411, rebuilds: 119 }
-other decoders: 50000 outputs read back by 1.3 (280986946 -> 94962848 bytes)
-other decoders: 1516 of them also by gzip 1.12
-Miri (rustc 1.102.0-nightly (c7d5ba59d 2026-11-20)): 12 passed, 0 failed
 
-one thread, the best of 40 passes:
-rtb_single.bin: 400 payloads, 3744 B on average
-  libdeflate level 1      18.272 us/call  100.0% of stock time    58.09% of in    +0.00% vs stock
-  C Session::Codes        13.428 us/call   73.5% of stock time    58.70% of in    +1.06% vs stock
-  C Session::CodesFast     6.027 us/call   33.0% of stock time    59.36% of in    +2.19% vs stock
-  gzhot (Rust)             5.575 us/call   30.5% of stock time    59.34% of in    +2.16% vs stock
-  gzhot: Stats { one_pass: 16399, two_pass: 1, own_codes: 0, fixed: 0, stored: 0, rebuilds: 25 }
-capture.bin: 1000 payloads, 1771 B on average
-  libdeflate level 1       9.338 us/call  100.0% of stock time    75.01% of in    +0.00% vs stock
-  C Session::Codes         4.140 us/call   44.3% of stock time    78.84% of in    +5.10% vs stock
-  C Session::CodesFast     2.801 us/call   30.0% of stock time    77.46% of in    +3.26% vs stock
-  gzhot (Rust)             2.544 us/call   27.2% of stock time    77.39% of in    +3.18% vs stock
-  gzhot: Stats { one_pass: 40998, two_pass: 2, own_codes: 0, fixed: 0, stored: 0, rebuilds: 49 }
-mixed_exchange.bin: 70 payloads, 1453 B on average
-  libdeflate level 1       8.845 us/call  100.0% of stock time    58.24% of in    +0.00% vs stock
-  C Session::Codes         5.769 us/call   65.2% of stock time    60.41% of in    +3.72% vs stock
-  C Session::CodesFast     2.420 us/call   27.4% of stock time    61.35% of in    +5.33% vs stock
-  gzhot (Rust)             2.143 us/call   24.2% of stock time    61.11% of in    +4.92% vs stock
-  gzhot: Stats { one_pass: 2815, two_pass: 28, own_codes: 27, fixed: 0, stored: 0, rebuilds: 11 }
-
-in tokio, 2 workers, 3.7 KB synthetic bid requests:
-  other work per request: walks 0 KiB
-    stock_libdeflate    17.34 us  100.0% of stock   output 58.1% of input
-    C_gzip_fast_with     5.58 us   32.2% of stock   output 59.4% of input
-    Rust_gzhot           5.20 us   30.0% of stock   output 59.3% of input
-  other work per request: walks 4096 KiB
-    stock_libdeflate    18.38 us  100.0% of stock   output 58.1% of input
-    C_gzip_fast_with     6.22 us   33.8% of stock   output 59.4% of input
-    Rust_gzhot           5.57 us   30.3% of stock   output 59.4% of input
-  other work per request: walks 65536 KiB
-    stock_libdeflate    19.90 us  100.0% of stock   output 58.0% of input
-    C_gzip_fast_with     7.06 us   35.5% of stock   output 59.3% of input
-    Rust_gzhot           6.40 us   32.2% of stock   output 59.3% of input
-
-in tokio, 2 workers, the capture of 1,000 requests of one exchange (1.8 KB):
-  other work per request: walks 0 KiB
-    stock_libdeflate     9.54 us  100.0% of stock   output 75.0% of input
-    C_gzip_fast_with     2.59 us   27.1% of stock   output 77.4% of input
-    Rust_gzhot           2.49 us   26.1% of stock   output 77.3% of input
-  other work per request: walks 4096 KiB
-    stock_libdeflate    10.46 us  100.0% of stock   output 75.0% of input
-    C_gzip_fast_with     3.10 us   29.6% of stock   output 77.4% of input
-    Rust_gzhot           2.78 us   26.6% of stock   output 77.3% of input
-  other work per request: walks 65536 KiB
-    stock_libdeflate    11.98 us  100.0% of stock   output 75.0% of input
-    C_gzip_fast_with     3.95 us   33.0% of stock   output 77.3% of input
-    Rust_gzhot           3.38 us   28.2% of stock   output 77.3% of input
-
-variants, one thread: the lowest of 7 turns of 12 passes, and the output against stock
-  capture.bin:         variant 0     2.539 us  +3.13%
-  capture.bin:         variant 1     2.549 us  +3.12%
-  capture.bin:         variant 2     2.529 us  +3.23%
-  capture.bin:         variant 4     2.535 us  +3.13%
-  mixed_exchange.bin:  variant 0     2.177 us  +4.64%
-  mixed_exchange.bin:  variant 1     2.203 us  +4.58%
-  mixed_exchange.bin:  variant 2     2.161 us  +4.76%
-  mixed_exchange.bin:  variant 4     2.169 us  +4.64%
-  rtb_single.bin:      variant 0     5.573 us  +2.14%
-  rtb_single.bin:      variant 1     5.629 us  +2.05%
-  rtb_single.bin:      variant 2     5.585 us  +2.14%
-  rtb_single.bin:      variant 4     5.558 us  +2.14%
-variants, in tokio after walking 0 KiB: the lowest median of 5 runs
+variants, one thread: the lowest of 9 turns of 12 passes, and the output against stock
+  capture.bin:         variant 0     2.502 us  +3.13%
+  capture.bin:         variant 1     2.493 us  +3.13%
+  capture.bin:         variant 2     2.489 us  +3.13%
+  capture.bin:         variant 4     2.508 us  +3.13%
+  capture.bin:         variant 8     2.487 us  +3.13%
+  capture.bin:         variant 16    2.518 us  +3.13%
+  capture.bin:         variant 31    2.495 us  +3.13%
+  mixed_exchange.bin:  variant 0     1.968 us  +4.64%
+  mixed_exchange.bin:  variant 1     1.970 us  +4.64%
+  mixed_exchange.bin:  variant 2     1.966 us  +4.64%
+  mixed_exchange.bin:  variant 4     1.981 us  +4.64%
+  mixed_exchange.bin:  variant 8     1.953 us  +4.64%
+  mixed_exchange.bin:  variant 16    1.993 us  +4.64%
+  mixed_exchange.bin:  variant 31    1.978 us  +4.64%
+  rtb_single.bin:      variant 0     5.363 us  +2.14%
+  rtb_single.bin:      variant 1     5.416 us  +2.14%
+  rtb_single.bin:      variant 2     5.332 us  +2.14%
+  rtb_single.bin:      variant 4     5.358 us  +2.14%
+  rtb_single.bin:      variant 8     5.354 us  +2.14%
+  rtb_single.bin:      variant 16    5.435 us  +2.14%
+  rtb_single.bin:      variant 31    5.403 us  +2.14%
+variants, in tokio after walking 0 KiB: the lowest median of 3 runs
   capture              variant 0      2.49 us
-  capture              variant 1      2.50 us
+  capture              variant 1      2.46 us
   capture              variant 2      2.46 us
   capture              variant 4      2.48 us
-  rtb                  variant 0      5.19 us
-  rtb                  variant 1      5.24 us
-  rtb                  variant 2      5.17 us
+  capture              variant 8      2.46 us
+  capture              variant 16     2.50 us
+  capture              variant 31     2.46 us
+  rtb                  variant 0      5.20 us
+  rtb                  variant 1      5.19 us
+  rtb                  variant 2      5.15 us
   rtb                  variant 4      5.17 us
-variants, in tokio after walking 65536 KiB: the lowest median of 5 runs
-  capture              variant 0      3.35 us
-  capture              variant 1      3.30 us
-  capture              variant 2      3.30 us
-  capture              variant 4      3.42 us
-  rtb                  variant 0      6.32 us
-  rtb                  variant 1      6.44 us
-  rtb                  variant 2      6.46 us
-  rtb                  variant 4      6.45 us
+  rtb                  variant 8      5.15 us
+  rtb                  variant 16     5.25 us
+  rtb                  variant 31     5.22 us
+variants, in tokio after walking 65536 KiB: the lowest median of 3 runs
+  capture              variant 0      3.42 us
+  capture              variant 1      3.43 us
+  capture              variant 2      3.34 us
+  capture              variant 4      3.39 us
+  capture              variant 8      3.38 us
+  capture              variant 16     3.40 us
+  capture              variant 31     3.34 us
+  rtb                  variant 0      6.67 us
+  rtb                  variant 1      6.67 us
+  rtb                  variant 2      6.42 us
+  rtb                  variant 4      6.35 us
+  rtb                  variant 8      6.49 us
+  rtb                  variant 16     6.62 us
+  rtb                  variant 31     6.63 us
 
 the one-pass encoder for 1 to 4 KiB: 391 instructions (scan_12_emit.s)

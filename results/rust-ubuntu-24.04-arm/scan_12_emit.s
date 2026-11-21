@@ -224,8 +224,8 @@
    1f340:	mul	x1, x1, x12
    1f344:	add	w5, w26, w5, lsr #16
    1f348:	lsl	x7, x27, x26
-   1f34c:	orr	w8, w0, w8
-   1f350:	ubfx	w26, w0, #3, #3
+   1f34c:	ubfx	w26, w0, #3, #3
+   1f350:	orr	w8, w0, w8
    1f354:	and	w0, w0, #0x7
    1f358:	lsl	x4, x4, x5
    1f35c:	orr	x6, x7, x6
@@ -234,20 +234,20 @@
    1f368:	add	w7, w9, #0x1
    1f36c:	strh	w7, [x24, x18, lsl #1]
    1f370:	orr	x4, x6, x4
-   1f374:	lsr	x1, x1, #51
-   1f378:	ubfx	w5, w2, #3, #3
+   1f374:	and	w5, w2, #0x38
+   1f378:	lsr	x1, x1, #51
    1f37c:	lsl	x0, x4, x0
-   1f380:	and	w4, w2, #0x38
+   1f380:	ubfx	w4, w2, #3, #3
    1f384:	add	w6, w9, #0x2
    1f388:	add	x9, x3, x9
    1f38c:	add	x3, x20, x26
-   1f390:	orr	w8, w8, w2
+   1f390:	and	x18, x1, #0x1ffe
    1f394:	orr	x0, x0, x25
-   1f398:	str	x0, [x19, x3]
-   1f39c:	and	x18, x1, #0x1ffe
-   1f3a0:	lsr	x25, x0, x4
+   1f398:	add	x20, x3, x4
+   1f39c:	str	x0, [x19, x3]
+   1f3a0:	lsr	x25, x0, x5
    1f3a4:	cmp	x9, x10
-   1f3a8:	add	x20, x3, x5
+   1f3a8:	orr	w8, w8, w2
    1f3ac:	and	w0, w2, #0x7
    1f3b0:	strh	w6, [x24, x18]
    1f3b4:	b.cs	1f0b4 <gzhot::enc::scan::<12, true, false>+0xec>  // b.hs, b.nlast
@@ -319,28 +319,28 @@
    1f4bc:	add	w15, w0, w12, lsr #16
    1f4c0:	and	x12, x12, #0xffff
    1f4c4:	lsl	x12, x12, x0
-   1f4c8:	and	x17, x11, #0xffff
-   1f4cc:	add	w16, w15, w13, lsr #16
-   1f4d0:	and	x13, x13, #0xffff
-   1f4d4:	lsl	x13, x13, x15
-   1f4d8:	and	x15, x14, #0xffff
-   1f4dc:	orr	x12, x12, x25
-   1f4e0:	add	w14, w16, w14, lsr #16
-   1f4e4:	lsl	x15, x15, x16
+   1f4c8:	add	w16, w15, w13, lsr #16
+   1f4cc:	and	x13, x13, #0xffff
+   1f4d0:	lsl	x13, x13, x15
+   1f4d4:	orr	x12, x12, x25
+   1f4d8:	and	x15, x11, #0xffff
+   1f4dc:	add	w17, w16, w14, lsr #16
+   1f4e0:	and	x14, x14, #0xffff
+   1f4e4:	lsl	x14, x14, x16
    1f4e8:	orr	x12, x12, x13
-   1f4ec:	lsl	x13, x17, x14
-   1f4f0:	add	w11, w14, w11, lsr #16
-   1f4f4:	orr	x12, x12, x15
-   1f4f8:	add	x15, x9, #0x8
-   1f4fc:	add	x9, x9, #0x4
-   1f500:	orr	x12, x12, x13
-   1f504:	ubfx	w13, w11, #3, #3
-   1f508:	and	w14, w11, #0x38
-   1f50c:	lsr	x25, x12, x14
-   1f510:	str	x12, [x19, x20]
-   1f514:	orr	w8, w11, w8
-   1f518:	cmp	x15, x23
-   1f51c:	add	x20, x20, x13
+   1f4ec:	add	w11, w17, w11, lsr #16
+   1f4f0:	lsl	x13, x15, x17
+   1f4f4:	add	x15, x9, #0x8
+   1f4f8:	orr	x12, x12, x14
+   1f4fc:	cmp	x15, x23
+   1f500:	add	x9, x9, #0x4
+   1f504:	ubfx	w14, w11, #3, #3
+   1f508:	orr	x12, x12, x13
+   1f50c:	and	w13, w11, #0x38
+   1f510:	lsr	x25, x12, x13
+   1f514:	str	x12, [x19, x20]
+   1f518:	orr	w8, w11, w8
+   1f51c:	add	x20, x20, x14
    1f520:	and	w0, w11, #0x7
    1f524:	b.ls	1f498 <gzhot::enc::scan::<12, true, false>+0x4d0>  // b.plast
    1f528:	subs	x10, x23, x9
@@ -355,28 +355,28 @@
    1f54c:	orr	x25, x12, x25
    1f550:	b.ne	1f534 <gzhot::enc::scan::<12, true, false>+0x56c>  // b.any
    1f554:	b	1f558 <gzhot::enc::scan::<12, true, false>+0x590>
-   1f558:	ldr	w9, [x21, #2060]
-   1f55c:	and	w10, w0, #0x7
-   1f560:	orr	w11, w0, w8
-   1f564:	ubfx	w12, w0, #3, #3
-   1f568:	and	w13, w0, #0x38
+   1f558:	ldr	w10, [x21, #2060]
+   1f55c:	and	w11, w0, #0x7
+   1f560:	ubfx	w12, w0, #3, #3
+   1f564:	and	w13, w0, #0x38
+   1f568:	orr	w8, w0, w8
    1f56c:	str	x25, [x19, x20]
-   1f570:	add	w8, w10, w9, lsr #16
-   1f574:	and	x9, x9, #0xffff
+   1f570:	add	w9, w11, w10, lsr #16
+   1f574:	and	x10, x10, #0xffff
    1f578:	lsr	x13, x25, x13
-   1f57c:	lsl	x10, x9, x10
-   1f580:	add	x9, x20, x12
-   1f584:	orr	w11, w11, w8
+   1f57c:	lsl	x10, x10, x11
+   1f580:	orr	w11, w8, w9
+   1f584:	add	x8, x20, x12
    1f588:	cmp	w11, #0x3f
    1f58c:	orr	x10, x10, x13
-   1f590:	str	x10, [x19, x9]
+   1f590:	str	x10, [x19, x8]
    1f594:	b.ls	1f5a0 <gzhot::enc::scan::<12, true, false>+0x5d8>  // b.plast
    1f598:	mov	x0, xzr
    1f59c:	b	1f5b0 <gzhot::enc::scan::<12, true, false>+0x5e8>
-   1f5a0:	lsr	w10, w8, #3
-   1f5a4:	and	w8, w8, #0x7
-   1f5a8:	add	x9, x9, x10
-   1f5ac:	orr	x0, x8, x9, lsl #3
+   1f5a0:	lsr	w10, w9, #3
+   1f5a4:	and	w9, w9, #0x7
+   1f5a8:	add	x8, x8, x10
+   1f5ac:	orr	x0, x9, x8, lsl #3
    1f5b0:	ldp	x20, x19, [sp, #80]
    1f5b4:	ldr	x27, [sp, #16]
    1f5b8:	ldp	x22, x21, [sp, #64]
