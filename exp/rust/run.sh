@@ -6,9 +6,9 @@
 #   OUT=<dir>       where the listing of the encoder's machine code goes
 #   REAL_SRC=<dir>  where the repositories with sample requests are checked out
 set -e
-TESTS=1     # tests, stress, other decoders, Miri
-MAIN=1      # the tables against the C encoders
-EXPS=""     # variants of the encoder to compare (GZHOT_EXP values), or nothing
+TESTS=0     # tests, stress, other decoders, Miri
+MAIN=0      # the tables against the C encoders
+EXPS="0 1 2 4 3 7"   # variants of the encoder to compare (GZHOT_EXP values), or nothing
 cd "$(dirname "$0")"
 HERE=$(pwd)
 ROOT=$(cd ../.. && pwd)
@@ -153,17 +153,17 @@ if [ -n "$EXPS" ]; then
   echo
   echo "variants, one thread: the lowest of 9 turns of 12 passes, and the output against stock"
   sort -k2,2 -k1,1n -k3,3n $W/ab | awk '{k=$2" "$1} !(k in seen){seen[k]=1; printf "  %-20s variant %-3s %7.3f us  %s\n", $2, $1, $3, $4}'
-  for other in 0 67108864; do
+  for other in 0 4194304 67108864; do
     n=16000
     if [ $other = 67108864 ]; then n=1600; fi
     : > $W/ab2
-    for turn in 1 2 3; do
+    for turn in 1 2 3 4 5; do
       for e in $EXPS; do
         echo "$e rtb $($W/g_$e/release/examples/tokio_bench $W/rtb_single.bin 0 $n 2 $other local | sed -n 's/.*median \([0-9.]*\) us.*/\1/p')" >> $W/ab2
         echo "$e capture $($W/g_$e/release/examples/tokio_bench $W/capture.jsonl lines $n 2 $other local | sed -n 's/.*median \([0-9.]*\) us.*/\1/p')" >> $W/ab2
       done
     done
-    echo "variants, in tokio after walking $((other / 1024)) KiB: the lowest median of 3 runs"
+    echo "variants, in tokio after walking $((other / 1024)) KiB: the lowest median of 5 runs"
     sort -k2,2 -k1,1n -k3,3n $W/ab2 | awk '{k=$2" "$1} !(k in seen){seen[k]=1; printf "  %-20s variant %-3s %7.2f us\n", $2, $1, $3}'
   done
 fi
