@@ -2,22 +2,22 @@ tests: test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered ou
 machine: aarch64, 4 CPUs, Neoverse-N2
 other work per request: walks 0 KiB
   stock                             17.34 us   output 58.1% of input
-  gzip_with                         17.36 us   output 58.1% of input
-  gzip_codes_with                   12.34 us   output 58.7% of input
-  gzip_codes_with,table_order_15    11.46 us   output 58.7% of input
+  gzip_with                         17.35 us   output 58.1% of input
+  gzip_codes_with                   12.35 us   output 58.7% of input
+  gzip_codes_with,table_order_15    11.48 us   output 58.7% of input
   gzip_fast_with                     5.58 us   output 59.4% of input
-  gzip_fast_with,table_order_12      5.55 us   output 59.3% of input
+  gzip_fast_with,table_order_12      5.56 us   output 59.3% of input
 other work per request: walks 4096 KiB
-  stock                             18.26 us   output 58.1% of input
-  gzip_with                         18.47 us   output 58.1% of input
-  gzip_codes_with                   13.26 us   output 58.7% of input
-  gzip_codes_with,table_order_15    13.95 us   output 58.7% of input
-  gzip_fast_with                     6.33 us   output 59.4% of input
-  gzip_fast_with,table_order_12      6.30 us   output 59.3% of input
+  stock                             18.50 us   output 58.1% of input
+  gzip_with                         18.42 us   output 58.1% of input
+  gzip_codes_with                   13.21 us   output 58.7% of input
+  gzip_codes_with,table_order_15    13.83 us   output 58.7% of input
+  gzip_fast_with                     6.29 us   output 59.4% of input
+  gzip_fast_with,table_order_12      6.25 us   output 59.3% of input
 other work per request: walks 65536 KiB
-  stock                             20.09 us   output 58.0% of input
-  gzip_with                         20.32 us   output 58.0% of input
-  gzip_codes_with                   14.61 us   output 58.7% of input
-  gzip_codes_with,table_order_15    20.95 us   output 58.7% of input
-  gzip_fast_with                     7.29 us   output 59.3% of input
-  gzip_fast_with,table_order_12      7.24 us   output 59.2% of input
+  stock                             20.22 us   output 58.0% of input
+  gzip_with                         20.68 us   output 58.0% of input
+  gzip_codes_with                   14.58 us   output 58.7% of input
+  gzip_codes_with,table_order_15    22.21 us   output 58.7% of input
+  gzip_fast_with                     7.44 us   output 59.3% of input
+  gzip_fast_with,table_order_12      7.37 us   output 59.3% of input
