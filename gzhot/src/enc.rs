@@ -18,6 +18,16 @@ pub(crate) const MAX_TAB_BITS: u32 = 14;
 /// A match is at least four bytes long.
 pub(crate) const MAX_SEQS: usize = CHUNK / 4 + 1;
 /// Experiments, chosen when compiling: GZHOT_EXP=<bits>.
+///   1: hash a position when it is looked up, not one step earlier
+///   2: the missing-codeword flag stays in the bit count, no `bad`
+///   4: one flush for a match and the literals before it when they fit
+///   8: eight steps per loop iteration
+///  16: the position after a match is looked up in the match's own code
+pub(crate) const X_HASH: bool = EXP & 1 != 0;
+pub(crate) const X_STICKY: bool = EXP & 2 != 0;
+pub(crate) const X_ONE_FLUSH: bool = EXP & 4 != 0;
+pub(crate) const X_EIGHT: bool = EXP & 8 != 0;
+pub(crate) const X_CHAIN: bool = EXP & 16 != 0;
 pub(crate) const EXP: usize = match option_env!("GZHOT_EXP") {
     Some(s) => {
         let b = s.as_bytes();
@@ -95,7 +105,7 @@ unsafe fn start_block(c: &Codes, out: *mut u8, cap: usize, last: bool) -> (usize
     let nb = c.hdr_bits as usize;
     let full = nb >> 3;
     debug_assert!(cap >= HDR_BYTES);
-    if full < 128 && EXP & 4 == 0 {
+    if full < 128 {
         // The usual header is 60 to 90 bytes.  A copy of a fixed size is a
         // few vector moves; one of `full` bytes is a call that first has to
         // find out how long it is.  What is copied beyond the header is
@@ -195,10 +205,14 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
         () => {
             if EMIT {
                 wr64(out, o, cap, bitbuf);
-                bad |= bitcount;
                 o += ((bitcount >> 3) & 7) as usize;
                 bitbuf >>= bitcount & 56;
-                bitcount &= 7;
+                if X_STICKY {
+                    bitcount &= 0xFFFF_8007;
+                } else {
+                    bad |= bitcount;
+                    bitcount &= 7;
+                }
             }
         };
     }
@@ -244,16 +258,18 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
         literal!(*ip);
         flush!();
         pos = 1;
-        let mut next_hash = hash5::<BITS>(rd64(ip, 1, n));
+        let mut next_hash = if X_HASH { 0 } else { hash5::<BITS>(rd64(ip, 1, n)) };
 
         macro_rules! step {
             ($found:lifetime) => {{
                 let w = rd64(ip, pos, n);
-                let h = next_hash;
+                let h = if X_HASH { hash5::<BITS>(w) } else { next_hash };
                 debug_assert!(h < 1 << BITS);
                 let cand = *tp.add(h) as usize;
                 *tp.add(h) = pos as u16;
-                next_hash = hash5::<BITS>(w >> 8);
+                if !X_HASH {
+                    next_hash = hash5::<BITS>(w >> 8);
+                }
                 let x = rd64(ip, cand, n) ^ w;
                 if x as u32 == 0 {
                     break $found (cand, w, x);
@@ -263,9 +279,24 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
             }};
         }
 
+        let stop8 = n.saturating_sub(16);
         loop {
             // At most 7 bits are in the bit buffer here.
-            let (cand, w, x) = 'found: {
+            let (mut cand, mut w, mut x) = 'found: {
+                if X_EIGHT {
+                    while pos < stop8 {
+                        step!('found);
+                        step!('found);
+                        step!('found);
+                        step!('found);
+                        flush!();
+                        step!('found);
+                        step!('found);
+                        step!('found);
+                        step!('found);
+                        flush!();
+                    }
+                }
                 while pos < stop4 {
                     step!('found);
                     step!('found);
@@ -280,71 +311,94 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
                 break 'tail;
             };
 
-            // A match at `pos` with the earlier position `cand`.
-            debug_assert!(cand < pos);
-            let len = if x != 0 {
-                (x.trailing_zeros() >> 3) as usize // 4 to 7
-            } else {
-                let max = (n - pos).min(MAX_MATCH);
-                let mut len = 8;
-                loop {
-                    if len + 8 > max {
-                        while len < max && *ip.add(pos + len) == *ip.add(cand + len) {
-                            len += 1;
+            loop {
+                // A match at `pos` with the earlier position `cand`.
+                debug_assert!(cand < pos);
+                let len = if x != 0 {
+                    (x.trailing_zeros() >> 3) as usize // 4 to 7
+                } else {
+                    let max = (n - pos).min(MAX_MATCH);
+                    let mut len = 8;
+                    loop {
+                        if len + 8 > max {
+                            while len < max && *ip.add(pos + len) == *ip.add(cand + len) {
+                                len += 1;
+                            }
+                            break len;
                         }
-                        break len;
+                        let d = rd64(ip, pos + len, n) ^ rd64(ip, cand + len, n);
+                        if d != 0 {
+                            break len + (d.trailing_zeros() >> 3) as usize;
+                        }
+                        len += 8;
                     }
-                    let d = rd64(ip, pos + len, n) ^ rd64(ip, cand + len, n);
-                    if d != 0 {
-                        break len + (d.trailing_zeros() >> 3) as usize;
+                };
+                let dist = pos - cand;
+                let (slot, extra_n, extra) = off_slot(dist as u32 - 1);
+                if EMIT {
+                    let le = *c.len.as_ptr().add(len);
+                    let oe = *c.off.as_ptr().add(slot);
+                    debug_assert!(le != 0 && oe != 0);
+                    let len_n = (le >> LEN_NBITS_SHIFT) & 31;
+                    let off_n = oe >> 16;
+                    let bits = (le & LEN_VALUE_MASK) as u64
+                        | ((oe & 0xFFFF) as u64) << len_n
+                        | (extra as u64) << (len_n + off_n);
+                    let total = len_n + off_n + extra_n;
+                    // The literals of this group of steps are still in the
+                    // buffer: up to 49 bits.
+                    if !X_ONE_FLUSH || (bitcount & 63) + total > 63 {
+                        flush!();
                     }
-                    len += 8;
+                    bitbuf |= bits.wrapping_shl(bitcount);
+                    bitcount += total;
+                    flush!();
+                    if COUNT {
+                        count_match!((le >> LEN_SLOT_SHIFT) as usize, slot);
+                    }
+                } else {
+                    count_match!(LEN_SLOT[len] as usize, slot);
+                    debug_assert!(n_seqs < MAX_SEQS);
+                    *sp.add(n_seqs) =
+                        (pos - run_start) as u64 | (len as u64) << 16 | (dist as u64) << 32;
+                    n_seqs += 1;
+                    run_start = pos + len;
                 }
-            };
-            let dist = pos - cand;
-            let (slot, extra_n, extra) = off_slot(dist as u32 - 1);
-            if EMIT {
-                flush!(); // the literals of this group of steps
-                let le = *c.len.as_ptr().add(len);
-                let oe = *c.off.as_ptr().add(slot);
-                debug_assert!(le != 0 && oe != 0);
-                let len_n = (le >> LEN_NBITS_SHIFT) & 31;
-                let off_n = oe >> 16;
-                let bits = (le & LEN_VALUE_MASK) as u64
-                    | ((oe & 0xFFFF) as u64) << len_n
-                    | (extra as u64) << (len_n + off_n);
-                bitbuf |= bits << bitcount;
-                bitcount += len_n + off_n + extra_n;
-                flush!();
-                if COUNT {
-                    count_match!((le >> LEN_SLOT_SHIFT) as usize, slot);
-                }
-            } else {
-                count_match!(LEN_SLOT[len] as usize, slot);
-                debug_assert!(n_seqs < MAX_SEQS);
-                *sp.add(n_seqs) =
-                    (pos - run_start) as u64 | (len as u64) << 16 | (dist as u64) << 32;
-                n_seqs += 1;
-                run_start = pos + len;
-            }
 
-            // pos + 1 and pos + 2 are before `stop` + 1, so eight bytes can
-            // be read there when they come up as candidates.
-            *tp.add(next_hash) = (pos + 1) as u16;
-            *tp.add(hash5::<BITS>(w >> 16)) = (pos + 2) as u16;
-            pos += len;
-            if pos >= stop {
-                break 'tail;
-            }
-            if EXP & 1 != 0 {
-                let v = rd64(ip, pos - 2, n);
-                *tp.add(hash5::<BITS>(v)) = (pos - 2) as u16;
-                *tp.add(hash5::<BITS>(v >> 8)) = (pos - 1) as u16;
-                next_hash = hash5::<BITS>(v >> 16);
-            } else {
+                // pos + 1 and pos + 2 are before `stop` + 1, so eight bytes
+                // can be read there when they come up as candidates.
+                let h1 = if X_HASH { hash5::<BITS>(w >> 8) } else { next_hash };
+                *tp.add(h1) = (pos + 1) as u16;
+                *tp.add(hash5::<BITS>(w >> 16)) = (pos + 2) as u16;
+                pos += len;
+                if pos >= stop {
+                    break 'tail;
+                }
                 let v = rd64(ip, pos - 1, n);
                 *tp.add(hash5::<BITS>(v)) = (pos - 1) as u16;
-                next_hash = hash5::<BITS>(v >> 8);
+                if !X_HASH {
+                    next_hash = hash5::<BITS>(v >> 8);
+                }
+                if !X_CHAIN {
+                    break;
+                }
+                // Matches often follow one another directly.  Looking here
+                // gives that case a branch of its own.
+                let w2 = rd64(ip, pos, n);
+                let h = if X_HASH { hash5::<BITS>(w2) } else { next_hash };
+                let c2 = *tp.add(h) as usize;
+                *tp.add(h) = pos as u16;
+                if !X_HASH {
+                    next_hash = hash5::<BITS>(w2 >> 8);
+                }
+                let x2 = rd64(ip, c2, n) ^ w2;
+                if x2 as u32 != 0 {
+                    literal!(w2 as u8);
+                    pos += 1;
+                    flush!();
+                    break;
+                }
+                (cand, w, x) = (c2, w2, x2);
             }
         }
     }
@@ -367,11 +421,11 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
         return n_seqs;
     }
     flush!();
-    bitbuf |= ((c.eob & 0xFFFF) as u64) << bitcount;
+    bitbuf |= ((c.eob & 0xFFFF) as u64).wrapping_shl(bitcount);
     bitcount += c.eob >> 16;
     flush!();
     // The store of the last flush put the bits that are left at out[o].
-    if bad > 63 {
+    if bad > 63 || bitcount > 63 {
         return 0;
     }
     8 * o + bitcount as usize

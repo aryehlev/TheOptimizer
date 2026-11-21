@@ -215,7 +215,6 @@ macro_rules! scan_sized {
     ($n:expr, $emit:literal, $count:literal, $($arg:expr),+) => {
         match $n {
             0..=1024 => scan::<10, $emit, $count>($($arg),+),
-            1025..=2048 if enc::EXP & 2 != 0 => scan::<11, $emit, $count>($($arg),+),
             1025..=4096 => scan::<12, $emit, $count>($($arg),+),
             4097..=8192 => scan::<13, $emit, $count>($($arg),+),
             _ => scan::<14, $emit, $count>($($arg),+),

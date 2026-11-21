@@ -28,8 +28,13 @@ fn main() {
         let mut rust = gzhot::Gzip::new();
         let mut best = [f64::MAX; 4];
         let mut size = [0usize; 4];
+        // ONLY_RUST=1: time only gzhot (stock once, for the size).
+        let only_rust = std::env::var("ONLY_RUST").is_ok();
         for round in 0..rounds {
             for which in 0..4 {
+                if only_rust && which != 3 && !(which == 0 && round == 0) {
+                    continue;
+                }
                 let t = Instant::now();
                 let mut total = 0;
                 for r in &recs {
@@ -54,6 +59,9 @@ fn main() {
         let name = path.rsplit('/').next().unwrap();
         println!("{name}: {} payloads, {} B on average", recs.len(), total_in / recs.len());
         for (which, label) in ["libdeflate level 1", "C Session::Codes", "C Session::CodesFast", "gzhot (Rust)"].iter().enumerate() {
+            if only_rust && which != 3 {
+                continue;
+            }
             println!(
                 "  {label:22} {:7.3} us/call  {:5.1}% of stock time   {:6.2}% of in   {:+6.2}% vs stock",
                 best[which] / recs.len() as f64 * 1e6,

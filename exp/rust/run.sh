@@ -6,6 +6,9 @@
 #   OUT=<dir>       where the listing of the encoder's machine code goes
 #   REAL_SRC=<dir>  where the repositories with sample requests are checked out
 set -e
+TESTS=0     # tests, stress, other decoders, Miri
+MAIN=0      # the tables against the C encoders
+EXPS="0 1 2 4 8 16 31"   # variants of the encoder to compare, or nothing
 cd "$(dirname "$0")"
 HERE=$(pwd)
 ROOT=$(cd ../.. && pwd)
@@ -16,6 +19,7 @@ rm -rf $W && mkdir -p $W $SRC $OUT
 echo "machine: $(uname -m), $(nproc) CPUs, $(lscpu 2>/dev/null | sed -n 's/^Model name: *//p' | head -1)"
 echo "$(rustc --version)"
 
+if [ $TESTS = 1 ]; then
 cd $ROOT/gzhot
 count() { grep 'test result' | awk '{p+=$4; f+=$6} END {print p " passed, " f " failed"}'; }
 echo "tests, debug build:    $(cargo test 2>&1 | count)"
@@ -33,6 +37,7 @@ if rustup toolchain install nightly --profile minimal --component miri > $W/miri
   grep -E "Undefined Behavior|error:" $W/miri.txt | head -5 || true
 else
   echo "Miri: could not be installed here"
+fi
 fi
 
 # Payloads: the synthetic bid requests, and the published sample requests.
@@ -57,6 +62,8 @@ fetch InteractiveAdvertisingBureau_openrtb InteractiveAdvertisingBureau/openrtb 
 fetch openrtb_openrtb2x openrtb/openrtb2x 57a9ee1c26d959160b1d16b220a516304ca660f6
 python3 -I "$ROOT/exp/real/make_sets.py" $W > /dev/null
 
+CPU=$(( $(nproc) - 1 ))
+if [ $MAIN = 1 ]; then
 # One thread, nothing else between the calls: the best of 40 passes over
 # each set, the encoders taking turns.
 echo
@@ -103,40 +110,46 @@ tokio $W/rtb_single.bin 0
 echo
 echo "in tokio, 2 workers, the capture of 1,000 requests of one exchange (1.8 KB):"
 tokio $W/capture.jsonl lines
+fi
 
 # Variants of the encoder, chosen when compiling (GZHOT_EXP, see gzhot/src/enc.rs).
-EXPS="0 1 2 4"
 if [ -n "$EXPS" ]; then
   for e in $EXPS; do
     (cd $HERE/rsbench && GZHOT_EXP=$e CARGO_TARGET_DIR=$W/t_$e cargo build --release > /dev/null 2>&1)
     (cd $ROOT/gzhot && GZHOT_EXP=$e CARGO_TARGET_DIR=$W/g_$e cargo build --release --examples > /dev/null 2>&1)
   done
   : > $W/ab
-  for turn in 1 2 3 4 5 6 7; do
+  for turn in 1 2 3 4 5 6 7 8 9; do
     for e in $EXPS; do
-      taskset -c $CPU $W/t_$e/release/rsbench 12 $W/rtb_single.bin $W/capture.bin $W/mixed_exchange.bin |
+      ONLY_RUST=1 taskset -c $CPU $W/t_$e/release/rsbench 12 $W/rtb_single.bin $W/capture.bin $W/mixed_exchange.bin |
         awk -v e=$e '/bin:/{set=$1} /gzhot \(/{print e, set, $3, $(NF-2)}' >> $W/ab
     done
   done
   echo
-  echo "variants, one thread: the lowest of 7 turns of 12 passes, and the output against stock"
+  echo "variants, one thread: the lowest of 9 turns of 12 passes, and the output against stock"
   sort -k2,2 -k1,1n -k3,3n $W/ab | awk '{k=$2" "$1} !(k in seen){seen[k]=1; printf "  %-20s variant %-3s %7.3f us  %s\n", $2, $1, $3, $4}'
   for other in 0 67108864; do
     n=16000
     if [ $other = 67108864 ]; then n=1600; fi
     : > $W/ab2
-    for turn in 1 2 3 4 5; do
+    for turn in 1 2 3; do
       for e in $EXPS; do
         echo "$e rtb $($W/g_$e/release/examples/tokio_bench $W/rtb_single.bin 0 $n 2 $other local | sed -n 's/.*median \([0-9.]*\) us.*/\1/p')" >> $W/ab2
         echo "$e capture $($W/g_$e/release/examples/tokio_bench $W/capture.jsonl lines $n 2 $other local | sed -n 's/.*median \([0-9.]*\) us.*/\1/p')" >> $W/ab2
       done
     done
-    echo "variants, in tokio after walking $((other / 1024)) KiB: the lowest median of 5 runs"
+    echo "variants, in tokio after walking $((other / 1024)) KiB: the lowest median of 3 runs"
     sort -k2,2 -k1,1n -k3,3n $W/ab2 | awk '{k=$2" "$1} !(k in seen){seen[k]=1; printf "  %-20s variant %-3s %7.2f us\n", $2, $1, $3}'
   done
 fi
 
-# The machine code of the encoder, for reading.
+# The machine code of the encoder, for reading: the default build, and the
+# build with every variant on.
+R=$ROOT/gzhot/target/release/examples/tokio_bench
+(cd $ROOT/gzhot && cargo build --release --examples > /dev/null 2>&1)
+if [ -x $W/g_31/release/examples/tokio_bench ]; then
+  objdump -d --no-show-raw-insn -C $W/g_31/release/examples/tokio_bench | awk '/^[0-9a-f]+ <gzhot::enc::scan::<12, true, false>>:/{p=1} p&&/^$/{exit} p' > $OUT/scan_12_emit_31.s
+fi
 objdump -d --no-show-raw-insn -C $R | awk '/^[0-9a-f]+ <gzhot::enc::scan::<12, true, false>>:/{p=1} p&&/^$/{exit} p' > $OUT/scan_12_emit.s
 echo
 echo "the one-pass encoder for 1 to 4 KiB: $(wc -l < $OUT/scan_12_emit.s) instructions (scan_12_emit.s)"
