@@ -8,7 +8,7 @@
 set -e
 TESTS=0     # tests, stress, other decoders, Miri
 MAIN=0      # the tables against the C encoders
-EXPS="0 1 2 4 3 7"   # variants of the encoder to compare (GZHOT_EXP values), or nothing
+EXPS="0 4 8 12"   # variants of the encoder to compare (GZHOT_EXP values), or nothing
 cd "$(dirname "$0")"
 HERE=$(pwd)
 ROOT=$(cd ../.. && pwd)
@@ -144,7 +144,7 @@ if [ -n "$EXPS" ]; then
     (cd $ROOT/gzhot && GZHOT_EXP=$e CARGO_TARGET_DIR=$W/g_$e cargo build --release --examples > /dev/null 2>&1)
   done
   : > $W/ab
-  for turn in 1 2 3 4 5 6 7 8 9; do
+  for turn in 1 2 3; do
     for e in $EXPS; do
       ONLY_RUST=1 taskset -c $CPU $W/t_$e/release/rsbench 12 $W/rtb_single.bin $W/capture.bin $W/mixed_exchange.bin |
         awk -v e=$e '/bin:/{set=$1} /gzhot \(/{print e, set, $3, $(NF-2)}' >> $W/ab
@@ -153,18 +153,18 @@ if [ -n "$EXPS" ]; then
   echo
   echo "variants, one thread: the lowest of 9 turns of 12 passes, and the output against stock"
   sort -k2,2 -k1,1n -k3,3n $W/ab | awk '{k=$2" "$1} !(k in seen){seen[k]=1; printf "  %-20s variant %-3s %7.3f us  %s\n", $2, $1, $3, $4}'
-  for other in 0 4194304 67108864; do
+  for other in 0 16777216 67108864; do
     n=16000
-    if [ $other = 67108864 ]; then n=1600; fi
+    if [ $other != 0 ]; then n=2400; fi
     : > $W/ab2
-    for turn in 1 2 3 4 5; do
+    for turn in 1 2 3 4 5 6 7 8 9; do
       for e in $EXPS; do
         echo "$e rtb $($W/g_$e/release/examples/tokio_bench $W/rtb_single.bin 0 $n 2 $other local | sed -n 's/.*median \([0-9.]*\) us.*/\1/p')" >> $W/ab2
         echo "$e capture $($W/g_$e/release/examples/tokio_bench $W/capture.jsonl lines $n 2 $other local | sed -n 's/.*median \([0-9.]*\) us.*/\1/p')" >> $W/ab2
       done
     done
-    echo "variants, in tokio after walking $((other / 1024)) KiB: the lowest median of 5 runs"
-    sort -k2,2 -k1,1n -k3,3n $W/ab2 | awk '{k=$2" "$1} !(k in seen){seen[k]=1; printf "  %-20s variant %-3s %7.2f us\n", $2, $1, $3}'
+    echo "variants, in tokio after walking $((other / 1024)) KiB: the lowest and the middle median of 9 runs"
+    sort -k2,2 -k1,1n -k3,3n $W/ab2 | awk '{k=$2" "$1; c[k]++; if (c[k]==1) lo[k]=$3; if (c[k]==5) printf "  %-20s variant %-3s %7.2f us  %7.2f us\n", $2, $1, lo[k], $3}'
   done
 fi
 
