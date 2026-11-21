@@ -4,7 +4,7 @@ machine: aarch64, 4 CPUs, Neoverse-N2
   L3 cache:                                128 MiB (1 instance)
 rustc 1.100.0 (0ef1bc386 2026-11-09)
 
-fastgzip-safe builds with unsafe code forbidden: Finished `release` profile [optimized + debuginfo] target(s) in 2.18s
+fastgzip-safe builds with unsafe code forbidden: Finished `release` profile [optimized + debuginfo] target(s) in 1.89s
   33:#![cfg_attr(not(feature = "prefetch"), forbid(unsafe_code))]
   with the feature prefetch: 1 unsafe block, 1 instruction in it
 tests, debug build:    18 passed, 0 failed
@@ -48,154 +48,154 @@ checks left in the one-pass encoder (4 to 8 KiB), per version:
 
 one thread, the best of 40 passes (run 1):
 rtb_single.bin: 400 payloads, 3744 B on average
-  libdeflate level 1      18.326 us/call  100.0% of the first    58.09% of in    +0.00% vs the first
-  fastgzip                 5.585 us/call   30.5% of the first    59.33% of in    +2.14% vs the first
-  fastgzip, new lookup     5.550 us/call   30.3% of the first    59.33% of in    +2.14% vs the first
-  fastgzip, no unsafe      5.670 us/call   30.9% of the first    59.33% of in    +2.14% vs the first
+  libdeflate level 1      18.324 us/call  100.0% of the first    58.09% of in    +0.00% vs the first
+  fastgzip                 5.551 us/call   30.3% of the first    59.33% of in    +2.14% vs the first
+  fastgzip, new lookup     5.546 us/call   30.3% of the first    59.33% of in    +2.14% vs the first
+  fastgzip, no unsafe      5.645 us/call   30.8% of the first    59.33% of in    +2.14% vs the first
 rtb_5k.bin: 200 payloads, 5000 B on average
-  libdeflate level 1      23.390 us/call  100.0% of the first    52.21% of in    +0.00% vs the first
-  fastgzip                 7.286 us/call   31.1% of the first    53.20% of in    +1.88% vs the first
-  fastgzip, new lookup     7.309 us/call   31.2% of the first    53.20% of in    +1.88% vs the first
-  fastgzip, no unsafe      7.370 us/call   31.5% of the first    53.20% of in    +1.88% vs the first
+  libdeflate level 1      23.383 us/call  100.0% of the first    52.21% of in    +0.00% vs the first
+  fastgzip                 7.306 us/call   31.2% of the first    53.20% of in    +1.88% vs the first
+  fastgzip, new lookup     7.303 us/call   31.2% of the first    53.20% of in    +1.88% vs the first
+  fastgzip, no unsafe      7.378 us/call   31.6% of the first    53.20% of in    +1.88% vs the first
 capture.bin: 1000 payloads, 1771 B on average
-  libdeflate level 1       9.349 us/call  100.0% of the first    75.01% of in    +0.00% vs the first
-  fastgzip                 2.541 us/call   27.2% of the first    77.31% of in    +3.07% vs the first
-  fastgzip, new lookup     2.539 us/call   27.2% of the first    77.31% of in    +3.07% vs the first
-  fastgzip, no unsafe      2.537 us/call   27.1% of the first    77.31% of in    +3.07% vs the first
+  libdeflate level 1       9.347 us/call  100.0% of the first    75.01% of in    +0.00% vs the first
+  fastgzip                 2.543 us/call   27.2% of the first    77.31% of in    +3.07% vs the first
+  fastgzip, new lookup     2.537 us/call   27.1% of the first    77.31% of in    +3.07% vs the first
+  fastgzip, no unsafe      2.535 us/call   27.1% of the first    77.31% of in    +3.07% vs the first
 mixed_exchange.bin: 70 payloads, 1453 B on average
-  libdeflate level 1       8.557 us/call  100.0% of the first    58.24% of in    +0.00% vs the first
-  fastgzip                 2.094 us/call   24.5% of the first    61.07% of in    +4.85% vs the first
-  fastgzip, new lookup     2.085 us/call   24.4% of the first    61.07% of in    +4.85% vs the first
-  fastgzip, no unsafe      2.107 us/call   24.6% of the first    61.07% of in    +4.85% vs the first
+  libdeflate level 1       8.588 us/call  100.0% of the first    58.24% of in    +0.00% vs the first
+  fastgzip                 2.091 us/call   24.3% of the first    61.07% of in    +4.85% vs the first
+  fastgzip, new lookup     2.086 us/call   24.3% of the first    61.07% of in    +4.85% vs the first
+  fastgzip, no unsafe      2.101 us/call   24.5% of the first    61.07% of in    +4.85% vs the first
 rtb_x3.bin: 133 payloads, 11240 B on average
-  libdeflate level 1      45.044 us/call  100.0% of the first    44.73% of in    +0.00% vs the first
-  fastgzip                15.189 us/call   33.7% of the first    45.36% of in    +1.40% vs the first
-  fastgzip, new lookup    15.148 us/call   33.6% of the first    45.36% of in    +1.40% vs the first
-  fastgzip, no unsafe     15.419 us/call   34.2% of the first    45.36% of in    +1.40% vs the first
+  libdeflate level 1      44.962 us/call  100.0% of the first    44.73% of in    +0.00% vs the first
+  fastgzip                15.098 us/call   33.6% of the first    45.36% of in    +1.40% vs the first
+  fastgzip, new lookup    15.086 us/call   33.6% of the first    45.36% of in    +1.40% vs the first
+  fastgzip, no unsafe     15.379 us/call   34.2% of the first    45.36% of in    +1.40% vs the first
 rtb_x6.bin: 66 payloads, 22477 B on average
-  libdeflate level 1      83.504 us/call  100.0% of the first    39.89% of in    +0.00% vs the first
-  fastgzip                28.459 us/call   34.1% of the first    40.35% of in    +1.16% vs the first
-  fastgzip, new lookup    28.999 us/call   34.7% of the first    40.35% of in    +1.16% vs the first
-  fastgzip, no unsafe     29.704 us/call   35.6% of the first    40.35% of in    +1.16% vs the first
+  libdeflate level 1      83.477 us/call  100.0% of the first    39.89% of in    +0.00% vs the first
+  fastgzip                28.698 us/call   34.4% of the first    40.35% of in    +1.16% vs the first
+  fastgzip, new lookup    28.967 us/call   34.7% of the first    40.35% of in    +1.16% vs the first
+  fastgzip, no unsafe     29.752 us/call   35.6% of the first    40.35% of in    +1.16% vs the first
 rtb_cut500.bin: 400 payloads, 500 B on average
-  libdeflate level 1       4.908 us/call  100.0% of the first    71.67% of in    +0.00% vs the first
-  fastgzip                 1.336 us/call   27.2% of the first    75.92% of in    +5.93% vs the first
-  fastgzip, new lookup     1.352 us/call   27.5% of the first    75.92% of in    +5.93% vs the first
-  fastgzip, no unsafe      1.326 us/call   27.0% of the first    75.92% of in    +5.93% vs the first
+  libdeflate level 1       4.904 us/call  100.0% of the first    71.67% of in    +0.00% vs the first
+  fastgzip                 1.338 us/call   27.3% of the first    75.92% of in    +5.93% vs the first
+  fastgzip, new lookup     1.346 us/call   27.5% of the first    75.92% of in    +5.93% vs the first
+  fastgzip, no unsafe      1.327 us/call   27.1% of the first    75.92% of in    +5.93% vs the first
 
 one thread, the best of 40 passes (run 2):
 rtb_single.bin: 400 payloads, 3744 B on average
-  libdeflate level 1      18.292 us/call  100.0% of the first    58.09% of in    +0.00% vs the first
-  fastgzip                 5.571 us/call   30.5% of the first    59.33% of in    +2.14% vs the first
-  fastgzip, new lookup     5.577 us/call   30.5% of the first    59.33% of in    +2.14% vs the first
-  fastgzip, no unsafe      5.665 us/call   31.0% of the first    59.33% of in    +2.14% vs the first
+  libdeflate level 1      18.285 us/call  100.0% of the first    58.09% of in    +0.00% vs the first
+  fastgzip                 5.541 us/call   30.3% of the first    59.33% of in    +2.14% vs the first
+  fastgzip, new lookup     5.545 us/call   30.3% of the first    59.33% of in    +2.14% vs the first
+  fastgzip, no unsafe      5.645 us/call   30.9% of the first    59.33% of in    +2.14% vs the first
 rtb_5k.bin: 200 payloads, 5000 B on average
-  libdeflate level 1      23.366 us/call  100.0% of the first    52.21% of in    +0.00% vs the first
-  fastgzip                 7.261 us/call   31.1% of the first    53.20% of in    +1.88% vs the first
-  fastgzip, new lookup     7.299 us/call   31.2% of the first    53.20% of in    +1.88% vs the first
-  fastgzip, no unsafe      7.359 us/call   31.5% of the first    53.20% of in    +1.88% vs the first
+  libdeflate level 1      23.390 us/call  100.0% of the first    52.21% of in    +0.00% vs the first
+  fastgzip                 7.265 us/call   31.1% of the first    53.20% of in    +1.88% vs the first
+  fastgzip, new lookup     7.300 us/call   31.2% of the first    53.20% of in    +1.88% vs the first
+  fastgzip, no unsafe      7.361 us/call   31.5% of the first    53.20% of in    +1.88% vs the first
 capture.bin: 1000 payloads, 1771 B on average
-  libdeflate level 1       9.343 us/call  100.0% of the first    75.01% of in    +0.00% vs the first
-  fastgzip                 2.536 us/call   27.1% of the first    77.31% of in    +3.07% vs the first
-  fastgzip, new lookup     2.539 us/call   27.2% of the first    77.31% of in    +3.07% vs the first
-  fastgzip, no unsafe      2.537 us/call   27.2% of the first    77.31% of in    +3.07% vs the first
+  libdeflate level 1       9.347 us/call  100.0% of the first    75.01% of in    +0.00% vs the first
+  fastgzip                 2.538 us/call   27.2% of the first    77.31% of in    +3.07% vs the first
+  fastgzip, new lookup     2.535 us/call   27.1% of the first    77.31% of in    +3.07% vs the first
+  fastgzip, no unsafe      2.535 us/call   27.1% of the first    77.31% of in    +3.07% vs the first
 mixed_exchange.bin: 70 payloads, 1453 B on average
-  libdeflate level 1       8.550 us/call  100.0% of the first    58.24% of in    +0.00% vs the first
-  fastgzip                 2.093 us/call   24.5% of the first    61.07% of in    +4.85% vs the first
-  fastgzip, new lookup     2.085 us/call   24.4% of the first    61.07% of in    +4.85% vs the first
-  fastgzip, no unsafe      2.104 us/call   24.6% of the first    61.07% of in    +4.85% vs the first
+  libdeflate level 1       8.554 us/call  100.0% of the first    58.24% of in    +0.00% vs the first
+  fastgzip                 2.094 us/call   24.5% of the first    61.07% of in    +4.85% vs the first
+  fastgzip, new lookup     2.087 us/call   24.4% of the first    61.07% of in    +4.85% vs the first
+  fastgzip, no unsafe      2.109 us/call   24.7% of the first    61.07% of in    +4.85% vs the first
 rtb_x3.bin: 133 payloads, 11240 B on average
-  libdeflate level 1      44.981 us/call  100.0% of the first    44.73% of in    +0.00% vs the first
-  fastgzip                15.131 us/call   33.6% of the first    45.36% of in    +1.40% vs the first
-  fastgzip, new lookup    15.154 us/call   33.7% of the first    45.36% of in    +1.40% vs the first
-  fastgzip, no unsafe     15.422 us/call   34.3% of the first    45.36% of in    +1.40% vs the first
+  libdeflate level 1      44.944 us/call  100.0% of the first    44.73% of in    +0.00% vs the first
+  fastgzip                15.090 us/call   33.6% of the first    45.36% of in    +1.40% vs the first
+  fastgzip, new lookup    15.091 us/call   33.6% of the first    45.36% of in    +1.40% vs the first
+  fastgzip, no unsafe     15.355 us/call   34.2% of the first    45.36% of in    +1.40% vs the first
 rtb_x6.bin: 66 payloads, 22477 B on average
-  libdeflate level 1      83.560 us/call  100.0% of the first    39.89% of in    +0.00% vs the first
-  fastgzip                28.781 us/call   34.4% of the first    40.35% of in    +1.16% vs the first
-  fastgzip, new lookup    28.938 us/call   34.6% of the first    40.35% of in    +1.16% vs the first
-  fastgzip, no unsafe     29.993 us/call   35.9% of the first    40.35% of in    +1.16% vs the first
+  libdeflate level 1      83.515 us/call  100.0% of the first    39.89% of in    +0.00% vs the first
+  fastgzip                28.528 us/call   34.2% of the first    40.35% of in    +1.16% vs the first
+  fastgzip, new lookup    28.866 us/call   34.6% of the first    40.35% of in    +1.16% vs the first
+  fastgzip, no unsafe     29.858 us/call   35.8% of the first    40.35% of in    +1.16% vs the first
 rtb_cut500.bin: 400 payloads, 500 B on average
-  libdeflate level 1       4.909 us/call  100.0% of the first    71.67% of in    +0.00% vs the first
-  fastgzip                 1.337 us/call   27.2% of the first    75.92% of in    +5.93% vs the first
-  fastgzip, new lookup     1.347 us/call   27.4% of the first    75.92% of in    +5.93% vs the first
-  fastgzip, no unsafe      1.326 us/call   27.0% of the first    75.92% of in    +5.93% vs the first
+  libdeflate level 1       4.906 us/call  100.0% of the first    71.67% of in    +0.00% vs the first
+  fastgzip                 1.345 us/call   27.4% of the first    75.92% of in    +5.93% vs the first
+  fastgzip, new lookup     1.346 us/call   27.4% of the first    75.92% of in    +5.93% vs the first
+  fastgzip, no unsafe      1.332 us/call   27.1% of the first    75.92% of in    +5.93% vs the first
 
 in tokio, 2 workers, 3.7 KB synthetic requests:
   other work per request: walks 0 KiB
     fastgzip                  5.17 us  100.0%   output 59.3% of input
-    fastgzip_again            5.17 us  100.0%   output 59.3% of input
-    fastgzip_new_lookup       5.16 us   99.8%   output 59.3% of input
-    no_unsafe                 5.27 us  101.9%   output 59.3% of input
+    fastgzip_again            5.18 us  100.2%   output 59.3% of input
+    no_unsafe                 5.28 us  102.1%   output 59.3% of input
     no_unsafe_but_prefetch    5.26 us  101.7%   output 59.3% of input
+    prefetch_and_zero_first   5.29 us  102.3%   output 59.3% of input
   other work per request: walks 4096 KiB
-    fastgzip                  5.52 us  100.0%   output 59.3% of input
-    fastgzip_again            5.51 us   99.8%   output 59.3% of input
-    fastgzip_new_lookup       5.44 us   98.6%   output 59.3% of input
-    no_unsafe                 5.78 us  104.7%   output 59.3% of input
-    no_unsafe_but_prefetch    5.66 us  102.5%   output 59.3% of input
+    fastgzip                  5.50 us  100.0%   output 59.3% of input
+    fastgzip_again            5.46 us   99.3%   output 59.3% of input
+    no_unsafe                 5.78 us  105.1%   output 59.3% of input
+    no_unsafe_but_prefetch    5.70 us  103.6%   output 59.3% of input
+    prefetch_and_zero_first   5.74 us  104.4%   output 59.3% of input
   other work per request: walks 65536 KiB
-    fastgzip                  6.61 us  100.0%   output 59.3% of input
-    fastgzip_again            6.58 us   99.5%   output 59.3% of input
-    fastgzip_new_lookup       6.75 us  102.1%   output 59.3% of input
-    no_unsafe                 7.30 us  110.4%   output 59.3% of input
-    no_unsafe_but_prefetch    7.11 us  107.6%   output 59.3% of input
+    fastgzip                  6.46 us  100.0%   output 59.3% of input
+    fastgzip_again            6.48 us  100.3%   output 59.3% of input
+    no_unsafe                 7.12 us  110.2%   output 59.3% of input
+    no_unsafe_but_prefetch    6.90 us  106.8%   output 59.3% of input
+    prefetch_and_zero_first   6.96 us  107.7%   output 59.3% of input
 
 in tokio, 2 workers, 5.0 KB (two synthetic requests, cut):
   other work per request: walks 0 KiB
-    fastgzip                  6.95 us  100.0%   output 53.2% of input
-    fastgzip_again            6.97 us  100.3%   output 53.2% of input
-    fastgzip_new_lookup       6.95 us  100.0%   output 53.2% of input
-    no_unsafe                 7.07 us  101.7%   output 53.2% of input
-    no_unsafe_but_prefetch    7.12 us  102.4%   output 53.2% of input
+    fastgzip                  6.96 us  100.0%   output 53.2% of input
+    fastgzip_again            6.97 us  100.1%   output 53.2% of input
+    no_unsafe                 7.07 us  101.6%   output 53.2% of input
+    no_unsafe_but_prefetch    7.11 us  102.2%   output 53.2% of input
+    prefetch_and_zero_first   7.14 us  102.6%   output 53.2% of input
   other work per request: walks 4096 KiB
     fastgzip                  7.37 us  100.0%   output 53.2% of input
-    fastgzip_again            7.39 us  100.3%   output 53.2% of input
-    fastgzip_new_lookup       7.35 us   99.7%   output 53.2% of input
-    no_unsafe                 7.58 us  102.8%   output 53.2% of input
-    no_unsafe_but_prefetch    7.50 us  101.8%   output 53.2% of input
+    fastgzip_again            7.36 us   99.9%   output 53.2% of input
+    no_unsafe                 7.56 us  102.6%   output 53.2% of input
+    no_unsafe_but_prefetch    7.61 us  103.3%   output 53.2% of input
+    prefetch_and_zero_first   7.66 us  103.9%   output 53.2% of input
   other work per request: walks 65536 KiB
-    fastgzip                  8.46 us  100.0%   output 53.2% of input
-    fastgzip_again            8.49 us  100.4%   output 53.2% of input
-    fastgzip_new_lookup       8.54 us  100.9%   output 53.2% of input
-    no_unsafe                 8.90 us  105.2%   output 53.2% of input
-    no_unsafe_but_prefetch    8.77 us  103.7%   output 53.2% of input
+    fastgzip                  8.11 us  100.0%   output 53.2% of input
+    fastgzip_again            8.14 us  100.4%   output 53.2% of input
+    no_unsafe                 8.61 us  106.2%   output 53.2% of input
+    no_unsafe_but_prefetch    8.53 us  105.2%   output 53.2% of input
+    prefetch_and_zero_first   8.65 us  106.7%   output 53.2% of input
 
 in tokio, 2 workers, the capture of 1,000 requests of one exchange (1.8 KB):
   other work per request: walks 0 KiB
     fastgzip                  2.47 us  100.0%   output 77.3% of input
     fastgzip_again            2.47 us  100.0%   output 77.3% of input
-    fastgzip_new_lookup       2.48 us  100.4%   output 77.3% of input
-    no_unsafe                 2.51 us  101.6%   output 77.3% of input
+    no_unsafe                 2.50 us  101.2%   output 77.3% of input
     no_unsafe_but_prefetch    2.51 us  101.6%   output 77.3% of input
+    prefetch_and_zero_first   2.53 us  102.4%   output 77.3% of input
   other work per request: walks 4096 KiB
-    fastgzip                  2.77 us  100.0%   output 77.3% of input
-    fastgzip_again            2.77 us  100.0%   output 77.3% of input
-    fastgzip_new_lookup       2.75 us   99.3%   output 77.3% of input
-    no_unsafe                 2.89 us  104.3%   output 77.3% of input
-    no_unsafe_but_prefetch    2.88 us  104.0%   output 77.3% of input
+    fastgzip                  2.79 us  100.0%   output 77.3% of input
+    fastgzip_again            2.75 us   98.6%   output 77.3% of input
+    no_unsafe                 2.94 us  105.4%   output 77.3% of input
+    no_unsafe_but_prefetch    2.88 us  103.2%   output 77.3% of input
+    prefetch_and_zero_first   2.86 us  102.5%   output 77.3% of input
   other work per request: walks 65536 KiB
-    fastgzip                  3.63 us  100.0%   output 77.3% of input
-    fastgzip_again            3.63 us  100.0%   output 77.3% of input
-    fastgzip_new_lookup       3.59 us   98.9%   output 77.3% of input
-    no_unsafe                 4.00 us  110.2%   output 77.2% of input
-    no_unsafe_but_prefetch    3.97 us  109.4%   output 77.2% of input
+    fastgzip                  3.47 us  100.0%   output 77.3% of input
+    fastgzip_again            3.34 us   96.3%   output 77.3% of input
+    no_unsafe                 3.86 us  111.2%   output 77.3% of input
+    no_unsafe_but_prefetch    3.72 us  107.2%   output 77.2% of input
+    prefetch_and_zero_first   3.68 us  106.1%   output 77.3% of input
 
 in tokio, 2 workers, 22 KB payloads (six synthetic requests in an array):
   other work per request: walks 0 KiB
-    fastgzip                 27.34 us  100.0%   output 40.3% of input
-    fastgzip_again           27.34 us  100.0%   output 40.3% of input
-    fastgzip_new_lookup      27.44 us  100.4%   output 40.3% of input
-    no_unsafe                28.44 us  104.0%   output 40.8% of input
-    no_unsafe_but_prefetch   28.56 us  104.5%   output 40.3% of input
+    fastgzip                 27.37 us  100.0%   output 40.3% of input
+    fastgzip_again           27.34 us   99.9%   output 40.3% of input
+    no_unsafe                28.46 us  104.0%   output 40.8% of input
+    no_unsafe_but_prefetch   28.55 us  104.3%   output 40.3% of input
+    prefetch_and_zero_first  28.51 us  104.2%   output 40.4% of input
   other work per request: walks 4096 KiB
-    fastgzip                 27.80 us  100.0%   output 40.3% of input
-    fastgzip_again           27.79 us  100.0%   output 40.6% of input
-    fastgzip_new_lookup      27.89 us  100.3%   output 40.3% of input
-    no_unsafe                29.14 us  104.8%   output 40.3% of input
-    no_unsafe_but_prefetch   28.99 us  104.3%   output 40.3% of input
+    fastgzip                 27.72 us  100.0%   output 40.3% of input
+    fastgzip_again           27.74 us  100.1%   output 40.3% of input
+    no_unsafe                29.07 us  104.9%   output 40.3% of input
+    no_unsafe_but_prefetch   28.98 us  104.5%   output 40.3% of input
+    prefetch_and_zero_first  29.00 us  104.6%   output 40.3% of input
   other work per request: walks 65536 KiB
-    fastgzip                 29.39 us  100.0%   output 40.3% of input
-    fastgzip_again           29.29 us   99.7%   output 40.3% of input
-    fastgzip_new_lookup      29.46 us  100.2%   output 40.3% of input
-    no_unsafe                31.25 us  106.3%   output 40.3% of input
-    no_unsafe_but_prefetch   30.90 us  105.1%   output 40.3% of input
+    fastgzip                 29.10 us  100.0%   output 40.3% of input
+    fastgzip_again           29.13 us  100.1%   output 40.3% of input
+    no_unsafe                30.87 us  106.1%   output 40.3% of input
+    no_unsafe_but_prefetch   30.68 us  105.4%   output 40.3% of input
+    prefetch_and_zero_first  30.58 us  105.1%   output 40.3% of input

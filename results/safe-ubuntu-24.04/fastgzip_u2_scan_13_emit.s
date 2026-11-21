@@ -1,581 +1,581 @@
-000000000003d010 <fastgzip_u2::enc::scan::<13, true, false>>:
-   3d010:	push   %rbp
-   3d011:	push   %r15
-   3d013:	push   %r14
-   3d015:	push   %r13
-   3d017:	push   %r12
-   3d019:	push   %rbx
-   3d01a:	sub    $0x38,%rsp
-   3d01e:	mov    %r8,%r13
-   3d021:	mov    %rsi,0x10(%rsp)
-   3d026:	mov    %rdi,%r14
-   3d029:	mov    0x90(%rsp),%r12
-   3d031:	mov    0x80(%rsp),%rdi
-   3d039:	bt     $0x20,%r12
-   3d03e:	mov    %r9,0x8(%rsp)
-   3d043:	jb     3d073 <fastgzip_u2::enc::scan::<13, true, false>+0x63>
-   3d045:	movzbl (%rdi),%eax
-   3d048:	mov    $0xffffffffffffffff,%rbp
-   3d04f:	mov    %r12d,%ecx
-   3d052:	shl    %cl,%rbp
-   3d055:	not    %ebp
-   3d057:	and    %eax,%ebp
-   3d059:	xor    %ebx,%ebx
-   3d05b:	mov    %r12,%r15
-   3d05e:	mov    0x70(%rsp),%r12
-   3d063:	cmpb   $0x0,0x78(%rsp)
-   3d068:	jne    3d131 <fastgzip_u2::enc::scan::<13, true, false>+0x121>
-   3d06e:	jmp    3d150 <fastgzip_u2::enc::scan::<13, true, false>+0x140>
-   3d073:	mov    0xa10(%r14),%r15d
-   3d07a:	mov    %r15d,%ebx
-   3d07d:	shr    $0x3,%ebx
-   3d080:	lea    0xa14(%r14),%rax
-   3d087:	cmp    $0x3ff,%r15
-   3d08e:	ja     3d0d0 <fastgzip_u2::enc::scan::<13, true, false>+0xc0>
-   3d090:	movups 0x70(%rax),%xmm0
-   3d094:	movups %xmm0,0x70(%rdi)
-   3d098:	movups 0x60(%rax),%xmm0
-   3d09c:	movups %xmm0,0x60(%rdi)
-   3d0a0:	movups 0x50(%rax),%xmm0
-   3d0a4:	movups %xmm0,0x50(%rdi)
-   3d0a8:	movups 0x40(%rax),%xmm0
-   3d0ac:	movups %xmm0,0x40(%rdi)
-   3d0b0:	movups (%rax),%xmm0
-   3d0b3:	movups 0x10(%rax),%xmm1
-   3d0b7:	movups 0x20(%rax),%xmm2
-   3d0bb:	movups 0x30(%rax),%xmm3
-   3d0bf:	movups %xmm3,0x30(%rdi)
-   3d0c3:	movups %xmm2,0x20(%rdi)
-   3d0c7:	movups %xmm1,0x10(%rdi)
-   3d0cb:	movups %xmm0,(%rdi)
-   3d0ce:	jmp    3d0fc <fastgzip_u2::enc::scan::<13, true, false>+0xec>
-   3d0d0:	mov    %rax,%rbp
-   3d0d3:	mov    %rax,%rsi
-   3d0d6:	mov    %rbx,%rdx
-   3d0d9:	call   *0x84e69(%rip)        # c1f48 <memcpy@GLIBC_2.14>
-   3d0df:	mov    %rbp,%rax
-   3d0e2:	mov    0x8(%rsp),%r9
-   3d0e7:	mov    0x80(%rsp),%rdi
-   3d0ef:	cmp    $0x11ff,%r15d
-   3d0f6:	ja     3d889 <fastgzip_u2::enc::scan::<13, true, false>+0x879>
-   3d0fc:	and    $0x7,%r15d
-   3d100:	mov    $0xffffffff,%ebp
-   3d105:	mov    %r15d,%ecx
-   3d108:	shl    %cl,%ebp
-   3d10a:	movzbl (%rax,%rbx,1),%eax
-   3d10e:	not    %ebp
-   3d110:	and    %eax,%ebp
-   3d112:	bt     $0x28,%r12
-   3d117:	jb     3d125 <fastgzip_u2::enc::scan::<13, true, false>+0x115>
-   3d119:	test   %rbx,%rbx
-   3d11c:	je     3d864 <fastgzip_u2::enc::scan::<13, true, false>+0x854>
-   3d122:	andb   $0xfe,(%rdi)
-   3d125:	mov    0x70(%rsp),%r12
-   3d12a:	cmpb   $0x0,0x78(%rsp)
-   3d12f:	je     3d150 <fastgzip_u2::enc::scan::<13, true, false>+0x140>
-   3d131:	mov    $0x4000,%edx
-   3d136:	mov    0x10(%rsp),%rdi
-   3d13b:	xor    %esi,%esi
-   3d13d:	call   *0x84fad(%rip)        # c20f0 <memset@GLIBC_2.2.5>
-   3d143:	mov    0x8(%rsp),%r9
-   3d148:	mov    0x80(%rsp),%rdi
-   3d150:	xor    %eax,%eax
-   3d152:	mov    %r9,%rsi
-   3d155:	sub    $0x9,%rsi
-   3d159:	cmovb  %rax,%rsi
-   3d15d:	sub    $0xc,%r9
-   3d161:	cmovb  %rax,%r9
-   3d165:	mov    %r9,0x30(%rsp)
-   3d16a:	test   %r12,%r12
-   3d16d:	je     3d17e <fastgzip_u2::enc::scan::<13, true, false>+0x16e>
-   3d16f:	cmp    %rsi,%r12
-   3d172:	mov    0x10(%rsp),%rdx
-   3d177:	jae    3d18b <fastgzip_u2::enc::scan::<13, true, false>+0x17b>
-   3d179:	jmp    3d3c9 <fastgzip_u2::enc::scan::<13, true, false>+0x3b9>
-   3d17e:	cmp    $0x2,%rsi
-   3d182:	jae    3d381 <fastgzip_u2::enc::scan::<13, true, false>+0x371>
-   3d188:	xor    %r12d,%r12d
-   3d18b:	lea    0x4(%r12),%rax
-   3d190:	mov    0x8(%rsp),%r10
-   3d195:	cmp    %r10,%rax
-   3d198:	jbe    3d1a2 <fastgzip_u2::enc::scan::<13, true, false>+0x192>
-   3d19a:	mov    %r12,%rdi
-   3d19d:	jmp    3d256 <fastgzip_u2::enc::scan::<13, true, false>+0x246>
-   3d1a2:	mov    0x80(%rsp),%r9
-   3d1aa:	nopw   0x0(%rax,%rax,1)
-   3d1b0:	movzbl 0x0(%r13,%r12,1),%eax
-   3d1b6:	mov    (%r14,%rax,4),%eax
-   3d1ba:	movzwl %ax,%esi
-   3d1bd:	mov    %r15d,%ecx
-   3d1c0:	shl    %cl,%rsi
-   3d1c3:	shr    $0x10,%eax
-   3d1c6:	add    %r15d,%eax
-   3d1c9:	movzbl 0x1(%r13,%r12,1),%ecx
-   3d1cf:	mov    (%r14,%rcx,4),%edx
-   3d1d3:	movzwl %dx,%edi
-   3d1d6:	mov    %eax,%ecx
-   3d1d8:	shl    %cl,%rdi
-   3d1db:	shr    $0x10,%edx
-   3d1de:	add    %eax,%edx
-   3d1e0:	movzbl 0x2(%r13,%r12,1),%eax
-   3d1e6:	mov    (%r14,%rax,4),%eax
-   3d1ea:	movzwl %ax,%r8d
-   3d1ee:	mov    %edx,%ecx
-   3d1f0:	shl    %cl,%r8
-   3d1f3:	or     %rsi,%rbp
-   3d1f6:	or     %rbp,%rdi
-   3d1f9:	or     %rdi,%r8
-   3d1fc:	shr    $0x10,%eax
-   3d1ff:	add    %edx,%eax
-   3d201:	movzbl 0x3(%r13,%r12,1),%ecx
-   3d207:	mov    (%r14,%rcx,4),%r15d
-   3d20b:	movzwl %r15w,%ebp
-   3d20f:	mov    %eax,%ecx
-   3d211:	shl    %cl,%rbp
-   3d214:	mov    %rbx,%rcx
-   3d217:	or     %r8,%rbp
-   3d21a:	shr    $0x10,%r15d
-   3d21e:	add    %eax,%r15d
-   3d221:	mov    %rbp,(%r9,%rbx,1)
-   3d225:	mov    %r15d,%ebx
-   3d228:	shr    $0x3,%ebx
-   3d22b:	and    $0x7,%ebx
-   3d22e:	add    %rcx,%rbx
-   3d231:	mov    %r15d,%ecx
-   3d234:	and    $0x38,%cl
-   3d237:	shr    %cl,%rbp
-   3d23a:	and    $0xffff8007,%r15d
-   3d241:	lea    0x4(%r12),%rdi
-   3d246:	add    $0x8,%r12
-   3d24a:	cmp    %r10,%r12
-   3d24d:	mov    %rdi,%r12
-   3d250:	jbe    3d1b0 <fastgzip_u2::enc::scan::<13, true, false>+0x1a0>
-   3d256:	cmp    %rdi,%r10
-   3d259:	jbe    3d27a <fastgzip_u2::enc::scan::<13, true, false>+0x26a>
-   3d25b:	mov    %r10d,%eax
-   3d25e:	sub    %edi,%eax
-   3d260:	lea    0x1(%rdi),%rdx
-   3d264:	test   $0x1,%al
-   3d266:	mov    0x90(%rsp),%r9
-   3d26e:	jne    3d28a <fastgzip_u2::enc::scan::<13, true, false>+0x27a>
-   3d270:	cmp    %rdx,%r10
-   3d273:	jne    3d2b4 <fastgzip_u2::enc::scan::<13, true, false>+0x2a4>
-   3d275:	jmp    3d2ff <fastgzip_u2::enc::scan::<13, true, false>+0x2ef>
-   3d27a:	mov    %r15d,%eax
-   3d27d:	mov    %rbp,%rsi
-   3d280:	mov    0x90(%rsp),%r9
-   3d288:	jmp    3d2ff <fastgzip_u2::enc::scan::<13, true, false>+0x2ef>
-   3d28a:	movzbl 0x0(%r13,%rdi,1),%eax
-   3d290:	mov    (%r14,%rax,4),%eax
-   3d294:	movzwl %ax,%esi
-   3d297:	mov    %r15d,%ecx
-   3d29a:	shl    %cl,%rsi
-   3d29d:	or     %rbp,%rsi
-   3d2a0:	shr    $0x10,%eax
-   3d2a3:	add    %r15d,%eax
-   3d2a6:	mov    %rsi,%rbp
-   3d2a9:	mov    %eax,%r15d
-   3d2ac:	mov    %rdx,%rdi
-   3d2af:	cmp    %rdx,%r10
-   3d2b2:	je     3d2ff <fastgzip_u2::enc::scan::<13, true, false>+0x2ef>
-   3d2b4:	mov    %rbp,%rsi
-   3d2b7:	mov    %r15d,%eax
-   3d2ba:	nopw   0x0(%rax,%rax,1)
-   3d2c0:	movzbl 0x0(%r13,%rdi,1),%ecx
-   3d2c6:	mov    (%r14,%rcx,4),%edx
-   3d2ca:	movzwl %dx,%r8d
-   3d2ce:	mov    %eax,%ecx
-   3d2d0:	shl    %cl,%r8
-   3d2d3:	or     %r8,%rsi
-   3d2d6:	shr    $0x10,%edx
-   3d2d9:	add    %eax,%edx
-   3d2db:	movzbl 0x1(%r13,%rdi,1),%eax
-   3d2e1:	mov    (%r14,%rax,4),%eax
-   3d2e5:	movzwl %ax,%r8d
-   3d2e9:	mov    %edx,%ecx
-   3d2eb:	shl    %cl,%r8
-   3d2ee:	or     %r8,%rsi
-   3d2f1:	shr    $0x10,%eax
-   3d2f4:	add    %edx,%eax
-   3d2f6:	add    $0x2,%rdi
-   3d2fa:	cmp    %rdi,%r10
-   3d2fd:	jne    3d2c0 <fastgzip_u2::enc::scan::<13, true, false>+0x2b0>
-   3d2ff:	mov    0x80(%rsp),%r10
-   3d307:	mov    %rsi,(%r10,%rbx,1)
-   3d30b:	mov    %eax,%edx
-   3d30d:	shr    $0x3,%edx
-   3d310:	and    $0x7,%edx
-   3d313:	add    %rbx,%rdx
-   3d316:	mov    %eax,%edi
-   3d318:	and    $0xffff8007,%edi
-   3d31e:	bt     $0x30,%r9
-   3d323:	jae    3d363 <fastgzip_u2::enc::scan::<13, true, false>+0x353>
-   3d325:	mov    %eax,%ecx
-   3d327:	and    $0x38,%cl
-   3d32a:	shr    %cl,%rsi
-   3d32d:	mov    0x80c(%r14),%r8d
-   3d334:	movzwl %r8w,%r9d
-   3d338:	and    $0x7,%al
-   3d33a:	mov    %eax,%ecx
-   3d33c:	shl    %cl,%r9
-   3d33f:	or     %rsi,%r9
-   3d342:	shr    $0x10,%r8d
-   3d346:	add    %edi,%r8d
-   3d349:	mov    %r9,(%r10,%rdx,1)
-   3d34d:	mov    %r8d,%eax
-   3d350:	shr    $0x3,%eax
-   3d353:	and    $0x7,%eax
-   3d356:	add    %rax,%rdx
-   3d359:	and    $0xffff8007,%r8d
-   3d360:	mov    %r8d,%edi
-   3d363:	xor    %eax,%eax
-   3d365:	cmp    $0x8,%edi
-   3d368:	mov    %edi,%ecx
-   3d36a:	lea    (%rcx,%rdx,8),%rcx
-   3d36e:	cmovb  %rcx,%rax
-   3d372:	add    $0x38,%rsp
-   3d376:	pop    %rbx
-   3d377:	pop    %r12
-   3d379:	pop    %r13
-   3d37b:	pop    %r14
-   3d37d:	pop    %r15
-   3d37f:	pop    %rbp
-   3d380:	ret
-   3d381:	movzbl 0x0(%r13),%eax
-   3d386:	mov    (%r14,%rax,4),%eax
-   3d38a:	movzwl %ax,%edx
-   3d38d:	mov    %r15d,%ecx
-   3d390:	shl    %cl,%rdx
-   3d393:	or     %rbp,%rdx
-   3d396:	shr    $0x10,%eax
-   3d399:	add    %r15d,%eax
-   3d39c:	mov    %rdx,(%rdi,%rbx,1)
-   3d3a0:	mov    %eax,%ecx
-   3d3a2:	shr    $0x3,%ecx
-   3d3a5:	and    $0x7,%ecx
-   3d3a8:	add    %rcx,%rbx
-   3d3ab:	mov    %eax,%ecx
-   3d3ad:	and    $0x38,%cl
-   3d3b0:	shr    %cl,%rdx
-   3d3b3:	and    $0xffff8007,%eax
-   3d3b8:	mov    $0x1,%r12d
-   3d3be:	mov    %eax,%r15d
-   3d3c1:	mov    %rdx,%rbp
-   3d3c4:	mov    0x10(%rsp),%rdx
-   3d3c9:	mov    %r14,0x18(%rsp)
-   3d3ce:	mov    %rsi,0x28(%rsp)
-   3d3d3:	movabs $0xb185ebca87000000,%r9
-   3d3dd:	mov    0x0(%r13,%r12,1),%r11
-   3d3e2:	mov    %r12,%r8
-   3d3e5:	mov    %rbx,%r10
-   3d3e8:	imul   %r9,%r11
-   3d3ec:	shr    $0x33,%r11
-   3d3f0:	cmp    0x30(%rsp),%r8
-   3d3f5:	jae    3d576 <fastgzip_u2::enc::scan::<13, true, false>+0x566>
-   3d3fb:	nopl   0x0(%rax,%rax,1)
-   3d400:	mov    %r12,%r8
-   3d403:	mov    0x0(%r13,%r12,1),%rbx
-   3d408:	movzwl (%rdx,%r11,2),%esi
-   3d40d:	mov    %r8w,(%rdx,%r11,2)
-   3d412:	mov    %rbx,%r11
-   3d415:	shr    $0x8,%r11
-   3d419:	movabs $0xb185ebca87000000,%rdi
-   3d423:	imul   %rdi,%r11
-   3d427:	shr    $0x33,%r11
-   3d42b:	mov    0x0(%r13,%rsi,1),%rcx
-   3d430:	xor    %rbx,%rcx
-   3d433:	test   %ecx,%ecx
-   3d435:	je     3d624 <fastgzip_u2::enc::scan::<13, true, false>+0x614>
-   3d43b:	movzbl %bl,%eax
-   3d43e:	mov    0x18(%rsp),%r14
-   3d443:	mov    (%r14,%rax,4),%eax
-   3d447:	movzwl %ax,%r9d
-   3d44b:	mov    %r15d,%ecx
-   3d44e:	shl    %cl,%r9
-   3d451:	or     %rbp,%r9
-   3d454:	shr    $0x10,%eax
-   3d457:	add    %r15d,%eax
-   3d45a:	mov    0x1(%r13,%r8,1),%rbx
-   3d45f:	movzwl (%rdx,%r11,2),%esi
-   3d464:	lea    0x1(%r8),%r12
-   3d468:	mov    %r12w,(%rdx,%r11,2)
-   3d46d:	mov    %rbx,%r11
-   3d470:	shr    $0x8,%r11
-   3d474:	imul   %rdi,%r11
-   3d478:	shr    $0x33,%r11
-   3d47c:	mov    0x0(%r13,%rsi,1),%rcx
-   3d481:	xor    %rbx,%rcx
-   3d484:	test   %ecx,%ecx
-   3d486:	je     3d650 <fastgzip_u2::enc::scan::<13, true, false>+0x640>
-   3d48c:	movzbl %bl,%ecx
-   3d48f:	mov    %rdx,%r15
-   3d492:	mov    (%r14,%rcx,4),%edx
-   3d496:	movzwl %dx,%esi
-   3d499:	mov    %eax,%ecx
-   3d49b:	shl    %cl,%rsi
-   3d49e:	or     %rsi,%r9
-   3d4a1:	shr    $0x10,%edx
-   3d4a4:	add    %eax,%edx
-   3d4a6:	mov    0x2(%r13,%r8,1),%rbx
-   3d4ab:	movzwl (%r15,%r11,2),%esi
-   3d4b0:	inc    %r12
-   3d4b3:	mov    %r12w,(%r15,%r11,2)
-   3d4b8:	mov    %rbx,%r11
-   3d4bb:	shr    $0x8,%r11
-   3d4bf:	imul   %rdi,%r11
-   3d4c3:	shr    $0x33,%r11
-   3d4c7:	mov    0x0(%r13,%rsi,1),%rcx
-   3d4cc:	xor    %rbx,%rcx
-   3d4cf:	test   %ecx,%ecx
-   3d4d1:	je     3d63c <fastgzip_u2::enc::scan::<13, true, false>+0x62c>
-   3d4d7:	movzbl %bl,%eax
-   3d4da:	mov    (%r14,%rax,4),%eax
-   3d4de:	movzwl %ax,%esi
-   3d4e1:	mov    %edx,%ecx
-   3d4e3:	shl    %cl,%rsi
-   3d4e6:	or     %rsi,%r9
-   3d4e9:	shr    $0x10,%eax
-   3d4ec:	add    %edx,%eax
-   3d4ee:	mov    0x3(%r13,%r8,1),%rbx
-   3d4f3:	movzwl (%r15,%r11,2),%esi
-   3d4f8:	inc    %r12
-   3d4fb:	mov    %r12w,(%r15,%r11,2)
-   3d500:	mov    %rbx,%r11
-   3d503:	shr    $0x8,%r11
-   3d507:	imul   %rdi,%r11
-   3d50b:	shr    $0x33,%r11
-   3d50f:	mov    0x0(%r13,%rsi,1),%rcx
-   3d514:	xor    %rbx,%rcx
-   3d517:	test   %ecx,%ecx
-   3d519:	je     3d7bc <fastgzip_u2::enc::scan::<13, true, false>+0x7ac>
-   3d51f:	mov    %r15,%rdx
-   3d522:	movzbl %bl,%ecx
-   3d525:	mov    (%r14,%rcx,4),%r15d
-   3d529:	movzwl %r15w,%ebp
-   3d52d:	mov    %eax,%ecx
-   3d52f:	shl    %cl,%rbp
-   3d532:	or     %r9,%rbp
-   3d535:	shr    $0x10,%r15d
-   3d539:	add    %eax,%r15d
-   3d53c:	mov    0x80(%rsp),%rdi
-   3d544:	mov    %rbp,(%rdi,%r10,1)
-   3d548:	mov    %r15d,%eax
-   3d54b:	shr    $0x3,%eax
-   3d54e:	and    $0x7,%eax
-   3d551:	mov    %r15d,%ecx
-   3d554:	and    $0x38,%cl
-   3d557:	shr    %cl,%rbp
-   3d55a:	add    %rax,%r10
-   3d55d:	and    $0xffff8007,%r15d
-   3d564:	inc    %r12
-   3d567:	cmp    0x30(%rsp),%r12
-   3d56c:	jb     3d400 <fastgzip_u2::enc::scan::<13, true, false>+0x3f0>
-   3d572:	add    $0x4,%r8
-   3d576:	mov    %r8,%r12
-   3d579:	mov    %r10,%rbx
-   3d57c:	mov    %rbp,%r9
-   3d57f:	mov    %r15d,%eax
-   3d582:	mov    0x28(%rsp),%rcx
-   3d587:	cmp    %rcx,%r8
-   3d58a:	mov    %rcx,%r8
-   3d58d:	mov    0x18(%rsp),%r14
-   3d592:	jae    3d18b <fastgzip_u2::enc::scan::<13, true, false>+0x17b>
-   3d598:	nopl   0x0(%rax,%rax,1)
-   3d5a0:	mov    0x0(%r13,%r12,1),%rbx
-   3d5a5:	movzwl (%rdx,%r11,2),%esi
-   3d5aa:	mov    %r12w,(%rdx,%r11,2)
-   3d5af:	mov    %rbx,%r11
-   3d5b2:	shr    $0x8,%r11
-   3d5b6:	movabs $0xb185ebca87000000,%rcx
-   3d5c0:	imul   %rcx,%r11
-   3d5c4:	shr    $0x33,%r11
-   3d5c8:	mov    0x0(%r13,%rsi,1),%rcx
-   3d5cd:	xor    %rbx,%rcx
-   3d5d0:	test   %ecx,%ecx
-   3d5d2:	je     3d650 <fastgzip_u2::enc::scan::<13, true, false>+0x640>
-   3d5d4:	movzbl %bl,%ecx
-   3d5d7:	mov    (%r14,%rcx,4),%r15d
-   3d5db:	movzwl %r15w,%ebp
-   3d5df:	mov    %eax,%ecx
-   3d5e1:	shl    %cl,%rbp
-   3d5e4:	or     %r9,%rbp
-   3d5e7:	shr    $0x10,%r15d
-   3d5eb:	add    %eax,%r15d
-   3d5ee:	inc    %r12
-   3d5f1:	mov    %rbp,(%rdi,%r10,1)
-   3d5f5:	mov    %r15d,%ebx
-   3d5f8:	shr    $0x3,%ebx
-   3d5fb:	and    $0x7,%ebx
-   3d5fe:	add    %r10,%rbx
-   3d601:	mov    %r15d,%ecx
-   3d604:	and    $0x38,%cl
-   3d607:	shr    %cl,%rbp
-   3d60a:	and    $0xffff8007,%r15d
-   3d611:	mov    %rbx,%r10
-   3d614:	mov    %rbp,%r9
-   3d617:	mov    %r15d,%eax
-   3d61a:	cmp    %r8,%r12
-   3d61d:	jb     3d5a0 <fastgzip_u2::enc::scan::<13, true, false>+0x590>
-   3d61f:	jmp    3d18b <fastgzip_u2::enc::scan::<13, true, false>+0x17b>
-   3d624:	mov    %r8,%r12
-   3d627:	mov    %r15d,%eax
-   3d62a:	mov    %rbp,%r9
-   3d62d:	mov    0x18(%rsp),%r14
-   3d632:	test   %rcx,%rcx
-   3d635:	jne    3d659 <fastgzip_u2::enc::scan::<13, true, false>+0x649>
-   3d637:	jmp    3d7cc <fastgzip_u2::enc::scan::<13, true, false>+0x7bc>
-   3d63c:	add    $0x2,%r8
-   3d640:	mov    %r8,%r12
-   3d643:	mov    %edx,%eax
-   3d645:	data16 cs nopw 0x0(%rax,%rax,1)
-   3d650:	test   %rcx,%rcx
-   3d653:	je     3d7cc <fastgzip_u2::enc::scan::<13, true, false>+0x7bc>
-   3d659:	tzcnt  %rcx,%r8
-   3d65e:	shr    $0x3,%r8d
-   3d662:	not    %esi
-   3d664:	add    %r12d,%esi
-   3d667:	mov    $0x3f,%r15d
-   3d66d:	bsr    %esi,%r15d
-   3d671:	xor    $0x1f,%r15d
-   3d675:	mov    $0x1e,%cl
-   3d677:	sub    %r15b,%cl
-   3d67a:	movzbl %cl,%ecx
-   3d67d:	xor    %edx,%edx
-   3d67f:	bt     %ecx,%esi
-   3d682:	setb   %dl
-   3d685:	mov    $0x1e,%edi
-   3d68a:	sub    %r15d,%edi
-   3d68d:	mov    $0x0,%ecx
-   3d692:	cmovb  %ecx,%edi
-   3d695:	mov    %edi,0x24(%rsp)
-   3d699:	mov    $0xffffffff,%ebp
-   3d69e:	mov    %edi,%ecx
-   3d6a0:	shl    %cl,%ebp
-   3d6a2:	not    %ebp
-   3d6a4:	and    %esi,%ebp
-   3d6a6:	mov    0x400(%r14,%r8,4),%edi
-   3d6ae:	shl    $0x2,%edx
-   3d6b1:	lea    (%rdx,%r15,8),%ecx
-   3d6b5:	mov    0x810(%r14,%rcx,1),%edx
-   3d6bd:	mov    %edi,%ecx
-   3d6bf:	shr    $0x13,%ecx
-   3d6c2:	and    $0x1f,%ecx
-   3d6c5:	movzwl %dx,%r15d
-   3d6c9:	mov    %edx,%esi
-   3d6cb:	shr    $0x10,%esi
-   3d6ce:	and    $0x7ffff,%edi
-   3d6d4:	add    %ecx,%esi
-   3d6d6:	shl    %cl,%r15
-   3d6d9:	mov    %esi,%ecx
-   3d6db:	shl    %cl,%rbp
-   3d6de:	or     %rdi,%r15
-   3d6e1:	or     %r15,%rbp
-   3d6e4:	mov    0x80(%rsp),%rdx
-   3d6ec:	mov    %r9,(%rdx,%r10,1)
-   3d6f0:	mov    %eax,%edi
-   3d6f2:	shr    $0x3,%edi
-   3d6f5:	and    $0x7,%edi
-   3d6f8:	mov    %eax,%ecx
-   3d6fa:	and    $0x38,%cl
-   3d6fd:	shr    %cl,%r9
-   3d700:	add    %r10,%rdi
-   3d703:	mov    %eax,%r15d
-   3d706:	and    $0x7,%al
-   3d708:	mov    %eax,%ecx
-   3d70a:	shl    %cl,%rbp
-   3d70d:	or     %r9,%rbp
-   3d710:	mov    %rbp,(%rdx,%rdi,1)
-   3d714:	lea    0x1(%r12),%eax
-   3d719:	mov    0x10(%rsp),%rdx
-   3d71e:	mov    %ax,(%rdx,%r11,2)
-   3d723:	shr    $0x10,%rbx
-   3d727:	movabs $0xb185ebca87000000,%r9
-   3d731:	imul   %r9,%rbx
-   3d735:	shr    $0x33,%rbx
-   3d739:	lea    0x2(%r12),%eax
-   3d73e:	mov    %ax,(%rdx,%rbx,2)
-   3d742:	and    $0xffff8007,%r15d
-   3d749:	add    0x24(%rsp),%r15d
-   3d74e:	add    %esi,%r15d
-   3d751:	mov    %r15d,%r10d
-   3d754:	shr    $0x3,%r10d
-   3d758:	and    $0x7,%r10d
-   3d75c:	mov    %r15d,%ecx
-   3d75f:	and    $0x38,%cl
-   3d762:	shr    %cl,%rbp
-   3d765:	add    %rdi,%r10
-   3d768:	add    %r12,%r8
-   3d76b:	and    $0xffff8007,%r15d
-   3d772:	cmp    0x28(%rsp),%r8
-   3d777:	jae    3d87e <fastgzip_u2::enc::scan::<13, true, false>+0x86e>
-   3d77d:	lea    -0x1(%r8),%rax
-   3d781:	mov    -0x1(%r13,%r8,1),%r11
-   3d786:	mov    %r11,%rcx
-   3d789:	imul   %r9,%rcx
-   3d78d:	shr    $0x33,%rcx
-   3d791:	mov    %ax,(%rdx,%rcx,2)
-   3d795:	shr    $0x8,%r11
-   3d799:	mov    %r8,%r12
-   3d79c:	mov    0x80(%rsp),%rdi
-   3d7a4:	imul   %r9,%r11
-   3d7a8:	shr    $0x33,%r11
-   3d7ac:	cmp    0x30(%rsp),%r8
-   3d7b1:	jb     3d400 <fastgzip_u2::enc::scan::<13, true, false>+0x3f0>
-   3d7b7:	jmp    3d576 <fastgzip_u2::enc::scan::<13, true, false>+0x566>
-   3d7bc:	add    $0x3,%r8
-   3d7c0:	mov    %r8,%r12
-   3d7c3:	test   %rcx,%rcx
-   3d7c6:	jne    3d659 <fastgzip_u2::enc::scan::<13, true, false>+0x649>
-   3d7cc:	mov    0x8(%rsp),%rdi
-   3d7d1:	sub    %r12,%rdi
-   3d7d4:	cmp    $0x102,%rdi
-   3d7db:	mov    $0x102,%r8d
-   3d7e1:	cmovb  %rdi,%r8
-   3d7e5:	lea    (%r12,%r13,1),%rcx
-   3d7e9:	lea    (%rsi,%r13,1),%rdx
-   3d7ed:	mov    $0x8,%r15d
-   3d7f3:	cmp    $0x10,%rdi
-   3d7f7:	jb     3d81d <fastgzip_u2::enc::scan::<13, true, false>+0x80d>
-   3d7f9:	mov    $0x8,%edi
-   3d7fe:	xchg   %ax,%ax
-   3d800:	mov    (%rcx,%rdi,1),%r15
-   3d804:	mov    (%rdx,%rdi,1),%rbp
-   3d808:	cmp    %rbp,%r15
-   3d80b:	jne    3d850 <fastgzip_u2::enc::scan::<13, true, false>+0x840>
-   3d80d:	lea    0x8(%rdi),%r15
-   3d811:	add    $0x10,%rdi
-   3d815:	cmp    %r8,%rdi
-   3d818:	mov    %r15,%rdi
-   3d81b:	jbe    3d800 <fastgzip_u2::enc::scan::<13, true, false>+0x7f0>
-   3d81d:	cmp    %r8,%r15
-   3d820:	jae    3d662 <fastgzip_u2::enc::scan::<13, true, false>+0x652>
-   3d826:	mov    -0x8(%rcx,%r8,1),%rcx
-   3d82b:	mov    -0x8(%rdx,%r8,1),%rdx
-   3d830:	cmp    %rdx,%rcx
-   3d833:	je     3d662 <fastgzip_u2::enc::scan::<13, true, false>+0x652>
-   3d839:	add    $0xfffffffffffffff8,%r8
-   3d83d:	xor    %rcx,%rdx
-   3d840:	tzcnt  %rdx,%rcx
-   3d845:	shr    $0x3,%ecx
-   3d848:	add    %rcx,%r8
-   3d84b:	jmp    3d662 <fastgzip_u2::enc::scan::<13, true, false>+0x652>
-   3d850:	xor    %r15,%rbp
-   3d853:	tzcnt  %rbp,%r8
-   3d858:	shr    $0x3,%r8d
-   3d85c:	add    %rdi,%r8
-   3d85f:	jmp    3d662 <fastgzip_u2::enc::scan::<13, true, false>+0x652>
-   3d864:	and    $0xfffffffe,%ebp
-   3d867:	xor    %ebx,%ebx
-   3d869:	mov    0x70(%rsp),%r12
-   3d86e:	cmpb   $0x0,0x78(%rsp)
-   3d873:	jne    3d131 <fastgzip_u2::enc::scan::<13, true, false>+0x121>
-   3d879:	jmp    3d150 <fastgzip_u2::enc::scan::<13, true, false>+0x140>
-   3d87e:	mov    %r8,%r12
-   3d881:	mov    %r10,%rbx
-   3d884:	jmp    3d18b <fastgzip_u2::enc::scan::<13, true, false>+0x17b>
-   3d889:	lea    0x81560(%rip),%rdx        # bedf0 <anon.06d40f39725e55ac64101dd27098398e.6.llvm.8162392238835072268+0x9e8>
-   3d890:	mov    $0x240,%esi
-   3d895:	mov    %rbx,%rdi
-   3d898:	call   *0x847f2(%rip)        # c2090 <_DYNAMIC+0x3d0>
-   3d89e:	int3
-   3d89f:	int3
+000000000003d030 <fastgzip_u2::enc::scan::<13, true, false>>:
+   3d030:	push   %rbp
+   3d031:	push   %r15
+   3d033:	push   %r14
+   3d035:	push   %r13
+   3d037:	push   %r12
+   3d039:	push   %rbx
+   3d03a:	sub    $0x38,%rsp
+   3d03e:	mov    %r8,%r13
+   3d041:	mov    %rsi,0x10(%rsp)
+   3d046:	mov    %rdi,%r14
+   3d049:	mov    0x90(%rsp),%r12
+   3d051:	mov    0x80(%rsp),%rdi
+   3d059:	bt     $0x20,%r12
+   3d05e:	mov    %r9,0x8(%rsp)
+   3d063:	jb     3d093 <fastgzip_u2::enc::scan::<13, true, false>+0x63>
+   3d065:	movzbl (%rdi),%eax
+   3d068:	mov    $0xffffffffffffffff,%rbp
+   3d06f:	mov    %r12d,%ecx
+   3d072:	shl    %cl,%rbp
+   3d075:	not    %ebp
+   3d077:	and    %eax,%ebp
+   3d079:	xor    %ebx,%ebx
+   3d07b:	mov    %r12,%r15
+   3d07e:	mov    0x70(%rsp),%r12
+   3d083:	cmpb   $0x0,0x78(%rsp)
+   3d088:	jne    3d151 <fastgzip_u2::enc::scan::<13, true, false>+0x121>
+   3d08e:	jmp    3d170 <fastgzip_u2::enc::scan::<13, true, false>+0x140>
+   3d093:	mov    0xa10(%r14),%r15d
+   3d09a:	mov    %r15d,%ebx
+   3d09d:	shr    $0x3,%ebx
+   3d0a0:	lea    0xa14(%r14),%rax
+   3d0a7:	cmp    $0x3ff,%r15
+   3d0ae:	ja     3d0f0 <fastgzip_u2::enc::scan::<13, true, false>+0xc0>
+   3d0b0:	movups 0x70(%rax),%xmm0
+   3d0b4:	movups %xmm0,0x70(%rdi)
+   3d0b8:	movups 0x60(%rax),%xmm0
+   3d0bc:	movups %xmm0,0x60(%rdi)
+   3d0c0:	movups 0x50(%rax),%xmm0
+   3d0c4:	movups %xmm0,0x50(%rdi)
+   3d0c8:	movups 0x40(%rax),%xmm0
+   3d0cc:	movups %xmm0,0x40(%rdi)
+   3d0d0:	movups (%rax),%xmm0
+   3d0d3:	movups 0x10(%rax),%xmm1
+   3d0d7:	movups 0x20(%rax),%xmm2
+   3d0db:	movups 0x30(%rax),%xmm3
+   3d0df:	movups %xmm3,0x30(%rdi)
+   3d0e3:	movups %xmm2,0x20(%rdi)
+   3d0e7:	movups %xmm1,0x10(%rdi)
+   3d0eb:	movups %xmm0,(%rdi)
+   3d0ee:	jmp    3d11c <fastgzip_u2::enc::scan::<13, true, false>+0xec>
+   3d0f0:	mov    %rax,%rbp
+   3d0f3:	mov    %rax,%rsi
+   3d0f6:	mov    %rbx,%rdx
+   3d0f9:	call   *0x84e69(%rip)        # c1f68 <memcpy@GLIBC_2.14>
+   3d0ff:	mov    %rbp,%rax
+   3d102:	mov    0x8(%rsp),%r9
+   3d107:	mov    0x80(%rsp),%rdi
+   3d10f:	cmp    $0x11ff,%r15d
+   3d116:	ja     3d8a9 <fastgzip_u2::enc::scan::<13, true, false>+0x879>
+   3d11c:	and    $0x7,%r15d
+   3d120:	mov    $0xffffffff,%ebp
+   3d125:	mov    %r15d,%ecx
+   3d128:	shl    %cl,%ebp
+   3d12a:	movzbl (%rax,%rbx,1),%eax
+   3d12e:	not    %ebp
+   3d130:	and    %eax,%ebp
+   3d132:	bt     $0x28,%r12
+   3d137:	jb     3d145 <fastgzip_u2::enc::scan::<13, true, false>+0x115>
+   3d139:	test   %rbx,%rbx
+   3d13c:	je     3d884 <fastgzip_u2::enc::scan::<13, true, false>+0x854>
+   3d142:	andb   $0xfe,(%rdi)
+   3d145:	mov    0x70(%rsp),%r12
+   3d14a:	cmpb   $0x0,0x78(%rsp)
+   3d14f:	je     3d170 <fastgzip_u2::enc::scan::<13, true, false>+0x140>
+   3d151:	mov    $0x4000,%edx
+   3d156:	mov    0x10(%rsp),%rdi
+   3d15b:	xor    %esi,%esi
+   3d15d:	call   *0x84fad(%rip)        # c2110 <memset@GLIBC_2.2.5>
+   3d163:	mov    0x8(%rsp),%r9
+   3d168:	mov    0x80(%rsp),%rdi
+   3d170:	xor    %eax,%eax
+   3d172:	mov    %r9,%rsi
+   3d175:	sub    $0x9,%rsi
+   3d179:	cmovb  %rax,%rsi
+   3d17d:	sub    $0xc,%r9
+   3d181:	cmovb  %rax,%r9
+   3d185:	mov    %r9,0x30(%rsp)
+   3d18a:	test   %r12,%r12
+   3d18d:	je     3d19e <fastgzip_u2::enc::scan::<13, true, false>+0x16e>
+   3d18f:	cmp    %rsi,%r12
+   3d192:	mov    0x10(%rsp),%rdx
+   3d197:	jae    3d1ab <fastgzip_u2::enc::scan::<13, true, false>+0x17b>
+   3d199:	jmp    3d3e9 <fastgzip_u2::enc::scan::<13, true, false>+0x3b9>
+   3d19e:	cmp    $0x2,%rsi
+   3d1a2:	jae    3d3a1 <fastgzip_u2::enc::scan::<13, true, false>+0x371>
+   3d1a8:	xor    %r12d,%r12d
+   3d1ab:	lea    0x4(%r12),%rax
+   3d1b0:	mov    0x8(%rsp),%r10
+   3d1b5:	cmp    %r10,%rax
+   3d1b8:	jbe    3d1c2 <fastgzip_u2::enc::scan::<13, true, false>+0x192>
+   3d1ba:	mov    %r12,%rdi
+   3d1bd:	jmp    3d276 <fastgzip_u2::enc::scan::<13, true, false>+0x246>
+   3d1c2:	mov    0x80(%rsp),%r9
+   3d1ca:	nopw   0x0(%rax,%rax,1)
+   3d1d0:	movzbl 0x0(%r13,%r12,1),%eax
+   3d1d6:	mov    (%r14,%rax,4),%eax
+   3d1da:	movzwl %ax,%esi
+   3d1dd:	mov    %r15d,%ecx
+   3d1e0:	shl    %cl,%rsi
+   3d1e3:	shr    $0x10,%eax
+   3d1e6:	add    %r15d,%eax
+   3d1e9:	movzbl 0x1(%r13,%r12,1),%ecx
+   3d1ef:	mov    (%r14,%rcx,4),%edx
+   3d1f3:	movzwl %dx,%edi
+   3d1f6:	mov    %eax,%ecx
+   3d1f8:	shl    %cl,%rdi
+   3d1fb:	shr    $0x10,%edx
+   3d1fe:	add    %eax,%edx
+   3d200:	movzbl 0x2(%r13,%r12,1),%eax
+   3d206:	mov    (%r14,%rax,4),%eax
+   3d20a:	movzwl %ax,%r8d
+   3d20e:	mov    %edx,%ecx
+   3d210:	shl    %cl,%r8
+   3d213:	or     %rsi,%rbp
+   3d216:	or     %rbp,%rdi
+   3d219:	or     %rdi,%r8
+   3d21c:	shr    $0x10,%eax
+   3d21f:	add    %edx,%eax
+   3d221:	movzbl 0x3(%r13,%r12,1),%ecx
+   3d227:	mov    (%r14,%rcx,4),%r15d
+   3d22b:	movzwl %r15w,%ebp
+   3d22f:	mov    %eax,%ecx
+   3d231:	shl    %cl,%rbp
+   3d234:	mov    %rbx,%rcx
+   3d237:	or     %r8,%rbp
+   3d23a:	shr    $0x10,%r15d
+   3d23e:	add    %eax,%r15d
+   3d241:	mov    %rbp,(%r9,%rbx,1)
+   3d245:	mov    %r15d,%ebx
+   3d248:	shr    $0x3,%ebx
+   3d24b:	and    $0x7,%ebx
+   3d24e:	add    %rcx,%rbx
+   3d251:	mov    %r15d,%ecx
+   3d254:	and    $0x38,%cl
+   3d257:	shr    %cl,%rbp
+   3d25a:	and    $0xffff8007,%r15d
+   3d261:	lea    0x4(%r12),%rdi
+   3d266:	add    $0x8,%r12
+   3d26a:	cmp    %r10,%r12
+   3d26d:	mov    %rdi,%r12
+   3d270:	jbe    3d1d0 <fastgzip_u2::enc::scan::<13, true, false>+0x1a0>
+   3d276:	cmp    %rdi,%r10
+   3d279:	jbe    3d29a <fastgzip_u2::enc::scan::<13, true, false>+0x26a>
+   3d27b:	mov    %r10d,%eax
+   3d27e:	sub    %edi,%eax
+   3d280:	lea    0x1(%rdi),%rdx
+   3d284:	test   $0x1,%al
+   3d286:	mov    0x90(%rsp),%r9
+   3d28e:	jne    3d2aa <fastgzip_u2::enc::scan::<13, true, false>+0x27a>
+   3d290:	cmp    %rdx,%r10
+   3d293:	jne    3d2d4 <fastgzip_u2::enc::scan::<13, true, false>+0x2a4>
+   3d295:	jmp    3d31f <fastgzip_u2::enc::scan::<13, true, false>+0x2ef>
+   3d29a:	mov    %r15d,%eax
+   3d29d:	mov    %rbp,%rsi
+   3d2a0:	mov    0x90(%rsp),%r9
+   3d2a8:	jmp    3d31f <fastgzip_u2::enc::scan::<13, true, false>+0x2ef>
+   3d2aa:	movzbl 0x0(%r13,%rdi,1),%eax
+   3d2b0:	mov    (%r14,%rax,4),%eax
+   3d2b4:	movzwl %ax,%esi
+   3d2b7:	mov    %r15d,%ecx
+   3d2ba:	shl    %cl,%rsi
+   3d2bd:	or     %rbp,%rsi
+   3d2c0:	shr    $0x10,%eax
+   3d2c3:	add    %r15d,%eax
+   3d2c6:	mov    %rsi,%rbp
+   3d2c9:	mov    %eax,%r15d
+   3d2cc:	mov    %rdx,%rdi
+   3d2cf:	cmp    %rdx,%r10
+   3d2d2:	je     3d31f <fastgzip_u2::enc::scan::<13, true, false>+0x2ef>
+   3d2d4:	mov    %rbp,%rsi
+   3d2d7:	mov    %r15d,%eax
+   3d2da:	nopw   0x0(%rax,%rax,1)
+   3d2e0:	movzbl 0x0(%r13,%rdi,1),%ecx
+   3d2e6:	mov    (%r14,%rcx,4),%edx
+   3d2ea:	movzwl %dx,%r8d
+   3d2ee:	mov    %eax,%ecx
+   3d2f0:	shl    %cl,%r8
+   3d2f3:	or     %r8,%rsi
+   3d2f6:	shr    $0x10,%edx
+   3d2f9:	add    %eax,%edx
+   3d2fb:	movzbl 0x1(%r13,%rdi,1),%eax
+   3d301:	mov    (%r14,%rax,4),%eax
+   3d305:	movzwl %ax,%r8d
+   3d309:	mov    %edx,%ecx
+   3d30b:	shl    %cl,%r8
+   3d30e:	or     %r8,%rsi
+   3d311:	shr    $0x10,%eax
+   3d314:	add    %edx,%eax
+   3d316:	add    $0x2,%rdi
+   3d31a:	cmp    %rdi,%r10
+   3d31d:	jne    3d2e0 <fastgzip_u2::enc::scan::<13, true, false>+0x2b0>
+   3d31f:	mov    0x80(%rsp),%r10
+   3d327:	mov    %rsi,(%r10,%rbx,1)
+   3d32b:	mov    %eax,%edx
+   3d32d:	shr    $0x3,%edx
+   3d330:	and    $0x7,%edx
+   3d333:	add    %rbx,%rdx
+   3d336:	mov    %eax,%edi
+   3d338:	and    $0xffff8007,%edi
+   3d33e:	bt     $0x30,%r9
+   3d343:	jae    3d383 <fastgzip_u2::enc::scan::<13, true, false>+0x353>
+   3d345:	mov    %eax,%ecx
+   3d347:	and    $0x38,%cl
+   3d34a:	shr    %cl,%rsi
+   3d34d:	mov    0x80c(%r14),%r8d
+   3d354:	movzwl %r8w,%r9d
+   3d358:	and    $0x7,%al
+   3d35a:	mov    %eax,%ecx
+   3d35c:	shl    %cl,%r9
+   3d35f:	or     %rsi,%r9
+   3d362:	shr    $0x10,%r8d
+   3d366:	add    %edi,%r8d
+   3d369:	mov    %r9,(%r10,%rdx,1)
+   3d36d:	mov    %r8d,%eax
+   3d370:	shr    $0x3,%eax
+   3d373:	and    $0x7,%eax
+   3d376:	add    %rax,%rdx
+   3d379:	and    $0xffff8007,%r8d
+   3d380:	mov    %r8d,%edi
+   3d383:	xor    %eax,%eax
+   3d385:	cmp    $0x8,%edi
+   3d388:	mov    %edi,%ecx
+   3d38a:	lea    (%rcx,%rdx,8),%rcx
+   3d38e:	cmovb  %rcx,%rax
+   3d392:	add    $0x38,%rsp
+   3d396:	pop    %rbx
+   3d397:	pop    %r12
+   3d399:	pop    %r13
+   3d39b:	pop    %r14
+   3d39d:	pop    %r15
+   3d39f:	pop    %rbp
+   3d3a0:	ret
+   3d3a1:	movzbl 0x0(%r13),%eax
+   3d3a6:	mov    (%r14,%rax,4),%eax
+   3d3aa:	movzwl %ax,%edx
+   3d3ad:	mov    %r15d,%ecx
+   3d3b0:	shl    %cl,%rdx
+   3d3b3:	or     %rbp,%rdx
+   3d3b6:	shr    $0x10,%eax
+   3d3b9:	add    %r15d,%eax
+   3d3bc:	mov    %rdx,(%rdi,%rbx,1)
+   3d3c0:	mov    %eax,%ecx
+   3d3c2:	shr    $0x3,%ecx
+   3d3c5:	and    $0x7,%ecx
+   3d3c8:	add    %rcx,%rbx
+   3d3cb:	mov    %eax,%ecx
+   3d3cd:	and    $0x38,%cl
+   3d3d0:	shr    %cl,%rdx
+   3d3d3:	and    $0xffff8007,%eax
+   3d3d8:	mov    $0x1,%r12d
+   3d3de:	mov    %eax,%r15d
+   3d3e1:	mov    %rdx,%rbp
+   3d3e4:	mov    0x10(%rsp),%rdx
+   3d3e9:	mov    %r14,0x18(%rsp)
+   3d3ee:	mov    %rsi,0x28(%rsp)
+   3d3f3:	movabs $0xb185ebca87000000,%r9
+   3d3fd:	mov    0x0(%r13,%r12,1),%r11
+   3d402:	mov    %r12,%r8
+   3d405:	mov    %rbx,%r10
+   3d408:	imul   %r9,%r11
+   3d40c:	shr    $0x33,%r11
+   3d410:	cmp    0x30(%rsp),%r8
+   3d415:	jae    3d596 <fastgzip_u2::enc::scan::<13, true, false>+0x566>
+   3d41b:	nopl   0x0(%rax,%rax,1)
+   3d420:	mov    %r12,%r8
+   3d423:	mov    0x0(%r13,%r12,1),%rbx
+   3d428:	movzwl (%rdx,%r11,2),%esi
+   3d42d:	mov    %r8w,(%rdx,%r11,2)
+   3d432:	mov    %rbx,%r11
+   3d435:	shr    $0x8,%r11
+   3d439:	movabs $0xb185ebca87000000,%rdi
+   3d443:	imul   %rdi,%r11
+   3d447:	shr    $0x33,%r11
+   3d44b:	mov    0x0(%r13,%rsi,1),%rcx
+   3d450:	xor    %rbx,%rcx
+   3d453:	test   %ecx,%ecx
+   3d455:	je     3d644 <fastgzip_u2::enc::scan::<13, true, false>+0x614>
+   3d45b:	movzbl %bl,%eax
+   3d45e:	mov    0x18(%rsp),%r14
+   3d463:	mov    (%r14,%rax,4),%eax
+   3d467:	movzwl %ax,%r9d
+   3d46b:	mov    %r15d,%ecx
+   3d46e:	shl    %cl,%r9
+   3d471:	or     %rbp,%r9
+   3d474:	shr    $0x10,%eax
+   3d477:	add    %r15d,%eax
+   3d47a:	mov    0x1(%r13,%r8,1),%rbx
+   3d47f:	movzwl (%rdx,%r11,2),%esi
+   3d484:	lea    0x1(%r8),%r12
+   3d488:	mov    %r12w,(%rdx,%r11,2)
+   3d48d:	mov    %rbx,%r11
+   3d490:	shr    $0x8,%r11
+   3d494:	imul   %rdi,%r11
+   3d498:	shr    $0x33,%r11
+   3d49c:	mov    0x0(%r13,%rsi,1),%rcx
+   3d4a1:	xor    %rbx,%rcx
+   3d4a4:	test   %ecx,%ecx
+   3d4a6:	je     3d670 <fastgzip_u2::enc::scan::<13, true, false>+0x640>
+   3d4ac:	movzbl %bl,%ecx
+   3d4af:	mov    %rdx,%r15
+   3d4b2:	mov    (%r14,%rcx,4),%edx
+   3d4b6:	movzwl %dx,%esi
+   3d4b9:	mov    %eax,%ecx
+   3d4bb:	shl    %cl,%rsi
+   3d4be:	or     %rsi,%r9
+   3d4c1:	shr    $0x10,%edx
+   3d4c4:	add    %eax,%edx
+   3d4c6:	mov    0x2(%r13,%r8,1),%rbx
+   3d4cb:	movzwl (%r15,%r11,2),%esi
+   3d4d0:	inc    %r12
+   3d4d3:	mov    %r12w,(%r15,%r11,2)
+   3d4d8:	mov    %rbx,%r11
+   3d4db:	shr    $0x8,%r11
+   3d4df:	imul   %rdi,%r11
+   3d4e3:	shr    $0x33,%r11
+   3d4e7:	mov    0x0(%r13,%rsi,1),%rcx
+   3d4ec:	xor    %rbx,%rcx
+   3d4ef:	test   %ecx,%ecx
+   3d4f1:	je     3d65c <fastgzip_u2::enc::scan::<13, true, false>+0x62c>
+   3d4f7:	movzbl %bl,%eax
+   3d4fa:	mov    (%r14,%rax,4),%eax
+   3d4fe:	movzwl %ax,%esi
+   3d501:	mov    %edx,%ecx
+   3d503:	shl    %cl,%rsi
+   3d506:	or     %rsi,%r9
+   3d509:	shr    $0x10,%eax
+   3d50c:	add    %edx,%eax
+   3d50e:	mov    0x3(%r13,%r8,1),%rbx
+   3d513:	movzwl (%r15,%r11,2),%esi
+   3d518:	inc    %r12
+   3d51b:	mov    %r12w,(%r15,%r11,2)
+   3d520:	mov    %rbx,%r11
+   3d523:	shr    $0x8,%r11
+   3d527:	imul   %rdi,%r11
+   3d52b:	shr    $0x33,%r11
+   3d52f:	mov    0x0(%r13,%rsi,1),%rcx
+   3d534:	xor    %rbx,%rcx
+   3d537:	test   %ecx,%ecx
+   3d539:	je     3d7dc <fastgzip_u2::enc::scan::<13, true, false>+0x7ac>
+   3d53f:	mov    %r15,%rdx
+   3d542:	movzbl %bl,%ecx
+   3d545:	mov    (%r14,%rcx,4),%r15d
+   3d549:	movzwl %r15w,%ebp
+   3d54d:	mov    %eax,%ecx
+   3d54f:	shl    %cl,%rbp
+   3d552:	or     %r9,%rbp
+   3d555:	shr    $0x10,%r15d
+   3d559:	add    %eax,%r15d
+   3d55c:	mov    0x80(%rsp),%rdi
+   3d564:	mov    %rbp,(%rdi,%r10,1)
+   3d568:	mov    %r15d,%eax
+   3d56b:	shr    $0x3,%eax
+   3d56e:	and    $0x7,%eax
+   3d571:	mov    %r15d,%ecx
+   3d574:	and    $0x38,%cl
+   3d577:	shr    %cl,%rbp
+   3d57a:	add    %rax,%r10
+   3d57d:	and    $0xffff8007,%r15d
+   3d584:	inc    %r12
+   3d587:	cmp    0x30(%rsp),%r12
+   3d58c:	jb     3d420 <fastgzip_u2::enc::scan::<13, true, false>+0x3f0>
+   3d592:	add    $0x4,%r8
+   3d596:	mov    %r8,%r12
+   3d599:	mov    %r10,%rbx
+   3d59c:	mov    %rbp,%r9
+   3d59f:	mov    %r15d,%eax
+   3d5a2:	mov    0x28(%rsp),%rcx
+   3d5a7:	cmp    %rcx,%r8
+   3d5aa:	mov    %rcx,%r8
+   3d5ad:	mov    0x18(%rsp),%r14
+   3d5b2:	jae    3d1ab <fastgzip_u2::enc::scan::<13, true, false>+0x17b>
+   3d5b8:	nopl   0x0(%rax,%rax,1)
+   3d5c0:	mov    0x0(%r13,%r12,1),%rbx
+   3d5c5:	movzwl (%rdx,%r11,2),%esi
+   3d5ca:	mov    %r12w,(%rdx,%r11,2)
+   3d5cf:	mov    %rbx,%r11
+   3d5d2:	shr    $0x8,%r11
+   3d5d6:	movabs $0xb185ebca87000000,%rcx
+   3d5e0:	imul   %rcx,%r11
+   3d5e4:	shr    $0x33,%r11
+   3d5e8:	mov    0x0(%r13,%rsi,1),%rcx
+   3d5ed:	xor    %rbx,%rcx
+   3d5f0:	test   %ecx,%ecx
+   3d5f2:	je     3d670 <fastgzip_u2::enc::scan::<13, true, false>+0x640>
+   3d5f4:	movzbl %bl,%ecx
+   3d5f7:	mov    (%r14,%rcx,4),%r15d
+   3d5fb:	movzwl %r15w,%ebp
+   3d5ff:	mov    %eax,%ecx
+   3d601:	shl    %cl,%rbp
+   3d604:	or     %r9,%rbp
+   3d607:	shr    $0x10,%r15d
+   3d60b:	add    %eax,%r15d
+   3d60e:	inc    %r12
+   3d611:	mov    %rbp,(%rdi,%r10,1)
+   3d615:	mov    %r15d,%ebx
+   3d618:	shr    $0x3,%ebx
+   3d61b:	and    $0x7,%ebx
+   3d61e:	add    %r10,%rbx
+   3d621:	mov    %r15d,%ecx
+   3d624:	and    $0x38,%cl
+   3d627:	shr    %cl,%rbp
+   3d62a:	and    $0xffff8007,%r15d
+   3d631:	mov    %rbx,%r10
+   3d634:	mov    %rbp,%r9
+   3d637:	mov    %r15d,%eax
+   3d63a:	cmp    %r8,%r12
+   3d63d:	jb     3d5c0 <fastgzip_u2::enc::scan::<13, true, false>+0x590>
+   3d63f:	jmp    3d1ab <fastgzip_u2::enc::scan::<13, true, false>+0x17b>
+   3d644:	mov    %r8,%r12
+   3d647:	mov    %r15d,%eax
+   3d64a:	mov    %rbp,%r9
+   3d64d:	mov    0x18(%rsp),%r14
+   3d652:	test   %rcx,%rcx
+   3d655:	jne    3d679 <fastgzip_u2::enc::scan::<13, true, false>+0x649>
+   3d657:	jmp    3d7ec <fastgzip_u2::enc::scan::<13, true, false>+0x7bc>
+   3d65c:	add    $0x2,%r8
+   3d660:	mov    %r8,%r12
+   3d663:	mov    %edx,%eax
+   3d665:	data16 cs nopw 0x0(%rax,%rax,1)
+   3d670:	test   %rcx,%rcx
+   3d673:	je     3d7ec <fastgzip_u2::enc::scan::<13, true, false>+0x7bc>
+   3d679:	tzcnt  %rcx,%r8
+   3d67e:	shr    $0x3,%r8d
+   3d682:	not    %esi
+   3d684:	add    %r12d,%esi
+   3d687:	mov    $0x3f,%r15d
+   3d68d:	bsr    %esi,%r15d
+   3d691:	xor    $0x1f,%r15d
+   3d695:	mov    $0x1e,%cl
+   3d697:	sub    %r15b,%cl
+   3d69a:	movzbl %cl,%ecx
+   3d69d:	xor    %edx,%edx
+   3d69f:	bt     %ecx,%esi
+   3d6a2:	setb   %dl
+   3d6a5:	mov    $0x1e,%edi
+   3d6aa:	sub    %r15d,%edi
+   3d6ad:	mov    $0x0,%ecx
+   3d6b2:	cmovb  %ecx,%edi
+   3d6b5:	mov    %edi,0x24(%rsp)
+   3d6b9:	mov    $0xffffffff,%ebp
+   3d6be:	mov    %edi,%ecx
+   3d6c0:	shl    %cl,%ebp
+   3d6c2:	not    %ebp
+   3d6c4:	and    %esi,%ebp
+   3d6c6:	mov    0x400(%r14,%r8,4),%edi
+   3d6ce:	shl    $0x2,%edx
+   3d6d1:	lea    (%rdx,%r15,8),%ecx
+   3d6d5:	mov    0x810(%r14,%rcx,1),%edx
+   3d6dd:	mov    %edi,%ecx
+   3d6df:	shr    $0x13,%ecx
+   3d6e2:	and    $0x1f,%ecx
+   3d6e5:	movzwl %dx,%r15d
+   3d6e9:	mov    %edx,%esi
+   3d6eb:	shr    $0x10,%esi
+   3d6ee:	and    $0x7ffff,%edi
+   3d6f4:	add    %ecx,%esi
+   3d6f6:	shl    %cl,%r15
+   3d6f9:	mov    %esi,%ecx
+   3d6fb:	shl    %cl,%rbp
+   3d6fe:	or     %rdi,%r15
+   3d701:	or     %r15,%rbp
+   3d704:	mov    0x80(%rsp),%rdx
+   3d70c:	mov    %r9,(%rdx,%r10,1)
+   3d710:	mov    %eax,%edi
+   3d712:	shr    $0x3,%edi
+   3d715:	and    $0x7,%edi
+   3d718:	mov    %eax,%ecx
+   3d71a:	and    $0x38,%cl
+   3d71d:	shr    %cl,%r9
+   3d720:	add    %r10,%rdi
+   3d723:	mov    %eax,%r15d
+   3d726:	and    $0x7,%al
+   3d728:	mov    %eax,%ecx
+   3d72a:	shl    %cl,%rbp
+   3d72d:	or     %r9,%rbp
+   3d730:	mov    %rbp,(%rdx,%rdi,1)
+   3d734:	lea    0x1(%r12),%eax
+   3d739:	mov    0x10(%rsp),%rdx
+   3d73e:	mov    %ax,(%rdx,%r11,2)
+   3d743:	shr    $0x10,%rbx
+   3d747:	movabs $0xb185ebca87000000,%r9
+   3d751:	imul   %r9,%rbx
+   3d755:	shr    $0x33,%rbx
+   3d759:	lea    0x2(%r12),%eax
+   3d75e:	mov    %ax,(%rdx,%rbx,2)
+   3d762:	and    $0xffff8007,%r15d
+   3d769:	add    0x24(%rsp),%r15d
+   3d76e:	add    %esi,%r15d
+   3d771:	mov    %r15d,%r10d
+   3d774:	shr    $0x3,%r10d
+   3d778:	and    $0x7,%r10d
+   3d77c:	mov    %r15d,%ecx
+   3d77f:	and    $0x38,%cl
+   3d782:	shr    %cl,%rbp
+   3d785:	add    %rdi,%r10
+   3d788:	add    %r12,%r8
+   3d78b:	and    $0xffff8007,%r15d
+   3d792:	cmp    0x28(%rsp),%r8
+   3d797:	jae    3d89e <fastgzip_u2::enc::scan::<13, true, false>+0x86e>
+   3d79d:	lea    -0x1(%r8),%rax
+   3d7a1:	mov    -0x1(%r13,%r8,1),%r11
+   3d7a6:	mov    %r11,%rcx
+   3d7a9:	imul   %r9,%rcx
+   3d7ad:	shr    $0x33,%rcx
+   3d7b1:	mov    %ax,(%rdx,%rcx,2)
+   3d7b5:	shr    $0x8,%r11
+   3d7b9:	mov    %r8,%r12
+   3d7bc:	mov    0x80(%rsp),%rdi
+   3d7c4:	imul   %r9,%r11
+   3d7c8:	shr    $0x33,%r11
+   3d7cc:	cmp    0x30(%rsp),%r8
+   3d7d1:	jb     3d420 <fastgzip_u2::enc::scan::<13, true, false>+0x3f0>
+   3d7d7:	jmp    3d596 <fastgzip_u2::enc::scan::<13, true, false>+0x566>
+   3d7dc:	add    $0x3,%r8
+   3d7e0:	mov    %r8,%r12
+   3d7e3:	test   %rcx,%rcx
+   3d7e6:	jne    3d679 <fastgzip_u2::enc::scan::<13, true, false>+0x649>
+   3d7ec:	mov    0x8(%rsp),%rdi
+   3d7f1:	sub    %r12,%rdi
+   3d7f4:	cmp    $0x102,%rdi
+   3d7fb:	mov    $0x102,%r8d
+   3d801:	cmovb  %rdi,%r8
+   3d805:	lea    (%r12,%r13,1),%rcx
+   3d809:	lea    (%rsi,%r13,1),%rdx
+   3d80d:	mov    $0x8,%r15d
+   3d813:	cmp    $0x10,%rdi
+   3d817:	jb     3d83d <fastgzip_u2::enc::scan::<13, true, false>+0x80d>
+   3d819:	mov    $0x8,%edi
+   3d81e:	xchg   %ax,%ax
+   3d820:	mov    (%rcx,%rdi,1),%r15
+   3d824:	mov    (%rdx,%rdi,1),%rbp
+   3d828:	cmp    %rbp,%r15
+   3d82b:	jne    3d870 <fastgzip_u2::enc::scan::<13, true, false>+0x840>
+   3d82d:	lea    0x8(%rdi),%r15
+   3d831:	add    $0x10,%rdi
+   3d835:	cmp    %r8,%rdi
+   3d838:	mov    %r15,%rdi
+   3d83b:	jbe    3d820 <fastgzip_u2::enc::scan::<13, true, false>+0x7f0>
+   3d83d:	cmp    %r8,%r15
+   3d840:	jae    3d682 <fastgzip_u2::enc::scan::<13, true, false>+0x652>
+   3d846:	mov    -0x8(%rcx,%r8,1),%rcx
+   3d84b:	mov    -0x8(%rdx,%r8,1),%rdx
+   3d850:	cmp    %rdx,%rcx
+   3d853:	je     3d682 <fastgzip_u2::enc::scan::<13, true, false>+0x652>
+   3d859:	add    $0xfffffffffffffff8,%r8
+   3d85d:	xor    %rcx,%rdx
+   3d860:	tzcnt  %rdx,%rcx
+   3d865:	shr    $0x3,%ecx
+   3d868:	add    %rcx,%r8
+   3d86b:	jmp    3d682 <fastgzip_u2::enc::scan::<13, true, false>+0x652>
+   3d870:	xor    %r15,%rbp
+   3d873:	tzcnt  %rbp,%r8
+   3d878:	shr    $0x3,%r8d
+   3d87c:	add    %rdi,%r8
+   3d87f:	jmp    3d682 <fastgzip_u2::enc::scan::<13, true, false>+0x652>
+   3d884:	and    $0xfffffffe,%ebp
+   3d887:	xor    %ebx,%ebx
+   3d889:	mov    0x70(%rsp),%r12
+   3d88e:	cmpb   $0x0,0x78(%rsp)
+   3d893:	jne    3d151 <fastgzip_u2::enc::scan::<13, true, false>+0x121>
+   3d899:	jmp    3d170 <fastgzip_u2::enc::scan::<13, true, false>+0x140>
+   3d89e:	mov    %r8,%r12
+   3d8a1:	mov    %r10,%rbx
+   3d8a4:	jmp    3d1ab <fastgzip_u2::enc::scan::<13, true, false>+0x17b>
+   3d8a9:	lea    0x81560(%rip),%rdx        # bee10 <anon.06d40f39725e55ac64101dd27098398e.6.llvm.8162392238835072268+0x9e8>
+   3d8b0:	mov    $0x240,%esi
+   3d8b5:	mov    %rbx,%rdi
+   3d8b8:	call   *0x847f2(%rip)        # c20b0 <_DYNAMIC+0x3d0>
+   3d8be:	int3
+   3d8bf:	int3
