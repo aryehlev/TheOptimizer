@@ -19,6 +19,32 @@ pub(crate) const LIT_NONE: u32 = 0x8000_0000;
 /// a check.
 pub(crate) const LEN_TAB: usize = 512;
 
+/// The length of `Codes::off`.  A distance finds its entry at twice the
+/// number of leading zeros of (distance - 1) as a 32-bit number, plus the bit
+/// below its top bit: see `enc::off_index`.  That is below 66.
+pub(crate) const OFF_TAB: usize = 128;
+
+/// The index in `Codes::off` that the distances of the offset symbol `slot`
+/// lead to.
+pub(crate) const fn off_index_of(slot: usize) -> usize {
+    match slot {
+        0 => 64, // distance 1: 32 leading zeros
+        1 => 62, // distance 2: 31
+        // Symbols 2k and 2k + 1 are the distances - 1 of k + 1 bits, by the
+        // bit below the top one.
+        _ => 2 * (32 - (slot + 2) / 2) + (slot & 1),
+    }
+}
+
+/// The offset symbol whose distances lead to `index` of `Codes::off`.
+pub(crate) const fn off_slot_at(index: usize) -> usize {
+    match index {
+        64 => 0,
+        62 => 1,
+        _ => 62 + (index & 1) - (index & !1),
+    }
+}
+
 /// Fields of a `Codes::len` entry.
 pub(crate) const LEN_VALUE_MASK: u32 = (1 << 19) - 1;
 pub(crate) const LEN_NBITS_SHIFT: u32 = 19;
@@ -39,8 +65,9 @@ pub(crate) struct Codes {
     pub len: [u32; LEN_TAB],
     /// End of block: codeword | number of bits << 16.
     pub eob: u32,
-    /// Offset slot -> codeword | number of bits << 16.  0 without a codeword.
-    pub off: [u32; NUM_OFF],
+    /// `off_index_of` an offset symbol -> codeword | number of bits << 16.
+    /// 0 without a codeword, and where no symbol leads.
+    pub off: [u32; OFF_TAB],
     /// The block header (BFINAL = 1, BTYPE, and for a dynamic block the
     /// description of both codes), ready to be copied: `hdr_bits` bits.
     pub hdr_bits: u32,
@@ -88,7 +115,7 @@ impl Codes {
         let mut s = 0;
         while s < NUM_OFF {
             let l = self.off_lens[s] as u32;
-            self.off[s] = if l == 0 { 0 } else { cw[s] as u32 | l << 16 };
+            self.off[off_index_of(s)] = if l == 0 { 0 } else { cw[s] as u32 | l << 16 };
             s += 1;
         }
     }
@@ -216,7 +243,7 @@ pub(crate) static FIXED: Codes = {
         lit: [0; 256],
         len: [0; LEN_TAB],
         eob: 0,
-        off: [0; NUM_OFF],
+        off: [0; OFF_TAB],
         hdr_bits: 3,
         hdr: [0; HDR_BYTES],
         ll_lens: [0; NUM_LL],
@@ -262,6 +289,10 @@ mod tests {
             FIXED.len[12],
             (0b100_1000 | 1 << 7) | 8 << LEN_NBITS_SHIFT | 8 << LEN_SLOT_SHIFT
         );
-        assert_eq!(FIXED.off[1], (0b00001u8.reverse_bits() >> 3) as u32 | 5 << 16);
+        assert_eq!(FIXED.off[off_index_of(1)], (0b00001u8.reverse_bits() >> 3) as u32 | 5 << 16);
+        for slot in 0..NUM_OFF {
+            assert_eq!(off_slot_at(off_index_of(slot)), slot);
+            assert!(off_index_of(slot) < OFF_TAB);
+        }
     }
 }

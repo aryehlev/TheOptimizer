@@ -39,7 +39,7 @@ mod enc;
 mod huff;
 mod tables;
 
-use codes::{Codes, FIXED, HDR_BYTES, LEN_TAB};
+use codes::{Codes, FIXED, HDR_BYTES, LEN_TAB, OFF_TAB};
 use enc::{
     align, append_bits, emit_seqs, rebase, scan, stored, Freq, Input, Output, Place, Seq, Tab,
     CHUNK, MAX_SEQS,
@@ -134,7 +134,7 @@ const NO_CODES: Codes = Codes {
     lit: [0; 256],
     len: [0; LEN_TAB],
     eob: 0,
-    off: [0; NUM_OFF],
+    off: [0; OFF_TAB],
     hdr_bits: 0,
     hdr: [0; HDR_BYTES],
     ll_lens: [0; NUM_LL],
@@ -191,10 +191,10 @@ impl Gzip {
     pub fn compress(&mut self, payload: &[u8]) -> &[u8] {
         let n = payload.len();
         let st = &mut *self.st;
+        if n >= MIN_ONE_PASS && st.valid && st.direct_ok {
+            fetch_encoder(n);
+        }
         if n <= CHUNK {
-            if n >= MIN_ONE_PASS && st.valid && st.direct_ok {
-                fetch_encoder(n);
-            }
             // The checksum first.  It reads the payload front to back, which
             // also brings it into the cache for the copy that follows.
             let crc = crc32fast::hash(payload);

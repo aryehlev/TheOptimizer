@@ -4,8 +4,10 @@
 # same bytes, which checks are left in its machine code, and what it costs.
 #
 #   fastgzip/          the encoder as published
-#   fastgzip-u2/       the same with the safe version's way of ending a long
-#                      match, to tell that change from the cost of the checks
+#   fastgzip-u2/       the same with the two changes of the safe version that
+#                      have nothing to do with safety (how a long match ends,
+#                      and how a distance finds its codeword), to tell them
+#                      from the cost of doing without unsafe code
 #   fastgzip-safe/     #![forbid(unsafe_code)]: input and output in arrays of
 #                      a fixed length, so that no access in a loop is checked.
 #                      Its feature `prefetch` adds the one thing that takes an
@@ -122,7 +124,7 @@ for c in fastgzip_safe fastgzip_safe_s1; do
     echo "  $c: no .rlib found under target/"
   fi
 done
-for c in fastgzip fastgzip_safe; do
+for c in fastgzip fastgzip_u2 fastgzip_safe; do
   objdump -d --no-show-raw-insn -C target/release/rsbench | awk -v f="$c::enc::scan::<13, true, false>" '$0 ~ "^[0-9a-f]+ <" f ">:" {p=1} p&&/^$/{exit} p' > $OUT/${c}_scan_13_emit.s
   echo "  $c: $(grep -c '^ ' $OUT/${c}_scan_13_emit.s) instructions (${c}_scan_13_emit.s)"
 done
@@ -135,16 +137,17 @@ SETS="$W/rtb_single.bin $W/rtb_5k.bin $W/capture.bin $W/mixed_exchange.bin $W/rt
 for pass in 1 2; do
   echo
   echo "one thread, the best of $ROUNDS passes (run $pass):"
-  WHICH=lrs taskset -c $CPU ./target/release/rsbench $ROUNDS $SETS
+  WHICH=lrus taskset -c $CPU ./target/release/rsbench $ROUNDS $SETS
 done
 
 # In tokio: 2 workers, the lowest median of $RUNS runs, at three amounts of other
 # work per request.  The original is there twice, as a measure of the noise.
-for c in fastgzip fastgzip-safe; do
+for c in fastgzip fastgzip-u2 fastgzip-safe; do
   (cd $HERE/$c && cargo build --release --examples > /dev/null 2>&1)
 done
 (cd $HERE/fastgzip-safe && cargo build --release --examples --features prefetch --target-dir target-prefetch > /dev/null 2>&1)
 REF=$HERE/fastgzip/target/release/examples/tokio_bench
+U2=$HERE/fastgzip-u2/target/release/examples/tokio_bench
 SAFE=$HERE/fastgzip-safe/target/release/examples/tokio_bench
 PRE=$HERE/fastgzip-safe/target-prefetch/release/examples/tokio_bench
 row() {
@@ -158,13 +161,14 @@ tokio() { # file, cut
     : > $W/runs
     for run in $(seq $RUNS); do
       row fastgzip $REF $1 $2 $n 2 $other local
+      row fastgzip_new_lookup $U2 $1 $2 $n 2 $other local
       row no_unsafe $SAFE $1 $2 $n 2 $other local
       row no_unsafe_but_prefetch $PRE $1 $2 $n 2 $other local
       row fastgzip_again $REF $1 $2 $n 2 $other local
     done
     echo "  other work per request: walks $((other / 1024)) KiB"
     base=$(grep "^fastgzip " $W/runs | sort -k2 -n | head -1 | awk '{print $2}')
-    for v in fastgzip fastgzip_again no_unsafe no_unsafe_but_prefetch; do
+    for v in fastgzip fastgzip_again fastgzip_new_lookup no_unsafe no_unsafe_but_prefetch; do
       grep "^$v " $W/runs | sort -k2 -n | head -1 | awk -v b=$base '{printf "    %-23s %6.2f us  %5.1f%%   output %s%% of input\n", $1, $2, $2*100/b, $3}'
     done
   done

@@ -5,7 +5,8 @@
 //! turns.  WHICH=<letters> chooses them: l libdeflate level 1, c C
 //! Session::Codes, f C Session::CodesFast, r fastgzip, s fastgzip-safe,
 //! a the first safe version (output through a slice), u fastgzip with the
-//! safe version's way of ending a long match.
+//! two changes of the safe version that have nothing to do with safety (how
+//! a long match ends, and how a distance finds its codeword).
 //! The default is "lrs".
 use std::io::Read;
 use std::time::Instant;
@@ -53,7 +54,7 @@ fn encoders(which: &str) -> Vec<Encoder> {
             }
             'u' => {
                 let mut gz = fastgzip_u2::Gzip::new();
-                ("fastgzip, match end", Box::new(move |r| gz.compress(r).len()))
+                ("fastgzip, new lookup", Box::new(move |r| gz.compress(r).len()))
             }
             _ => panic!("WHICH: letters of lcfrsau"),
         });

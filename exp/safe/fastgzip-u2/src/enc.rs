@@ -96,34 +96,43 @@ fn hash5<const BITS: u32>(x: u64) -> usize {
     (x.wrapping_mul(K24) >> (64 - BITS)) as usize
 }
 
-/// Offset slot, number of extra bits and their value for a distance, given
-/// `d` = distance - 1.  Arithmetic on the bit length of `d` instead of
-/// libdeflate's 512-byte table: no load, and nothing to fall out of cache.
+/// Where `Codes::off` has the codeword of a distance, the number of the
+/// distance's extra bits and their value, given `d` = distance - 1.
+///
+/// What decides the offset symbol is the bit length of `d` and the bit below
+/// its top bit.  libdeflate looks the symbol up in a table of 512 bytes; the
+/// usual arithmetic works it out from the two, with a case apart for the two
+/// shortest distances.  Here the two are the index as they come (twice the
+/// leading zeros, plus the bit) and the table of codewords is laid out to
+/// match: no symbol is worked out, nothing is loaded, nothing branches.
 #[inline(always)]
-fn off_slot(d: u32) -> (usize, u32, u32) {
-    let bl = 32 - d.leading_zeros();
-    let extra = bl.saturating_sub(2);
-    let slot = if d < 2 { d } else { 2 * bl - 2 + ((d >> (bl - 2)) & 1) };
-    (slot as usize, extra, d & ((1 << extra) - 1))
+fn off_index(d: u32) -> (usize, u32, u32) {
+    let lz = d.leading_zeros();
+    // For d < 2 the shift is by 31 or 30 and brings down a zero.
+    let bit = d.wrapping_shr(30u32.wrapping_sub(lz)) & 1;
+    let extra = 30u32.saturating_sub(lz);
+    ((2 * lz + bit) as usize, extra, d & ((1 << extra) - 1))
 }
 
 /// The bits of a match of `len` bytes at distance `dist`, and how many.
 /// One value of at most 47 bits: the length codeword with its extra bits
 /// comes out of one table load, the offset codeword out of another, and the
-/// offset's extra bits are arithmetic.  Also the indexes of the two symbols.
+/// offset's extra bits are arithmetic.  Also the index of the length symbol,
+/// and that of the offset in `Codes::off`.
 #[inline(always)]
 unsafe fn match_bits(c: &Codes, len: usize, dist: usize) -> (u64, u32, u32, usize) {
     debug_assert!((MIN_MATCH..=MAX_MATCH).contains(&len) && (1..=32768).contains(&dist));
-    let (slot, extra_n, extra) = off_slot(dist as u32 - 1);
+    let (index, extra_n, extra) = off_index(dist as u32 - 1);
+    debug_assert!(index < OFF_TAB);
     let le = *c.len.as_ptr().add(len);
-    let oe = *c.off.as_ptr().add(slot);
+    let oe = *c.off.as_ptr().add(index);
     debug_assert!(le != 0 && oe != 0, "a length or offset without a codeword");
     let len_n = (le >> LEN_NBITS_SHIFT) & 31;
     let off_n = oe >> 16;
     let bits = (le & LEN_VALUE_MASK) as u64
         | ((oe & 0xFFFF) as u64) << len_n
         | (extra as u64) << (len_n + off_n);
-    (bits, len_n + off_n + extra_n, le >> LEN_SLOT_SHIFT, slot)
+    (bits, len_n + off_n + extra_n, le >> LEN_SLOT_SHIFT, index)
 }
 
 /// Begins a block at `out` and returns where its bits continue: (bytes
@@ -370,16 +379,16 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
             };
             let dist = pos - cand;
             if EMIT {
-                let (bits, nbits, len_slot, off_slot) = match_bits(c, len, dist);
+                let (bits, nbits, len_slot, off_index) = match_bits(c, len, dist);
                 flush!(); // the literals of this group of steps
                 bitbuf |= bits.wrapping_shl(bitcount);
                 bitcount += nbits;
                 flush!();
                 if COUNT {
-                    count_match!(len_slot, off_slot);
+                    count_match!(len_slot, off_slot_at(off_index));
                 }
             } else {
-                count_match!(LEN_SLOT[len], off_slot(dist as u32 - 1).0);
+                count_match!(LEN_SLOT[len], off_slot_at(off_index(dist as u32 - 1).0));
                 debug_assert!(n_seqs < MAX_SEQS);
                 *sp.add(n_seqs) =
                     (pos - run_start) as u64 | (len as u64) << 16 | (dist as u64) << 32;
@@ -563,8 +572,10 @@ mod tests {
         ];
         for dist in 1..=32768u32 {
             let want = (0..30).rev().find(|&s| base[s] <= dist).unwrap();
-            let (slot, n, extra) = off_slot(dist - 1);
+            let (index, n, extra) = off_index(dist - 1);
+            let slot = off_slot_at(index);
             assert_eq!(slot, want, "distance {dist}");
+            assert_eq!(off_index_of(slot), index);
             assert_eq!(n, OFF_EXTRA[slot] as u32);
             assert_eq!(extra, dist - base[slot]);
         }
