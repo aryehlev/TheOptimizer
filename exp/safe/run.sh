@@ -146,12 +146,10 @@ for c in fastgzip fastgzip-u2 fastgzip-safe; do
   (cd $HERE/$c && cargo build --release --examples > /dev/null 2>&1)
 done
 (cd $HERE/fastgzip-safe && cargo build --release --examples --features prefetch --target-dir target-prefetch > /dev/null 2>&1)
-(cd $HERE/fastgzip-safe && cargo build --release --examples --features prefetch,zerofirst --target-dir target-zero > /dev/null 2>&1)
 REF=$HERE/fastgzip/target/release/examples/tokio_bench
 U2=$HERE/fastgzip-u2/target/release/examples/tokio_bench
 SAFE=$HERE/fastgzip-safe/target/release/examples/tokio_bench
 PRE=$HERE/fastgzip-safe/target-prefetch/release/examples/tokio_bench
-ZERO=$HERE/fastgzip-safe/target-zero/release/examples/tokio_bench
 row() {
   name=$1; shift
   echo "$name $("$@" | sed -n 's/.*median \([0-9.]*\) us.*out \([0-9.]*\)% of in.*/\1 \2/p')" >> $W/runs
@@ -163,14 +161,13 @@ tokio() { # file, cut
     : > $W/runs
     for run in $(seq $RUNS); do
       row fastgzip $REF $1 $2 $n 2 $other local
-      row prefetch_and_zero_first $ZERO $1 $2 $n 2 $other local
       row no_unsafe $SAFE $1 $2 $n 2 $other local
       row no_unsafe_but_prefetch $PRE $1 $2 $n 2 $other local
       row fastgzip_again $REF $1 $2 $n 2 $other local
     done
     echo "  other work per request: walks $((other / 1024)) KiB"
     base=$(grep "^fastgzip " $W/runs | sort -k2 -n | head -1 | awk '{print $2}')
-    for v in fastgzip fastgzip_again no_unsafe no_unsafe_but_prefetch prefetch_and_zero_first; do
+    for v in fastgzip fastgzip_again no_unsafe no_unsafe_but_prefetch; do
       grep "^$v " $W/runs | sort -k2 -n | head -1 | awk -v b=$base '{printf "    %-23s %6.2f us  %5.1f%%   output %s%% of input\n", $1, $2, $2*100/b, $3}'
     done
   done
