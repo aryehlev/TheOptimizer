@@ -4,12 +4,12 @@
 pub struct Rng(pub u64);
 
 impl Rng {
-    pub fn next(&mut self) -> u32 {
+    pub fn u32(&mut self) -> u32 {
         self.0 = self.0.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
         (self.0 >> 33) as u32
     }
     pub fn below(&mut self, n: usize) -> usize {
-        (self.next() as u64 * n as u64 >> 31) as usize
+        ((self.u32() as u64 * n as u64) >> 31) as usize
     }
     pub fn pick<'a>(&mut self, items: &[&'a str]) -> &'a str {
         items[self.below(items.len())]
@@ -126,13 +126,13 @@ pub fn any_payload(rng: &mut Rng, max: usize) -> Vec<u8> {
         0 => {
             // random bytes: nothing to find
             while v.len() < n {
-                v.push(rng.next() as u8);
+                v.push(rng.u32() as u8);
             }
         }
         1 => {
             // one byte, or a short period, repeated: the longest matches
             let period = 1 + rng.below(9);
-            let unit: Vec<u8> = (0..period).map(|_| rng.next() as u8).collect();
+            let unit: Vec<u8> = (0..period).map(|_| rng.u32() as u8).collect();
             while v.len() < n {
                 v.push(unit[v.len() % period]);
             }
@@ -156,7 +156,7 @@ pub fn any_payload(rng: &mut Rng, max: usize) -> Vec<u8> {
                     }
                 } else {
                     for _ in 0..1 + rng.below(20) {
-                        v.push(rng.next() as u8);
+                        v.push(rng.u32() as u8);
                     }
                 }
             }
@@ -166,7 +166,7 @@ pub fn any_payload(rng: &mut Rng, max: usize) -> Vec<u8> {
             // text with every byte value somewhere
             while v.len() < n {
                 if rng.below(40) == 0 {
-                    v.push(rng.next() as u8);
+                    v.push(rng.u32() as u8);
                 } else {
                     v.extend_from_slice(rng.pick(&["alpha ", "beta ", "gamma,", "\"delta\":", "{", "}", "0", "17", "\n"]).as_bytes());
                 }

@@ -25,8 +25,8 @@
 //!
 //! The output is a few percent larger than libdeflate's at level 1, and it
 //! depends on what the compressor was given before.  Use one compressor per
-//! kind of payload: codes made for one recipient's requests fit another's
-//! poorly, and a payload they do not fit is written the slow way.
+//! kind of payload: codes made for one kind fit another poorly, and a payload
+//! they do not fit is written the slow way.
 
 #![warn(missing_docs)]
 
@@ -36,7 +36,7 @@ mod huff;
 mod tables;
 
 use codes::{Codes, FIXED};
-use enc::{emit_seqs, scan, scratch, stored, Freq, Seq, Tab, CHUNK, MAX_SEQS};
+use enc::{align, append_bits, emit_seqs, scan, scratch, stored, Freq, Place, Seq, Tab, CHUNK, MAX_SEQS};
 use std::cell::RefCell;
 use tables::*;
 
@@ -53,16 +53,13 @@ const MAX_PERIOD: u32 = 1024;
 /// are written in one pass (all of them while the period is this short).
 /// Counting makes a block some 15% slower.
 const SAMPLES_PER_PERIOD: u32 = 32;
-/// Offset slots that the shared codes always have a codeword for: all that a
-/// block of `CHUNK` bytes can use.
-const SHARED_OFF_SLOTS: usize = 28;
 
 /// The members of the gzip header: magic, deflate, no flags, no time, "fastest
 /// algorithm", unknown system.  The same ten bytes libdeflate writes at level 1.
 const GZIP_HEADER: [u8; 10] = [0x1f, 0x8b, 8, 0, 0, 0, 0, 0, 4, 0xff];
 
 /// How a compressor's blocks were written; see [`Gzip::stats`].  A payload of
-/// up to 16 KiB is one block.
+/// up to 16 KiB is one block; a larger one is a block per 16 KiB.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Stats {
     /// Written in one pass with the shared codes: the fast path.
@@ -89,7 +86,7 @@ struct State {
     valid: bool,
     /// The last block that was looked at closely suited the shared codes.
     direct_ok: bool,
-    /// Blocks between two makings of the shared codes.
+    /// Blocks between two makings of the shared codes: a power of two.
     period: u32,
     since_build: u32,
     /// One-pass blocks, for sampling.
@@ -112,7 +109,7 @@ struct State {
 
 /// A gzip compressor for payloads of one kind.
 ///
-/// It owns its working memory (about 90 KiB) and its output buffer, and
+/// It owns its working memory (about 80 KiB) and its output buffer, and
 /// allocates nothing per call once the buffer has grown to fit.  It is
 /// `Send`, so it can live in a `thread_local!`, in a pool, or in a task.
 pub struct Gzip {
@@ -130,10 +127,18 @@ impl Gzip {
     /// A new compressor.  Its first payload costs about as much as with a
     /// general compressor; the ones after it take the fast path.
     pub fn new() -> Self {
-        // SAFETY: every field of State is an integer, a bool or an array of
-        // integers, for which all-zero bytes are a valid value.  Zeroed in
-        // the allocation, not built on the stack and moved.
-        let mut st: Box<State> = unsafe { Box::new_zeroed().assume_init() };
+        // Zeroed where it is allocated, not built on the stack and moved.
+        // SAFETY: the layout is State's and not of size zero; every field of
+        // State is an integer, a bool or an array of integers, for which
+        // all-zero bytes are a valid value.
+        let mut st: Box<State> = unsafe {
+            let layout = std::alloc::Layout::new::<State>();
+            let p = std::alloc::alloc_zeroed(layout).cast::<State>();
+            if p.is_null() {
+                std::alloc::handle_alloc_error(layout);
+            }
+            Box::from_raw(p)
+        };
         st.period = 1;
         st.miss_limit = 3;
         Gzip { st, out: Vec::new() }
@@ -147,53 +152,30 @@ impl Gzip {
         // also brings it into the cache for the encoder.
         let crc = crc32fast::hash(payload);
 
-        // Room for the worst case, so that nothing below tests for space:
-        // every block ends up no larger than stored (its bytes, 5 for the
-        // block header and 6 where the next block is made to start on a byte
-        // boundary), and the block being written may use `scratch` bytes
-        // before its size is known.
-        let cap = 18 + n + 16 * (n / CHUNK + 1) + scratch(n.min(CHUNK));
+        // Room for the worst case, so that nothing below tests for space.
+        // Every block ends up no larger than stored (its bytes and 5 more),
+        // up to 13 bytes go between two blocks, and the block being written
+        // may use `scratch` bytes before its size is known.
+        let cap = 18 + n + 24 * (n / CHUNK + 1) + scratch(n.min(CHUNK));
         self.out.clear();
         self.out.reserve(cap); // no call once the buffer has grown
         let out = self.out.as_mut_ptr();
         let st = &mut *self.st;
 
-        // SAFETY: the buffer has `cap` bytes.  `o` stays below what the
-        // comment above adds up, and each block gets what is left from `o`.
+        // SAFETY: the buffer has `cap` bytes; the encoder is given what is
+        // left of them and stays within what the comment above adds up.
+        // Every byte up to the new length is written before it is set.
         unsafe {
             core::ptr::copy_nonoverlapping(GZIP_HEADER.as_ptr(), out, 10);
-            let mut o = 10;
-            let mut rest = payload;
-            loop {
-                let (block, tail) = rest.split_at(rest.len().min(CHUNK));
-                let last = tail.is_empty();
-                let bits = st.block(block, out.add(o), cap - o, last);
-                debug_assert!(bits.div_ceil(8) <= block.len() + 5);
-                o += bits >> 3;
-                let used = bits & 7; // bits of out[o] that are in use
-                if last {
-                    o += (used != 0) as usize;
-                    break;
-                }
-                if used != 0 {
-                    // Each block starts with a copy of its header, which
-                    // needs a byte boundary.  An empty stored block gets
-                    // there: three zero bits, zero bits up to the boundary,
-                    // then 00 00 FF FF.  The byte at o is zero above the
-                    // bits in use; the one after it may not be.
-                    if used > 5 {
-                        o += 1;
-                        *out.add(o) = 0;
-                    }
-                    o += 1;
-                    core::ptr::copy_nonoverlapping([0u8, 0, 0xff, 0xff].as_ptr(), out.add(o), 4);
-                    o += 4;
-                }
-                rest = tail;
-            }
+            let bits = if n <= CHUNK {
+                st.block(payload, out.add(10), cap - 10)
+            } else {
+                st.large(payload, out.add(10), cap - 10)
+            };
+            let o = 10 + bits.div_ceil(8);
+            debug_assert!(o + 8 <= cap);
             core::ptr::copy_nonoverlapping(crc.to_le_bytes().as_ptr(), out.add(o), 4);
             core::ptr::copy_nonoverlapping((n as u32).to_le_bytes().as_ptr(), out.add(o + 4), 4);
-            debug_assert!(o + 8 <= cap);
             self.out.set_len(o + 8);
         }
         &self.out
@@ -206,11 +188,11 @@ impl Gzip {
     }
 }
 
-/// `scan` with the table size that suits `n` input bytes: the smallest that
-/// has an entry for every position (8 KiB for up to 4096 bytes, 16 and 32 KiB
-/// above; 2 KiB for small payloads).  A smaller table is quicker to clear and
-/// to fetch, and a larger one finds only slightly more.  The size is a
-/// constant in each copy of `scan`.
+/// `scan` with the table size that suits a payload of `n` bytes: the smallest
+/// that has an entry for every position (8 KiB for up to 4096 bytes, 16 and
+/// 32 KiB above; 2 KiB for small payloads).  A smaller table is quicker to
+/// clear and to fetch, and a larger one finds only slightly more.  The size
+/// is a constant in each copy of `scan`.
 macro_rules! scan_sized {
     ($n:expr, $emit:literal, $count:literal, $($arg:expr),+) => {
         match $n {
@@ -222,69 +204,209 @@ macro_rules! scan_sized {
     };
 }
 
+const NO_COUNTS: Freq = Freq { ll: [0; NUM_LL], off: [0; NUM_OFF] };
+
 impl State {
-    /// Writes one block of at most `CHUNK` bytes at `out`, which is at a byte
-    /// boundary and has `cap` >= `scratch(inp.len())` bytes.  Returns the
+    /// A payload of at most `CHUNK` bytes, as the only block of its stream,
+    /// at `out`, which has `cap` >= `scratch(inp.len())` bytes.  Returns the
     /// number of bits written: never more than a stored block would take.
     #[inline]
-    unsafe fn block(&mut self, inp: &[u8], out: *mut u8, cap: usize, last: bool) -> usize {
+    unsafe fn block(&mut self, inp: &[u8], out: *mut u8, cap: usize) -> usize {
         let n = inp.len();
         if n >= MIN_ONE_PASS && self.valid && self.direct_ok {
-            self.calls = self.calls.wrapping_add(1);
-            // Count the symbols of some blocks, and of the block after which
-            // the codes are due to be remade.  The counts go into the next
-            // codes and say whether the current ones still fit.  The period
-            // is a power of two, and so is the interval.
-            let interval = (self.period / SAMPLES_PER_PERIOD).max(1);
-            let count = self.calls & (interval - 1) == 0 || self.since_build + 1 >= self.period;
+            let count = self.count_this_one();
+            let place = Place::whole(true);
             let bits = if count {
-                self.freq = Freq { ll: [0; NUM_LL], off: [0; NUM_OFF] };
+                self.freq = NO_COUNTS;
                 scan_sized!(
                     n, true, true,
-                    &self.shared, &mut self.tab, &mut self.freq, &mut self.seqs, inp, out, cap, last
+                    &self.shared, &mut self.tab, &mut self.freq, &mut self.seqs,
+                    inp, 0, true, out, cap, place
                 )
             } else {
                 scan_sized!(
                     n, true, false,
-                    &self.shared, &mut self.tab, &mut self.freq, &mut self.seqs, inp, out, cap, last
+                    &self.shared, &mut self.tab, &mut self.freq, &mut self.seqs,
+                    inp, 0, true, out, cap, place
                 )
             };
             // 0: a byte the codes have no codeword for.
-            if bits != 0 && bits <= 8 * (n + 5) {
-                if !count {
-                    self.since_build += 1;
-                    self.stats.one_pass += 1;
-                    return bits;
+            if bits != 0 && bits <= 8 * (n + 5) && (!count || self.counted_fits()) {
+                if self.one_pass_done(count) {
+                    self.build_shared(); // for the payloads that follow
                 }
-                self.freq.ll[EOB] = 1;
-                let (sym_bits, _) = sym_cost(&self.shared, &self.freq);
-                if fits(sym_bits, entropy(&self.freq)) {
-                    self.accumulate();
-                    self.misses = 0;
-                    self.miss_limit = 3;
-                    self.since_build += 1;
-                    self.stats.one_pass += 1;
-                    if self.since_build >= self.period {
-                        self.build_shared(); // for the blocks that follow
-                    }
-                    return bits;
-                }
+                return bits;
             }
         }
-        self.two_pass(inp, out, cap, last)
+        self.two_pass(inp, 0, true, out, cap, true)
     }
 
-    /// Searches the block first, then writes it with whichever codes make it
-    /// smallest: the shared ones if they fit, else its own, the fixed ones,
-    /// or none.
+    /// A payload of more than `CHUNK` bytes: a block per `CHUNK`, each one
+    /// searching the block before it as well.  As long as blocks can be
+    /// written in one pass they are written as a single DEFLATE block, with
+    /// one header.  Returns the number of bits written.
     #[inline(never)]
-    unsafe fn two_pass(&mut self, inp: &[u8], out: *mut u8, cap: usize, last: bool) -> usize {
-        let n = inp.len();
-        self.freq = Freq { ll: [0; NUM_LL], off: [0; NUM_OFF] };
-        let n_seqs = scan_sized!(
-            n, false, true,
-            &FIXED, &mut self.tab, &mut self.freq, &mut self.seqs, inp, out, cap, last
-        );
+    unsafe fn large(&mut self, payload: &[u8], out: *mut u8, cap: usize) -> usize {
+        let n = payload.len();
+        let mut bitpos = 0; // bits written so far
+        let mut open = false; // a block with the shared codes is unfinished
+        let mut at = 0;
+        while at < n {
+            let end = (at + CHUNK).min(n);
+            // The window: the block before this one, and this one.
+            let base = at.saturating_sub(CHUNK);
+            if at >= 2 * CHUNK {
+                self.tab.rebase();
+            }
+            bitpos = self.chunk(&payload[base..end], at - base, out, cap, bitpos, &mut open);
+            at = end;
+        }
+        if open {
+            bitpos = append_bits(out, cap, bitpos, self.shared.eob & 0xFFFF, self.shared.eob >> 16);
+        }
+        // None of the blocks above says that it is the last: which one that
+        // would be is not known when its header is written.  An empty block
+        // with the fixed codes says it: BFINAL, BTYPE = 1, end of block.
+        append_bits(out, cap, bitpos, 0b011, 10)
+    }
+
+    /// One block of a large payload: `win[start..]`, with `win[..start]` to
+    /// find matches in.  Returns the new bit position.
+    unsafe fn chunk(
+        &mut self,
+        win: &[u8],
+        start: usize,
+        out: *mut u8,
+        cap: usize,
+        mut bitpos: usize,
+        open: &mut bool,
+    ) -> usize {
+        let n = win.len() - start;
+        let mut clear = start == 0;
+        // Continuing an unfinished block costs no header, however short this
+        // one is.
+        if self.valid && self.direct_ok && (*open || n >= MIN_ONE_PASS) {
+            let count = self.count_this_one();
+            if !*open {
+                bitpos = align(out, cap, bitpos);
+            }
+            let o = bitpos >> 3;
+            let place = Place { header: !*open, last: false, eob: false, bit: (bitpos & 7) as u32 };
+            let bits = if count {
+                self.freq = NO_COUNTS;
+                scan::<14, true, true>(
+                    &self.shared, &mut self.tab, &mut self.freq, &mut self.seqs,
+                    win, start, clear, out.add(o), cap - o, place,
+                )
+            } else {
+                scan::<14, true, false>(
+                    &self.shared, &mut self.tab, &mut self.freq, &mut self.seqs,
+                    win, start, clear, out.add(o), cap - o, place,
+                )
+            };
+            if bits != 0 && bits - place.bit as usize <= 8 * (n + 5) {
+                let fit = !count || self.counted_fits();
+                if fit {
+                    *open = true;
+                    bitpos = 8 * o + bits;
+                    if self.one_pass_done(count) {
+                        // New codes are due.  The block that uses the
+                        // current ones has to end first.
+                        bitpos = append_bits(out, cap, bitpos, self.shared.eob & 0xFFFF, self.shared.eob >> 16);
+                        *open = false;
+                        self.build_shared();
+                    }
+                    return bitpos;
+                }
+                if start != 0 {
+                    // The codes fit this block badly, but searching it again
+                    // would be without the block before it (see below), and
+                    // that costs more than the codes do.  Keep what was
+                    // written, and look closely at the blocks that follow.
+                    *open = true;
+                    self.since_build += 1;
+                    self.stats.one_pass += 1;
+                    self.accumulate();
+                    self.direct_ok = false;
+                    return 8 * o + bits;
+                }
+            }
+            // Not written: the output continues at `bitpos` as if nothing
+            // had happened.  The table, though, now holds positions of this
+            // block, which the second search must not find.
+            clear = true;
+        }
+        if *open {
+            bitpos = append_bits(out, cap, bitpos, self.shared.eob & 0xFFFF, self.shared.eob >> 16);
+            *open = false;
+        }
+        bitpos = align(out, cap, bitpos);
+        let o = bitpos >> 3;
+        bitpos + self.two_pass(win, start, clear, out.add(o), cap - o, false)
+    }
+
+    /// Should the block about to be written in one pass have its symbols
+    /// counted?  Some are, and the one after which the codes are due to be
+    /// remade.  The counts go into the next codes and say whether the current
+    /// ones still fit.
+    #[inline]
+    fn count_this_one(&mut self) -> bool {
+        self.calls = self.calls.wrapping_add(1);
+        let interval = (self.period / SAMPLES_PER_PERIOD).max(1); // a power of two
+        self.calls & (interval - 1) == 0 || self.since_build + 1 >= self.period
+    }
+
+    /// After a block was written in one pass with its symbols counted: do the
+    /// shared codes still fit?
+    fn counted_fits(&mut self) -> bool {
+        self.freq.ll[EOB] = 1;
+        fits(sym_cost(&self.shared, &self.freq).0, entropy(&self.freq))
+    }
+
+    /// Book-keeping for a block written in one pass.  True if the shared
+    /// codes are now due to be remade.
+    #[inline]
+    fn one_pass_done(&mut self, counted: bool) -> bool {
+        self.since_build += 1;
+        self.stats.one_pass += 1;
+        if !counted {
+            return false;
+        }
+        self.accumulate();
+        self.misses = 0;
+        self.miss_limit = 3;
+        self.since_build >= self.period
+    }
+
+    /// Searches the block `win[start..]` first, then writes it as a block of
+    /// its own with whichever codes make it smallest: the shared ones if they
+    /// fit, else its own, the fixed ones, or none.  Returns the number of
+    /// bits written at `out`, which is at a byte boundary.
+    #[inline(never)]
+    unsafe fn two_pass(
+        &mut self,
+        win: &[u8],
+        start: usize,
+        clear: bool,
+        out: *mut u8,
+        cap: usize,
+        last: bool,
+    ) -> usize {
+        let n = win.len() - start;
+        let place = Place::whole(last);
+        self.freq = NO_COUNTS;
+        let n_seqs = if start != 0 {
+            scan::<14, false, true>(
+                &FIXED, &mut self.tab, &mut self.freq, &mut self.seqs,
+                win, start, clear, out, cap, place,
+            )
+        } else {
+            scan_sized!(
+                n, false, true,
+                &FIXED, &mut self.tab, &mut self.freq, &mut self.seqs,
+                win, start, clear, out, cap, place
+            )
+        };
         self.freq.ll[EOB] = 1;
         self.accumulate();
         let mut built = false;
@@ -341,7 +463,7 @@ impl State {
             self.miss_limit = 3;
             self.direct_ok = true;
             self.stats.two_pass += 1;
-            return emit_seqs(&self.shared, inp, &self.seqs[..n_seqs], out, cap, last);
+            return emit_seqs(&self.shared, win, start, &self.seqs[..n_seqs], out, cap, place);
         }
 
         // Codes of its own, unless they cannot win: no code needs fewer bits
@@ -361,16 +483,17 @@ impl State {
         }
         if stored_bits <= fixed_bits && stored_bits <= own_bits {
             self.stats.stored += 1;
-            stored(inp, out, cap, last)
+            stored(&win[start..], out, cap, last)
         } else if fixed_bits <= own_bits {
             self.stats.fixed += 1;
-            emit_seqs(&FIXED, inp, &self.seqs[..n_seqs], out, cap, last)
+            emit_seqs(&FIXED, win, start, &self.seqs[..n_seqs], out, cap, place)
         } else {
             self.stats.own_codes += 1;
-            emit_seqs(&self.own, inp, &self.seqs[..n_seqs], out, cap, last)
+            emit_seqs(&self.own, win, start, &self.seqs[..n_seqs], out, cap, place)
         }
     }
 
+    /// Adds the counts of the block just written to the running totals.
     fn accumulate(&mut self) {
         for (a, &f) in self.acc_ll.iter_mut().zip(self.freq.ll.iter()) {
             *a += f as u32;
@@ -387,8 +510,8 @@ impl State {
         // Scale the counts so that the code builder's limit holds and a
         // symbol that was seen at all keeps a count.  Then give a small count
         // to what any text may use next (printable ASCII, every match length,
-        // every offset a block can have), so that a symbol appearing for the
-        // first time rarely forces new codes.
+        // every offset), so that a symbol appearing for the first time rarely
+        // forces new codes.
         fn scale(acc: &[u32], f: &mut [u32]) {
             let total: u64 = acc.iter().map(|&a| a as u64).sum();
             let mut shift = 0;
@@ -406,13 +529,13 @@ impl State {
         for f in &mut f_ll[0x20..0x7f] {
             *f += 1;
         }
-        for b in [b'\t', b'\n', b'\r'] {
+        for b in *b"\t\n\r" {
             f_ll[b as usize] += 1;
         }
         for f in &mut f_ll[EOB..FIRST_LEN + NUM_LEN] {
             *f += 1;
         }
-        for f in &mut f_off[..SHARED_OFF_SLOTS] {
+        for f in &mut f_off[..USED_OFF] {
             *f += 1;
         }
         self.shared.build(&f_ll, &f_off);
@@ -511,251 +634,4 @@ pub fn gzip_with<R>(payload: &[u8], f: impl FnOnce(&[u8]) -> R) -> R {
 /// [`Gzip::stats`] of this thread's compressor.
 pub fn local_stats() -> Stats {
     LOCAL.with(|g| g.borrow().stats())
-}
-
-#[cfg(test)]
-mod probe {
-    use super::*;
-
-    /// `GZHOT_PROBE=records.bin cargo test --release --lib session_probe -- --nocapture`
-    #[test]
-    fn session_probe() {
-        let Ok(path) = std::env::var("GZHOT_PROBE") else { return };
-        let data = std::fs::read(path).unwrap();
-        let mut gz = Gzip::new();
-        let (mut off, mut recs, mut bytes, mut out) = (0, 0usize, 0usize, 0usize);
-        let mut hdr = 0usize;
-        while off + 4 <= data.len() {
-            let n = u32::from_le_bytes(data[off..off + 4].try_into().unwrap()) as usize;
-            let rec = &data[off + 4..off + 4 + n];
-            off += 4 + n;
-            out += gz.compress(rec).len();
-            recs += 1;
-            bytes += n;
-            hdr += gz.st.shared.hdr_bits as usize;
-        }
-        println!("{recs} records, {} B each -> {} B each; shared header {} bits on average, {} at the end",
-            bytes / recs, out / recs, hdr / recs, gz.st.shared.hdr_bits);
-        let c = &gz.st.shared;
-        let lens: Vec<u8> = c.ll_lens[..USED_LL].to_vec();
-        println!("literal lengths: {:?}", &lens[..128]);
-        println!("high bytes with a codeword: {}", lens[128..256].iter().filter(|&&l| l != 0).count());
-        println!("eob and lengths: {:?}", &lens[256..]);
-        println!("offsets: {:?}", &c.off_lens[..USED_OFF]);
-        println!("{:?}", gz.stats());
-    }
-}
-
-#[cfg(test)]
-mod level_probe {
-    use super::*;
-
-    fn lg(f: u32) -> u32 {
-        // log2 in 1/256 bit
-        if f < 256 {
-            return LOG2_Q8[f as usize] as u32;
-        }
-        let k = 24 - f.leading_zeros();
-        (k << 8) + LOG2_Q8[(f >> k) as usize] as u32
-    }
-
-    fn level(f: &mut [u32], w: u32, min_run: usize) {
-        let mut i = 0;
-        while i < f.len() {
-            if f[i] == 0 {
-                i += 1;
-                continue;
-            }
-            let (mut lo, mut hi) = (lg(f[i]), lg(f[i]));
-            let mut sum = f[i] as u64;
-            let mut j = i + 1;
-            while j < f.len() && f[j] != 0 {
-                let q = lg(f[j]);
-                if q.max(hi) - q.min(lo) > w {
-                    break;
-                }
-                lo = lo.min(q);
-                hi = hi.max(q);
-                sum += f[j] as u64;
-                j += 1;
-            }
-            if j - i >= min_run {
-                let avg = ((sum + (j - i) as u64 / 2) / (j - i) as u64).max(1) as u32;
-                for x in &mut f[i..j] {
-                    *x = avg;
-                }
-            }
-            i = j;
-        }
-    }
-
-    /// `GZHOT_PROBE=records.bin cargo test --release --lib level_probe -- --nocapture`
-    #[test]
-    fn level_probe() {
-        let Ok(path) = std::env::var("GZHOT_PROBE") else { return };
-        let data = std::fs::read(path).unwrap();
-        let mut tab = Box::new(Tab([0; 1 << enc::MAX_TAB_BITS]));
-        let mut seqs = Box::new([0u64; MAX_SEQS]);
-        let mut tot_ll = [0u32; NUM_LL];
-        let mut tot_off = [0u32; NUM_OFF];
-        let (mut off, mut recs, mut extra, mut bytes) = (0, 0u64, 0u64, 0u64);
-        while off + 4 <= data.len() {
-            let n = u32::from_le_bytes(data[off..off + 4].try_into().unwrap()) as usize;
-            let rec = &data[off + 4..off + 4 + n.min(CHUNK)];
-            off += 4 + n;
-            let mut freq = Freq { ll: [0; NUM_LL], off: [0; NUM_OFF] };
-            unsafe {
-                scan_sized!(rec.len(), false, true, &FIXED, &mut tab, &mut freq, &mut seqs, rec, core::ptr::null_mut(), 0, true);
-            }
-            freq.ll[EOB] = 1;
-            for (a, &f) in tot_ll.iter_mut().zip(freq.ll.iter()) {
-                *a += f as u32;
-            }
-            for (a, &f) in tot_off.iter_mut().zip(freq.off.iter()) {
-                *a += f as u32;
-            }
-            extra += extra_and_fixed(&freq).0 as u64;
-            recs += 1;
-            bytes += rec.len() as u64;
-        }
-        println!("{recs} records of {} B", bytes / recs);
-        let mut codes: Box<Codes> = unsafe { Box::new_zeroed().assume_init() };
-        for smooth in [true, false] {
-            for (w, min_run) in [(0, 4), (64, 4), (128, 4), (192, 4), (256, 4), (384, 4), (512, 4), (768, 4), (256, 3), (512, 3)] {
-                // as build_shared scales and smooths
-                let scale = |acc: &[u32], f: &mut [u32]| {
-                    let total: u64 = acc.iter().map(|&a| a as u64).sum();
-                    let mut shift = 0;
-                    while total >> shift > 1 << 17 {
-                        shift += 1;
-                    }
-                    for (f, &a) in f.iter_mut().zip(acc) {
-                        *f = if a != 0 { (a >> shift).max(1) * 16 } else { 0 };
-                    }
-                };
-                let mut f_ll = [0u32; NUM_LL];
-                let mut f_off = [0u32; NUM_OFF];
-                scale(&tot_ll, &mut f_ll);
-                scale(&tot_off, &mut f_off);
-                if smooth {
-                    for f in &mut f_ll[0x20..0x7f] {
-                        *f += 1;
-                    }
-                    for b in [b'\t', b'\n', b'\r'] {
-                        f_ll[b as usize] += 1;
-                    }
-                }
-                for f in &mut f_ll[EOB..FIRST_LEN + NUM_LEN] {
-                    *f += 1;
-                }
-                for f in &mut f_off[..SHARED_OFF_SLOTS] {
-                    *f += 1;
-                }
-                if w != 0 {
-                    level(&mut f_ll[..256], w, min_run);
-                    level(&mut f_ll[FIRST_LEN..FIRST_LEN + NUM_LEN], w, min_run);
-                    level(&mut f_off[..USED_OFF], w, min_run);
-                }
-                codes.build(&f_ll, &f_off);
-                let mut sym = 0u64;
-                for (s, &f) in tot_ll.iter().enumerate() {
-                    sym += f as u64 * codes.ll_lens[s] as u64;
-                }
-                for (s, &f) in tot_off.iter().enumerate() {
-                    sym += f as u64 * codes.off_lens[s] as u64;
-                }
-                let per = (sym + extra) as f64 / recs as f64;
-                println!(
-                    "smooth {smooth:5} band {:4.2} run {min_run}: header {:4} bits, symbols {:8.1} bits, total {:7.1} B",
-                    w as f64 / 256.0,
-                    codes.hdr_bits,
-                    per,
-                    (codes.hdr_bits as f64 + per) / 8.0
-                );
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod build_probe {
-    use super::*;
-
-    /// `GZHOT_PROBE=records.bin cargo test --release --lib build_probe -- --nocapture`
-    #[test]
-    fn build_probe() {
-        let Ok(path) = std::env::var("GZHOT_PROBE") else { return };
-        let data = std::fs::read(path).unwrap();
-        let mut tab = Box::new(Tab([0; 1 << enc::MAX_TAB_BITS]));
-        let mut seqs = Box::new([0u64; MAX_SEQS]);
-        let mut all = Vec::new();
-        let mut off = 0;
-        while off + 4 <= data.len() {
-            let n = u32::from_le_bytes(data[off..off + 4].try_into().unwrap()) as usize;
-            let rec = &data[off + 4..off + 4 + n.min(CHUNK)];
-            off += 4 + n;
-            let mut freq = Freq { ll: [0; NUM_LL], off: [0; NUM_OFF] };
-            unsafe {
-                scan_sized!(rec.len(), false, true, &FIXED, &mut tab, &mut freq, &mut seqs, rec, core::ptr::null_mut(), 0, true);
-            }
-            freq.ll[EOB] = 1;
-            let mut f_ll = [0u32; NUM_LL];
-            let mut f_off = [0u32; NUM_OFF];
-            for (w, &f) in f_ll.iter_mut().zip(freq.ll.iter()) {
-                *w = f as u32;
-            }
-            for (w, &f) in f_off.iter_mut().zip(freq.off.iter()) {
-                *w = f as u32;
-            }
-            all.push((f_ll, f_off));
-        }
-        let mut codes: Box<Codes> = unsafe { Box::new_zeroed().assume_init() };
-        let mut best = f64::MAX;
-        let mut hdr = 0u64;
-        let mut used = 0usize;
-        for _ in 0..30 {
-            let t = std::time::Instant::now();
-            hdr = 0;
-            for (f_ll, f_off) in &all {
-                codes.build(f_ll, f_off);
-                hdr += codes.hdr_bits as u64;
-            }
-            best = best.min(t.elapsed().as_secs_f64());
-        }
-        for (f_ll, f_off) in &all {
-            used += f_ll.iter().chain(f_off.iter()).filter(|&&f| f != 0).count();
-        }
-        let mut parts = [f64::MAX; 4];
-        for _ in 0..30 {
-            let mut acc = [0f64; 4];
-            for (f_ll, f_off) in &all {
-                let t = std::time::Instant::now();
-                huff::make_lens(&f_ll[..USED_LL], &mut codes.ll_lens[..USED_LL], MAX_LL_BITS);
-                let t1 = std::time::Instant::now();
-                huff::make_lens(&f_off[..USED_OFF], &mut codes.off_lens[..USED_OFF], MAX_OFF_BITS);
-                let t2 = std::time::Instant::now();
-                codes.write_header();
-                let t3 = std::time::Instant::now();
-                codes.fill();
-                let t4 = std::time::Instant::now();
-                acc[0] += (t1 - t).as_secs_f64();
-                acc[1] += (t2 - t1).as_secs_f64();
-                acc[2] += (t3 - t2).as_secs_f64();
-                acc[3] += (t4 - t3).as_secs_f64();
-            }
-            for i in 0..4 {
-                parts[i] = parts[i].min(acc[i]);
-            }
-        }
-        println!("  lengths of literals {:.2}, of offsets {:.2}, header {:.2}, tables {:.2} us",
-            parts[0] / all.len() as f64 * 1e6, parts[1] / all.len() as f64 * 1e6,
-            parts[2] / all.len() as f64 * 1e6, parts[3] / all.len() as f64 * 1e6);
-        println!(
-            "{} payloads: {:.2} us per build of own codes, header {} bits, {} symbols in use",
-            all.len(),
-            best / all.len() as f64 * 1e6,
-            hdr / all.len() as u64,
-            used / all.len()
-        );
-    }
 }

@@ -12,46 +12,34 @@ use crate::tables::*;
 use core::ptr;
 
 /// The most bytes a block covers.  Positions are kept in 16 bits, and the
-/// largest table (one entry per position) is 32 KiB.
+/// largest table (one entry per position of a block) is 32 KiB.
 pub(crate) const CHUNK: usize = 16384;
 pub(crate) const MAX_TAB_BITS: u32 = 14;
 /// A match is at least four bytes long.
 pub(crate) const MAX_SEQS: usize = CHUNK / 4 + 1;
-/// Experiments, chosen when compiling: GZHOT_EXP=<bits>.
-///   1: hash a position when it is looked up, not one step earlier
-///   2: the missing-codeword flag stays in the bit count, no `bad`
-///   4: one flush for a match and the literals before it when they fit
-///   8: eight steps per loop iteration
-///  16: the position after a match is looked up in the match's own code
-pub(crate) const X_HASH: bool = EXP & 1 != 0;
-pub(crate) const X_STICKY: bool = EXP & 2 != 0;
-pub(crate) const X_ONE_FLUSH: bool = EXP & 4 != 0;
-pub(crate) const X_EIGHT: bool = EXP & 8 != 0;
-pub(crate) const X_CHAIN: bool = EXP & 16 != 0;
-pub(crate) const EXP: usize = match option_env!("GZHOT_EXP") {
-    Some(s) => {
-        let b = s.as_bytes();
-        let (mut i, mut v) = (0, 0);
-        while i < b.len() {
-            v = v * 10 + (b[i] - b'0') as usize;
-            i += 1;
-        }
-        v
-    }
-    None => 0,
-};
 
 /// The bytes a block of `n` input bytes may write before it is known how
-/// large it is: the header, at most 14 bits per byte, and eight bytes that a
-/// flush may write past the last one.
+/// large it is: the header, at most 14 bits per byte, and what a flush may
+/// write past the last bit.
 pub(crate) const fn scratch(n: usize) -> usize {
-    HDR_BYTES + 2 * n + 16
+    HDR_BYTES + 2 * n + 24
 }
 
-/// The hash table: for each hash value, the last position in the block whose
-/// next five bytes had it.
+/// The hash table: for each hash value, the last position whose next five
+/// bytes had it.
 #[repr(C, align(64))]
 pub(crate) struct Tab(pub [u16; 1 << MAX_TAB_BITS]);
+
+impl Tab {
+    /// Makes the positions relative to a start that is `CHUNK` bytes later.
+    /// What was before the new start now reads as the new start, which is as
+    /// good a candidate as any: a candidate is only ever a guess.
+    pub(crate) fn rebase(&mut self) {
+        for e in self.0.iter_mut() {
+            *e = e.saturating_sub(CHUNK as u16); // 8 or 16 entries per instruction
+        }
+    }
+}
 
 /// Symbol counts of one block.  16 bits each: a block has at most 16384
 /// symbols, and half the size means half the cache lines to touch.
@@ -63,6 +51,27 @@ pub(crate) struct Freq {
 
 /// A match and the literals before it: run | length << 16 | distance << 32.
 pub(crate) type Seq = u64;
+
+/// Where a block's bits go, and what goes around its symbols.
+#[derive(Clone, Copy)]
+pub(crate) struct Place {
+    /// Write the block header.  The output is then at a byte boundary.
+    pub header: bool,
+    /// The header says that this is the last block of the stream.
+    pub last: bool,
+    /// Write the end-of-block symbol.
+    pub eob: bool,
+    /// Without a header: the bits of the first output byte that are in use
+    /// (0 to 7).  The block continues one that was begun before.
+    pub bit: u32,
+}
+
+impl Place {
+    /// A whole block: header, symbols, end of block.
+    pub(crate) const fn whole(last: bool) -> Self {
+        Place { header: true, last, eob: true, bit: 0 }
+    }
+}
 
 #[inline(always)]
 unsafe fn rd64(p: *const u8, i: usize, n: usize) -> u64 {
@@ -98,10 +107,35 @@ fn off_slot(d: u32) -> (usize, u32, u32) {
     (slot as usize, extra, d & ((1 << extra) - 1))
 }
 
-/// Copies the block header and returns where the block's bits continue:
-/// (bytes written, bit buffer, bits in it).
+/// The bits of a match of `len` bytes at distance `dist`, and how many.
+/// One value of at most 47 bits: the length codeword with its extra bits
+/// comes out of one table load, the offset codeword out of another, and the
+/// offset's extra bits are arithmetic.  Also the indexes of the two symbols.
 #[inline(always)]
-unsafe fn start_block(c: &Codes, out: *mut u8, cap: usize, last: bool) -> (usize, u64, u32) {
+unsafe fn match_bits(c: &Codes, len: usize, dist: usize) -> (u64, u32, u32, usize) {
+    debug_assert!((MIN_MATCH..=MAX_MATCH).contains(&len) && (1..=32768).contains(&dist));
+    let (slot, extra_n, extra) = off_slot(dist as u32 - 1);
+    let le = *c.len.as_ptr().add(len);
+    let oe = *c.off.as_ptr().add(slot);
+    debug_assert!(le != 0 && oe != 0, "a length or offset without a codeword");
+    let len_n = (le >> LEN_NBITS_SHIFT) & 31;
+    let off_n = oe >> 16;
+    let bits = (le & LEN_VALUE_MASK) as u64
+        | ((oe & 0xFFFF) as u64) << len_n
+        | (extra as u64) << (len_n + off_n);
+    (bits, len_n + off_n + extra_n, le >> LEN_SLOT_SHIFT, slot)
+}
+
+/// Begins a block at `out` and returns where its bits continue: (bytes
+/// written, bit buffer, bits in it).
+#[inline(always)]
+unsafe fn start_block(c: &Codes, out: *mut u8, cap: usize, place: Place) -> (usize, u64, u32) {
+    if !place.header {
+        // Continue in the middle of a byte.  Above its bits in use it may
+        // hold anything.
+        debug_assert!(place.bit < 8 && cap >= 1);
+        return (0, *out as u64 & ((1 << place.bit) - 1), place.bit);
+    }
     let nb = c.hdr_bits as usize;
     let full = nb >> 3;
     debug_assert!(cap >= HDR_BYTES);
@@ -115,7 +149,7 @@ unsafe fn start_block(c: &Codes, out: *mut u8, cap: usize, last: bool) -> (usize
         ptr::copy_nonoverlapping(c.hdr.as_ptr(), out, full);
     }
     let mut bitbuf = c.hdr[full] as u64 & ((1 << (nb & 7)) - 1);
-    if !last {
+    if !place.last {
         // The stored header says BFINAL = 1.
         if full == 0 {
             bitbuf &= !1;
@@ -126,31 +160,41 @@ unsafe fn start_block(c: &Codes, out: *mut u8, cap: usize, last: bool) -> (usize
     (full, bitbuf, (nb & 7) as u32)
 }
 
-/// One block: `inp` (at most `CHUNK` bytes) either written to `out` with the
-/// codes `c` (`EMIT`), or recorded in `seqs` (not `EMIT`).  With `COUNT` the
-/// symbols are counted in `freq`, which the caller has zeroed.
+/// What a flush leaves of the bit count: the bits of the unfinished byte,
+/// and everything from bit 15 up, where a missing codeword leaves its mark.
+const KEEP: u32 = !0x7FF8;
+
+/// One block: `win[start..]` (at most `CHUNK` bytes) either written to `out`
+/// with the codes `c` (`EMIT`), or recorded in `seqs` (not `EMIT`).  With
+/// `COUNT` the symbols are counted in `freq`, which the caller has zeroed.
 ///
-/// With `EMIT`, returns the number of bits written, or 0 if a byte of `inp`
-/// has no codeword in `c`; `out` must have room for `scratch(inp.len())`
-/// bytes, and `c` must have a codeword for every length and for every offset
-/// slot up to 27.  Without `EMIT`, returns the number of `seqs`.
+/// `win[..start]` is what came before the block in the same payload, where
+/// matches may begin: nothing, or the `CHUNK` bytes before it.  The table
+/// then still holds those positions, unless `clear` says to forget them.
+/// A block that begins at 0 always begins with an empty table.
+///
+/// With `EMIT`, returns the number of bits now in use at `out` (counting
+/// `place.bit`), or 0 if a byte of the block has no codeword in `c`; `out`
+/// must have room for `scratch(block length)` bytes, and `c` must have a
+/// codeword for every length and for every offset slot the window allows.
+/// Without `EMIT`, returns the number of `seqs`.
 ///
 /// How it searches:
 ///
-///   - One earlier position is kept per hash value, in a table that has
-///     about one entry per input byte (`1 << BITS`).  The table is zeroed at
-///     the start of every block.  That costs little at this size and walks
-///     the table front to back, which fetches it much faster than the
-///     scattered first touches of the lookups would when the thread has done
-///     other work since its last payload.
-///   - A position is an offset into the block, so an empty entry reads as
+///   - One earlier position is kept per hash value, in a table with about
+///     one entry per input byte (`1 << BITS`).  The table is zeroed at the
+///     start of every payload.  That costs little at this size and walks the
+///     table front to back, which fetches it much faster than the scattered
+///     first touches of the lookups would when the thread has done other
+///     work since its last payload.
+///   - A position is an offset into the window, so an empty entry reads as
 ///     position 0.  The bytes there are compared like those of any other
 ///     candidate: no entry is tested for being empty, and the only branch in
 ///     a step is the one taken for a match.
 ///   - Each step reads eight bytes at the current position once.  The low
 ///     byte is the literal, the low four bytes are compared with the
-///     candidate's, and bytes 1 to 5 are hashed for the next position, so the
-///     next lookup's address is ready before the next step begins.
+///     candidate's, and bytes 1 to 5 are hashed for the next position, so
+///     that the next lookup's address is ready before the next step begins.
 ///   - Eight bytes are read at the candidate too, although four decide.  When
 ///     they decide for a match, the XOR that was computed for the comparison
 ///     already says how long a match of up to 7 bytes is.
@@ -165,12 +209,10 @@ unsafe fn start_block(c: &Codes, out: *mut u8, cap: usize, last: bool) -> (usize
 ///     literals always fit (see `MAX_LL_BITS`), so the steps come four to a
 ///     flush, and a flush is one unaligned 8-byte store.
 ///   - A byte without a codeword is not tested for where it is written: its
-///     table entry sets bit 15 of the bit count, the count is only ever used
-///     modulo 64, and every flush ORs it into `bad`, which is looked at once,
-///     at the end.
-///   - A match is assembled into one value of at most 47 bits (length
-///     codeword and extra bits from one load, offset codeword from another,
-///     offset extra bits by arithmetic) and OR-ed in once.
+///     table entry adds 2^15 to the bit count.  Shifts use the count modulo
+///     64 and a flush keeps everything from bit 15 up, so the mark is still
+///     there at the end, where it is looked at once.
+///   - A match is assembled into one value (`match_bits`) and OR-ed in once.
 #[inline(never)]
 #[allow(clippy::too_many_arguments, unused_assignments)]
 pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
@@ -178,15 +220,19 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
     tab: &mut Tab,
     freq: &mut Freq,
     seqs: &mut [Seq; MAX_SEQS],
-    inp: &[u8],
+    win: &[u8],
+    start: usize,
+    clear: bool,
     out: *mut u8,
     cap: usize,
-    last: bool,
+    place: Place,
 ) -> usize {
-    let n = inp.len();
-    debug_assert!(n <= CHUNK && BITS <= MAX_TAB_BITS);
-    debug_assert!(!EMIT || cap >= scratch(n));
-    let ip = inp.as_ptr();
+    let n = win.len();
+    debug_assert!(start <= n && n - start <= CHUNK && n <= 2 * CHUNK && BITS <= MAX_TAB_BITS);
+    debug_assert!(start == 0 || (BITS == MAX_TAB_BITS && start == CHUNK));
+    debug_assert!(clear || start != 0);
+    debug_assert!(!EMIT || cap >= scratch(n - start));
+    let ip = win.as_ptr();
     let tp = tab.0.as_mut_ptr();
     let lit_tab = c.lit.as_ptr();
     let f_ll = freq.ll.as_mut_ptr();
@@ -195,11 +241,10 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
 
     let (mut o, mut bitbuf, mut bitcount) = (0usize, 0u64, 0u32);
     if EMIT {
-        (o, bitbuf, bitcount) = start_block(c, out, cap, last);
+        (o, bitbuf, bitcount) = start_block(c, out, cap, place);
     }
-    let mut bad = 0u32; // above 63: a byte had no codeword
     let mut n_seqs = 0usize;
-    let mut run_start = 0usize; // where the literals since the last match begin
+    let mut run_start = start; // where the literals since the last match begin
 
     macro_rules! flush {
         () => {
@@ -207,12 +252,7 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
                 wr64(out, o, cap, bitbuf);
                 o += ((bitcount >> 3) & 7) as usize;
                 bitbuf >>= bitcount & 56;
-                if X_STICKY {
-                    bitcount &= 0xFFFF_8007;
-                } else {
-                    bad |= bitcount;
-                    bitcount &= 7;
-                }
+                bitcount &= KEEP;
             }
         };
     }
@@ -229,17 +269,18 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
             }
         }};
     }
-
     macro_rules! count_match {
         ($len_slot:expr, $off_slot:expr) => {{
-            let (ls, os) = (FIRST_LEN + $len_slot, $off_slot);
+            let (ls, os) = (FIRST_LEN + $len_slot as usize, $off_slot);
             debug_assert!(ls < NUM_LL && os < NUM_OFF);
             *f_ll.add(ls) = (*f_ll.add(ls)).wrapping_add(1);
             *f_off.add(os) = (*f_off.add(os)).wrapping_add(1);
         }};
     }
 
-    ptr::write_bytes(tp, 0, 1 << BITS);
+    if clear {
+        ptr::write_bytes(tp, 0, 1 << BITS);
+    }
 
     // Positions from `stop` on are neither looked up nor entered into the
     // table: eight bytes are read at one that is, and at a candidate.
@@ -247,29 +288,31 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
     // Before this, four positions in a row are before `stop`: one bound
     // check per four steps.
     let stop4 = n.saturating_sub(12);
-    let mut pos = 0usize;
+    let mut pos = start;
 
     'tail: {
-        if stop <= 1 {
+        if start == 0 {
+            if stop <= 1 {
+                break 'tail;
+            }
+            // The first position has nothing before it to match, and it is
+            // in the table already: it is what an empty entry says.
+            literal!(*ip);
+            flush!();
+            pos = 1;
+        } else if pos >= stop {
             break 'tail;
         }
-        // The first position has nothing before it to match, and it is in
-        // the table already: it is what an empty entry says.
-        literal!(*ip);
-        flush!();
-        pos = 1;
-        let mut next_hash = if X_HASH { 0 } else { hash5::<BITS>(rd64(ip, 1, n)) };
+        let mut next_hash = hash5::<BITS>(rd64(ip, pos, n));
 
         macro_rules! step {
             ($found:lifetime) => {{
                 let w = rd64(ip, pos, n);
-                let h = if X_HASH { hash5::<BITS>(w) } else { next_hash };
+                let h = next_hash;
                 debug_assert!(h < 1 << BITS);
                 let cand = *tp.add(h) as usize;
                 *tp.add(h) = pos as u16;
-                if !X_HASH {
-                    next_hash = hash5::<BITS>(w >> 8);
-                }
+                next_hash = hash5::<BITS>(w >> 8);
                 let x = rd64(ip, cand, n) ^ w;
                 if x as u32 == 0 {
                     break $found (cand, w, x);
@@ -279,24 +322,9 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
             }};
         }
 
-        let stop8 = n.saturating_sub(16);
         loop {
             // At most 7 bits are in the bit buffer here.
-            let (mut cand, mut w, mut x) = 'found: {
-                if X_EIGHT {
-                    while pos < stop8 {
-                        step!('found);
-                        step!('found);
-                        step!('found);
-                        step!('found);
-                        flush!();
-                        step!('found);
-                        step!('found);
-                        step!('found);
-                        step!('found);
-                        flush!();
-                    }
-                }
+            let (cand, w, x) = 'found: {
                 while pos < stop4 {
                     step!('found);
                     step!('found);
@@ -311,95 +339,57 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
                 break 'tail;
             };
 
-            loop {
-                // A match at `pos` with the earlier position `cand`.
-                debug_assert!(cand < pos);
-                let len = if x != 0 {
-                    (x.trailing_zeros() >> 3) as usize // 4 to 7
-                } else {
-                    let max = (n - pos).min(MAX_MATCH);
-                    let mut len = 8;
-                    loop {
-                        if len + 8 > max {
-                            while len < max && *ip.add(pos + len) == *ip.add(cand + len) {
-                                len += 1;
-                            }
-                            break len;
+            // A match at `pos` with the earlier position `cand`.
+            debug_assert!(cand < pos);
+            let len = if x != 0 {
+                (x.trailing_zeros() >> 3) as usize // 4 to 7
+            } else {
+                let max = (n - pos).min(MAX_MATCH);
+                let mut len = 8;
+                loop {
+                    if len + 8 > max {
+                        while len < max && *ip.add(pos + len) == *ip.add(cand + len) {
+                            len += 1;
                         }
-                        let d = rd64(ip, pos + len, n) ^ rd64(ip, cand + len, n);
-                        if d != 0 {
-                            break len + (d.trailing_zeros() >> 3) as usize;
-                        }
-                        len += 8;
+                        break len;
                     }
-                };
-                let dist = pos - cand;
-                let (slot, extra_n, extra) = off_slot(dist as u32 - 1);
-                if EMIT {
-                    let le = *c.len.as_ptr().add(len);
-                    let oe = *c.off.as_ptr().add(slot);
-                    debug_assert!(le != 0 && oe != 0);
-                    let len_n = (le >> LEN_NBITS_SHIFT) & 31;
-                    let off_n = oe >> 16;
-                    let bits = (le & LEN_VALUE_MASK) as u64
-                        | ((oe & 0xFFFF) as u64) << len_n
-                        | (extra as u64) << (len_n + off_n);
-                    let total = len_n + off_n + extra_n;
-                    // The literals of this group of steps are still in the
-                    // buffer: up to 49 bits.
-                    if !X_ONE_FLUSH || (bitcount & 63) + total > 63 {
-                        flush!();
+                    let d = rd64(ip, pos + len, n) ^ rd64(ip, cand + len, n);
+                    if d != 0 {
+                        break len + (d.trailing_zeros() >> 3) as usize;
                     }
-                    bitbuf |= bits.wrapping_shl(bitcount);
-                    bitcount += total;
-                    flush!();
-                    if COUNT {
-                        count_match!((le >> LEN_SLOT_SHIFT) as usize, slot);
-                    }
-                } else {
-                    count_match!(LEN_SLOT[len] as usize, slot);
-                    debug_assert!(n_seqs < MAX_SEQS);
-                    *sp.add(n_seqs) =
-                        (pos - run_start) as u64 | (len as u64) << 16 | (dist as u64) << 32;
-                    n_seqs += 1;
-                    run_start = pos + len;
+                    len += 8;
                 }
-
-                // pos + 1 and pos + 2 are before `stop` + 1, so eight bytes
-                // can be read there when they come up as candidates.
-                let h1 = if X_HASH { hash5::<BITS>(w >> 8) } else { next_hash };
-                *tp.add(h1) = (pos + 1) as u16;
-                *tp.add(hash5::<BITS>(w >> 16)) = (pos + 2) as u16;
-                pos += len;
-                if pos >= stop {
-                    break 'tail;
+            };
+            let dist = pos - cand;
+            if EMIT {
+                let (bits, nbits, len_slot, off_slot) = match_bits(c, len, dist);
+                flush!(); // the literals of this group of steps
+                bitbuf |= bits.wrapping_shl(bitcount);
+                bitcount += nbits;
+                flush!();
+                if COUNT {
+                    count_match!(len_slot, off_slot);
                 }
-                let v = rd64(ip, pos - 1, n);
-                *tp.add(hash5::<BITS>(v)) = (pos - 1) as u16;
-                if !X_HASH {
-                    next_hash = hash5::<BITS>(v >> 8);
-                }
-                if !X_CHAIN {
-                    break;
-                }
-                // Matches often follow one another directly.  Looking here
-                // gives that case a branch of its own.
-                let w2 = rd64(ip, pos, n);
-                let h = if X_HASH { hash5::<BITS>(w2) } else { next_hash };
-                let c2 = *tp.add(h) as usize;
-                *tp.add(h) = pos as u16;
-                if !X_HASH {
-                    next_hash = hash5::<BITS>(w2 >> 8);
-                }
-                let x2 = rd64(ip, c2, n) ^ w2;
-                if x2 as u32 != 0 {
-                    literal!(w2 as u8);
-                    pos += 1;
-                    flush!();
-                    break;
-                }
-                (cand, w, x) = (c2, w2, x2);
+            } else {
+                count_match!(LEN_SLOT[len], off_slot(dist as u32 - 1).0);
+                debug_assert!(n_seqs < MAX_SEQS);
+                *sp.add(n_seqs) =
+                    (pos - run_start) as u64 | (len as u64) << 16 | (dist as u64) << 32;
+                n_seqs += 1;
+                run_start = pos + len;
             }
+
+            // pos + 1 and pos + 2 are before `stop` + 1, so eight bytes can
+            // be read there when they come up as candidates.
+            *tp.add(next_hash) = (pos + 1) as u16;
+            *tp.add(hash5::<BITS>(w >> 16)) = (pos + 2) as u16;
+            pos += len;
+            if pos >= stop {
+                break 'tail;
+            }
+            let v = rd64(ip, pos - 1, n);
+            *tp.add(hash5::<BITS>(v)) = (pos - 1) as u16;
+            next_hash = hash5::<BITS>(v >> 8);
         }
     }
 
@@ -421,11 +411,13 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
         return n_seqs;
     }
     flush!();
-    bitbuf |= ((c.eob & 0xFFFF) as u64).wrapping_shl(bitcount);
-    bitcount += c.eob >> 16;
-    flush!();
+    if place.eob {
+        bitbuf |= ((c.eob & 0xFFFF) as u64).wrapping_shl(bitcount);
+        bitcount += c.eob >> 16;
+        flush!();
+    }
     // The store of the last flush put the bits that are left at out[o].
-    if bad > 63 || bitcount > 63 {
+    if bitcount > 7 {
         return 0;
     }
     8 * o + bitcount as usize
@@ -433,32 +425,31 @@ pub(crate) unsafe fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
 
 /// Writes the block that `scan` recorded in `seqs`, with the codes `c`, which
 /// must have a codeword for every symbol of the block.  Returns the number
-/// of bits written.  `out` must have room for `scratch(inp.len())` bytes.
+/// of bits written.  `out` must have room for `scratch(block length)` bytes.
 #[inline(never)]
 #[allow(unused_assignments)]
 pub(crate) unsafe fn emit_seqs(
     c: &Codes,
-    inp: &[u8],
+    win: &[u8],
+    start: usize,
     seqs: &[Seq],
     out: *mut u8,
     cap: usize,
-    last: bool,
+    place: Place,
 ) -> usize {
-    let n = inp.len();
-    debug_assert!(cap >= scratch(n));
-    let ip = inp.as_ptr();
+    let n = win.len();
+    debug_assert!(cap >= scratch(n - start) && c.eob >> 16 != 0);
+    let ip = win.as_ptr();
     let lit_tab = c.lit.as_ptr();
-    let (mut o, mut bitbuf, mut bitcount) = start_block(c, out, cap, last);
-    let mut bad = 0u32;
-    let mut pos = 0usize;
+    let (mut o, mut bitbuf, mut bitcount) = start_block(c, out, cap, place);
+    let mut pos = start;
 
     macro_rules! flush {
         () => {
             wr64(out, o, cap, bitbuf);
-            bad |= bitcount;
             o += ((bitcount >> 3) & 7) as usize;
             bitbuf >>= bitcount & 56;
-            bitcount &= 7;
+            bitcount &= KEEP;
         };
     }
     macro_rules! literal {
@@ -492,29 +483,22 @@ pub(crate) unsafe fn emit_seqs(
     for &s in seqs {
         let run = (s & 0xFFFF) as usize;
         let len = ((s >> 16) & 0xFFFF) as usize;
-        let dist = (s >> 32) as u32;
+        let dist = (s >> 32) as usize;
         literals!(pos + run);
-        let (slot, extra_n, extra) = off_slot(dist - 1);
-        let le = *c.len.as_ptr().add(len);
-        let oe = *c.off.as_ptr().add(slot);
-        debug_assert!(le != 0 && oe != 0);
-        let len_n = (le >> LEN_NBITS_SHIFT) & 31;
-        let off_n = oe >> 16;
-        let bits = (le & LEN_VALUE_MASK) as u64
-            | ((oe & 0xFFFF) as u64) << len_n
-            | (extra as u64) << (len_n + off_n);
-        bitbuf |= bits << bitcount;
-        bitcount += len_n + off_n + extra_n;
+        let (bits, nbits, _, _) = match_bits(c, len, dist);
+        bitbuf |= bits.wrapping_shl(bitcount);
+        bitcount += nbits;
         flush!();
         pos += len;
     }
     literals!(n);
-    bitbuf |= ((c.eob & 0xFFFF) as u64) << bitcount;
-    bitcount += c.eob >> 16;
-    flush!();
-    debug_assert!(bad <= 63 && c.eob >> 16 != 0);
-    let _ = bad;
-    8 * o + bitcount as usize
+    if place.eob {
+        bitbuf |= ((c.eob & 0xFFFF) as u64).wrapping_shl(bitcount);
+        bitcount += c.eob >> 16;
+        flush!();
+    }
+    debug_assert!(bitcount <= 7, "a byte without a codeword");
+    8 * o + (bitcount & 7) as usize
 }
 
 /// A stored block: five bytes and the input as it is.  `out` is at a byte
@@ -528,6 +512,34 @@ pub(crate) unsafe fn stored(inp: &[u8], out: *mut u8, cap: usize, last: bool) ->
     ptr::copy_nonoverlapping((!(n as u16)).to_le_bytes().as_ptr(), out.add(3), 2);
     ptr::copy_nonoverlapping(inp.as_ptr(), out.add(5), n);
     8 * (n + 5)
+}
+
+/// Appends `n` bits (at most 24) at bit `bitpos` of `out`, whose byte there
+/// may hold anything above the bits in use.  Returns the new bit position.
+/// For the few bits between blocks; a block's own bits go through the
+/// encoder's buffer.
+pub(crate) unsafe fn append_bits(out: *mut u8, cap: usize, bitpos: usize, bits: u32, n: u32) -> usize {
+    debug_assert!(n <= 24 && bits >> n == 0);
+    let (o, used) = (bitpos >> 3, (bitpos & 7) as u32);
+    debug_assert!(o + 4 <= cap);
+    let _ = cap;
+    let cur = if used == 0 { 0 } else { *out.add(o) as u32 & ((1 << used) - 1) };
+    ptr::copy_nonoverlapping((cur | bits << used).to_le_bytes().as_ptr(), out.add(o), 4);
+    bitpos + n as usize
+}
+
+/// Brings `bitpos` to a byte boundary without ending the stream: an empty
+/// stored block is three zero bits, zero bits up to the boundary, and
+/// 00 00 FF FF.  A block header is copied in whole bytes, so a block that
+/// begins with one has to begin on a boundary.
+pub(crate) unsafe fn align(out: *mut u8, cap: usize, bitpos: usize) -> usize {
+    if bitpos & 7 == 0 {
+        return bitpos;
+    }
+    let o = (append_bits(out, cap, bitpos, 0, 3) + 7) >> 3;
+    debug_assert!(o + 4 <= cap);
+    ptr::copy_nonoverlapping([0u8, 0, 0xff, 0xff].as_ptr(), out.add(o), 4);
+    8 * (o + 4)
 }
 
 #[cfg(test)]
@@ -549,50 +561,24 @@ mod tests {
             assert_eq!(extra, dist - base[slot]);
         }
     }
-}
 
-#[cfg(test)]
-mod probe {
-    use super::*;
-
-    /// `GZHOT_PROBE=records.bin cargo test --release probe -- --nocapture`:
-    /// what the search finds in a file of `[u32 len][bytes]` records.
     #[test]
-    fn probe() {
-        let Ok(path) = std::env::var("GZHOT_PROBE") else { return };
-        let data = std::fs::read(path).unwrap();
-        let mut tab = Box::new(Tab([0; 1 << MAX_TAB_BITS]));
-        let mut seqs = Box::new([0u64; MAX_SEQS]);
-        let (mut off, mut recs, mut bytes, mut matches, mut matched) = (0, 0, 0, 0, 0);
-        let mut by_len = [0usize; 12];
-        let mut runs = [0usize; 12];
-        while off + 4 <= data.len() {
-            let n = u32::from_le_bytes(data[off..off + 4].try_into().unwrap()) as usize;
-            let rec = &data[off + 4..off + 4 + n.min(CHUNK)];
-            off += 4 + n;
-            let mut freq = Freq { ll: [0; NUM_LL], off: [0; NUM_OFF] };
-            let k = unsafe {
-                match rec.len() {
-                    0..=1024 => scan::<10, false, true>(&FIXED, &mut tab, &mut freq, &mut seqs, rec, core::ptr::null_mut(), 0, true),
-                    1025..=2048 => scan::<11, false, true>(&FIXED, &mut tab, &mut freq, &mut seqs, rec, core::ptr::null_mut(), 0, true),
-                    2049..=4096 => scan::<12, false, true>(&FIXED, &mut tab, &mut freq, &mut seqs, rec, core::ptr::null_mut(), 0, true),
-                    4097..=8192 => scan::<13, false, true>(&FIXED, &mut tab, &mut freq, &mut seqs, rec, core::ptr::null_mut(), 0, true),
-                    _ => scan::<14, false, true>(&FIXED, &mut tab, &mut freq, &mut seqs, rec, core::ptr::null_mut(), 0, true),
-                }
-            };
-            recs += 1;
-            bytes += rec.len();
-            matches += k;
-            for &s in &seqs[..k] {
-                let (run, len) = ((s & 0xFFFF) as usize, ((s >> 16) & 0xFFFF) as usize);
-                matched += len;
-                by_len[len.min(11)] += 1;
-                runs[run.min(11)] += 1;
-            }
+    fn bits_between_blocks() {
+        let mut buf = [0xffu8; 16];
+        unsafe {
+            let p = append_bits(buf.as_mut_ptr(), 16, 0, 0b101, 3);
+            assert_eq!(p, 3);
+            let p = append_bits(buf.as_mut_ptr(), 16, p, 0x3ff, 10);
+            assert_eq!((p, buf[0], buf[1] & 0x1f), (13, 0xfd, 0x1f));
+            buf[1] |= 0xe0; // garbage above the bits in use
+            let p = align(buf.as_mut_ptr(), 16, p);
+            assert_eq!((p, &buf[1..6]), (48, &[0x1f, 0, 0, 0xff, 0xff][..]));
+            assert_eq!(align(buf.as_mut_ptr(), 16, p), p);
+            // 6 bits in use: the three header bits spill into the next byte
+            buf[6] = 0xff;
+            buf[7] = 0xff;
+            let p = align(buf.as_mut_ptr(), 16, 48 + 6);
+            assert_eq!((p, &buf[6..12]), (96, &[0x3f, 0, 0, 0, 0xff, 0xff][..]));
         }
-        println!("{recs} records, {} B each: {} matches each, {:.1} bytes per match, {} literals each",
-            bytes / recs, matches / recs, matched as f64 / matches as f64, (bytes - matched) / recs);
-        println!("match lengths 4..=10, 11+: {:?}", by_len[4..].iter().map(|&c| c * 100 / matches).collect::<Vec<_>>());
-        println!("literal runs 0..=10, 11+ before a match: {:?}", runs.iter().map(|&c| c * 100 / matches).collect::<Vec<_>>());
     }
 }

@@ -6,7 +6,7 @@
 //! With a third argument every output is also appended to that file, as
 //! [u32 input length][u32 CRC-32 of the input][u32 output length][output],
 //! for checking with other decoders.
-#[path = "../tests/gen.rs"]
+#[path = "../tests/gen/mod.rs"]
 mod gen;
 
 use flate2::read::MultiGzDecoder;
@@ -62,7 +62,7 @@ fn main() {
         back.clear();
         MultiGzDecoder::new(out).read_to_end(&mut back).unwrap_or_else(|e| panic!("payload {i}: {e}"));
         assert!(back == data, "payload {i} ({} bytes) did not come back", data.len());
-        assert!(out.len() <= 18 + data.len() + 11 * (data.len() / 16384 + 1), "payload {i} grew");
+        assert!(out.len() <= 18 + data.len() + 24 * (data.len() / 16384 + 1), "payload {i} grew");
         bytes_in += data.len() as u64;
         bytes_out += out.len() as u64;
         if let Some(f) = dump.as_mut() {

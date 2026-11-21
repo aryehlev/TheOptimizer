@@ -6,9 +6,9 @@
 #   OUT=<dir>       where the listing of the encoder's machine code goes
 #   REAL_SRC=<dir>  where the repositories with sample requests are checked out
 set -e
-TESTS=0     # tests, stress, other decoders, Miri
-MAIN=0      # the tables against the C encoders
-EXPS="0 1 2 4 8 16 31"   # variants of the encoder to compare, or nothing
+TESTS=1     # tests, stress, other decoders, Miri
+MAIN=1      # the tables against the C encoders
+EXPS=""     # variants of the encoder to compare (GZHOT_EXP values), or nothing
 cd "$(dirname "$0")"
 HERE=$(pwd)
 ROOT=$(cd ../.. && pwd)
@@ -38,6 +38,9 @@ if rustup toolchain install nightly --profile minimal --component miri > $W/miri
 else
   echo "Miri: could not be installed here"
 fi
+if rustup toolchain install 1.83.0 --profile minimal > $W/msrv_install.txt 2>&1; then
+  echo "the library with Rust 1.83: $(cargo +1.83.0 build --lib --target-dir $W/msrv 2>&1 | tail -1)"
+fi
 fi
 
 # Payloads: the synthetic bid requests, and the published sample requests.
@@ -61,6 +64,25 @@ fetch InteractiveAdvertisingBureau_openrtb2.x InteractiveAdvertisingBureau/openr
 fetch InteractiveAdvertisingBureau_openrtb InteractiveAdvertisingBureau/openrtb f3fb64bb9e5fb0ae65bbf71feff6b7596e1e7d1a
 fetch openrtb_openrtb2x openrtb/openrtb2x 57a9ee1c26d959160b1d16b220a516304ca660f6
 python3 -I "$ROOT/exp/real/make_sets.py" $W > /dev/null
+# Larger and smaller payloads of the same kind: six requests in an array
+# (22 KB), and the last 500 bytes of each request.
+python3 - $W <<'PY'
+import struct, sys
+w = sys.argv[1]
+d = open(w + "/rtb_single.bin", "rb").read()
+recs, off = [], 0
+while off + 4 <= len(d):
+    n = struct.unpack_from("<I", d, off)[0]
+    recs.append(d[off + 4:off + 4 + n])
+    off += 4 + n
+with open(w + "/rtb_x6.bin", "wb") as f:
+    for i in range(0, len(recs) - 5, 6):
+        b = b"[" + b",".join(recs[i:i + 6]) + b"]"
+        f.write(struct.pack("<I", len(b)) + b)
+with open(w + "/rtb_cut500.bin", "wb") as f:
+    for r in recs:
+        f.write(struct.pack("<I", 500) + r[-500:])
+PY
 
 CPU=$(( $(nproc) - 1 ))
 if [ $MAIN = 1 ]; then
@@ -71,7 +93,7 @@ echo "one thread, the best of 40 passes:"
 cd $HERE/rsbench
 cargo build --release > /dev/null 2>&1
 CPU=$(( $(nproc) - 1 ))
-taskset -c $CPU ./target/release/rsbench 40 $W/rtb_single.bin $W/capture.bin $W/mixed_exchange.bin
+taskset -c $CPU ./target/release/rsbench 40 $W/rtb_single.bin $W/capture.bin $W/mixed_exchange.bin $W/rtb_x6.bin $W/rtb_cut500.bin
 
 # In tokio, as bench/arm.sh of gzlocal does it: 2 workers, the lowest median
 # of 5 runs, at three amounts of other work per request.
@@ -110,6 +132,9 @@ tokio $W/rtb_single.bin 0
 echo
 echo "in tokio, 2 workers, the capture of 1,000 requests of one exchange (1.8 KB):"
 tokio $W/capture.jsonl lines
+echo
+echo "in tokio, 2 workers, 22 KB payloads (six synthetic requests in an array):"
+tokio $W/rtb_x6.bin 0
 fi
 
 # Variants of the encoder, chosen when compiling (GZHOT_EXP, see gzhot/src/enc.rs).
