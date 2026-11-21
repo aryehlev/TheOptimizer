@@ -10,6 +10,13 @@ readme = "README.md"
 keywords = ["gzip", "deflate", "compression"]
 categories = ["compression"]
 
+[features]
+# On arm64, fetch the encoder's machine code ahead of its use.  Worth a few
+# percent when the thread did other work since its last payload; it is the
+# one thing here that takes an `unsafe` block.  Without it the crate forbids
+# unsafe code.
+prefetch = []
+
 [dependencies]
 crc32fast = "1.5"
 

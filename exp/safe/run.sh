@@ -7,7 +7,10 @@
 #   fastgzip-u2/       the same with the safe version's way of ending a long
 #                      match, to tell that change from the cost of the checks
 #   fastgzip-safe/     #![forbid(unsafe_code)]: input and output in arrays of
-#                      a fixed length, so that no access in a loop is checked
+#                      a fixed length, so that no access in a loop is checked.
+#                      Its feature `prefetch` adds the one thing that takes an
+#                      unsafe block: asking for the encoder's machine code
+#                      ahead of its use, on arm64.
 #   fastgzip-safe-s1/  the first attempt: output through a slice, one check
 #                      per 8-byte store
 #
@@ -33,7 +36,9 @@ echo "$(rustc --version)"
 cd $HERE/fastgzip-safe
 count() { grep 'test result' | awk '{p+=$4; f+=$6} END {print p " passed, " f " failed"}'; }
 echo
-echo "unsafe in fastgzip-safe: $(grep -rn 'unsafe' src | grep -vc 'forbid(unsafe_code)') places; #![forbid(unsafe_code)]: $(grep -c '^#!\[forbid(unsafe_code)\]' src/lib.rs)"
+echo "fastgzip-safe builds with unsafe code forbidden: $(cargo build --release 2>&1 | tail -1 | sed 's/^ *//')"
+echo "  $(grep -n 'forbid(unsafe_code)' src/lib.rs)"
+echo "  with the feature prefetch: $(grep -c 'unsafe {' src/lib.rs) unsafe block, $(grep -c 'asm!' src/lib.rs) instruction in it"
 echo "tests, debug build:    $(cargo test 2>&1 | count)"
 echo "tests, checked build:  $(cargo test --profile checked 2>&1 | count)"
 cargo build --profile checked --example stress > /dev/null 2>&1
@@ -110,7 +115,12 @@ cd $HERE/rsbench
 cargo build --release > /dev/null 2>&1
 echo "checks left in the one-pass encoder (4 to 8 KiB), per version:"
 for c in fastgzip_safe fastgzip_safe_s1; do
-  python3 -I $HERE/binchecks.py "$(ls -t target/release/deps/lib$c-*.rlib | head -1)" "scan::<13, true, false>" | sed 's/^/  /'
+  lib=$(find target -name "lib$c-*.rlib" | head -1)
+  if [ -n "$lib" ]; then
+    python3 -I $HERE/binchecks.py "$lib" "scan::<13, true, false>" | sed 's/^/  /'
+  else
+    echo "  $c: no .rlib found under target/"
+  fi
 done
 for c in fastgzip fastgzip_safe; do
   objdump -d --no-show-raw-insn -C target/release/rsbench | awk -v f="$c::enc::scan::<13, true, false>" '$0 ~ "^[0-9a-f]+ <" f ">:" {p=1} p&&/^$/{exit} p' > $OUT/${c}_scan_13_emit.s
@@ -125,17 +135,18 @@ SETS="$W/rtb_single.bin $W/rtb_5k.bin $W/capture.bin $W/mixed_exchange.bin $W/rt
 for pass in 1 2; do
   echo
   echo "one thread, the best of $ROUNDS passes (run $pass):"
-  WHICH=lrusa taskset -c $CPU ./target/release/rsbench $ROUNDS $SETS
+  WHICH=lrs taskset -c $CPU ./target/release/rsbench $ROUNDS $SETS
 done
 
 # In tokio: 2 workers, the lowest median of $RUNS runs, at three amounts of other
 # work per request.  The original is there twice, as a measure of the noise.
-for c in fastgzip fastgzip-safe fastgzip-safe-s1; do
+for c in fastgzip fastgzip-safe; do
   (cd $HERE/$c && cargo build --release --examples > /dev/null 2>&1)
 done
+(cd $HERE/fastgzip-safe && cargo build --release --examples --features prefetch --target-dir target-prefetch > /dev/null 2>&1)
 REF=$HERE/fastgzip/target/release/examples/tokio_bench
 SAFE=$HERE/fastgzip-safe/target/release/examples/tokio_bench
-S1=$HERE/fastgzip-safe-s1/target/release/examples/tokio_bench
+PRE=$HERE/fastgzip-safe/target-prefetch/release/examples/tokio_bench
 row() {
   name=$1; shift
   echo "$name $("$@" | sed -n 's/.*median \([0-9.]*\) us.*out \([0-9.]*\)% of in.*/\1 \2/p')" >> $W/runs
@@ -148,13 +159,13 @@ tokio() { # file, cut
     for run in $(seq $RUNS); do
       row fastgzip $REF $1 $2 $n 2 $other local
       row no_unsafe $SAFE $1 $2 $n 2 $other local
-      row no_unsafe_first_try $S1 $1 $2 $n 2 $other local
+      row no_unsafe_but_prefetch $PRE $1 $2 $n 2 $other local
       row fastgzip_again $REF $1 $2 $n 2 $other local
     done
     echo "  other work per request: walks $((other / 1024)) KiB"
     base=$(grep "^fastgzip " $W/runs | sort -k2 -n | head -1 | awk '{print $2}')
-    for v in fastgzip fastgzip_again no_unsafe no_unsafe_first_try; do
-      grep "^$v " $W/runs | sort -k2 -n | head -1 | awk -v b=$base '{printf "    %-20s %6.2f us  %5.1f%%   output %s%% of input\n", $1, $2, $2*100/b, $3}'
+    for v in fastgzip fastgzip_again no_unsafe no_unsafe_but_prefetch; do
+      grep "^$v " $W/runs | sort -k2 -n | head -1 | awk -v b=$base '{printf "    %-23s %6.2f us  %5.1f%%   output %s%% of input\n", $1, $2, $2*100/b, $3}'
     done
   done
 }

@@ -158,8 +158,9 @@ fn off_slot(d: u32) -> (usize, u32, u32) {
 fn match_bits(c: &Codes, len: usize, dist: usize) -> (u64, u32, u32, usize) {
     debug_assert!((MIN_MATCH..=MAX_MATCH).contains(&len) && (1..=32768).contains(&dist));
     let (slot, extra_n, extra) = off_slot(dist as u32 - 1);
-    let le = c.len[len];
-    // A slot is below 30; the mask is how the compiler knows.
+    // A length is at most 258 and a slot is below 30; the masks are how the
+    // compiler knows.  Where it knows already, it drops them.
+    let le = c.len[len & (LEN_TAB - 1)];
     let oe = c.off[slot & (NUM_OFF - 1)];
     debug_assert!(le != 0 && oe != 0, "a length or offset without a codeword");
     let len_n = (le >> LEN_NBITS_SHIFT) & 31;
@@ -394,7 +395,8 @@ pub(crate) fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
                 // 2^15, `at` is a multiple of 8 below 251); they are there
                 // for the compiler, which then needs no check on a read or
                 // on the length that comes out.
-                let max = (end - pos).min(MAX_MATCH); // 10 at least
+                // `stop + 9` is `end`: one value less to keep at hand.
+                let max = (stop + 9 - pos).min(MAX_MATCH); // 10 at least
                 'len: {
                     let mut at = 8;
                     while at + 8 <= max {
@@ -412,7 +414,7 @@ pub(crate) fn scan<const BITS: u32, const EMIT: bool, const COUNT: bool>(
                         let last = max.saturating_sub(8);
                         let d = rd64_off(buf, pos as u16, last as u8) ^ rd64_off(buf, cand as u16, last as u8);
                         if d != 0 {
-                            break 'len last + (d.trailing_zeros() >> 3) as usize;
+                            break 'len (last + (d.trailing_zeros() >> 3) as usize) & (LEN_TAB - 1);
                         }
                     }
                     max

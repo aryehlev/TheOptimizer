@@ -28,7 +28,10 @@
 //! kind of payload: codes made for one kind fit another poorly, and a payload
 //! they do not fit is written the slow way.
 
-#![forbid(unsafe_code)]
+// No unsafe code, and no way to allow any.  With the feature `prefetch` there
+// is one unsafe block, around a hint instruction: see `fetch_encoder`.
+#![cfg_attr(not(feature = "prefetch"), forbid(unsafe_code))]
+#![cfg_attr(feature = "prefetch", deny(unsafe_code))]
 #![warn(missing_docs)]
 
 mod codes;
@@ -36,7 +39,7 @@ mod enc;
 mod huff;
 mod tables;
 
-use codes::{Codes, FIXED, HDR_BYTES};
+use codes::{Codes, FIXED, HDR_BYTES, LEN_TAB};
 use enc::{
     align, append_bits, emit_seqs, rebase, scan, stored, Freq, Input, Output, Place, Seq, Tab,
     CHUNK, MAX_SEQS,
@@ -129,7 +132,7 @@ fn zeroed<T: Clone + Default, const N: usize>() -> Box<[T; N]> {
 
 const NO_CODES: Codes = Codes {
     lit: [0; 256],
-    len: [0; MAX_MATCH + 1],
+    len: [0; LEN_TAB],
     eob: 0,
     off: [0; NUM_OFF],
     hdr_bits: 0,
@@ -189,6 +192,9 @@ impl Gzip {
         let n = payload.len();
         let st = &mut *self.st;
         if n <= CHUNK {
+            if n >= MIN_ONE_PASS && st.valid && st.direct_ok {
+                fetch_encoder(n);
+            }
             // The checksum first.  It reads the payload front to back, which
             // also brings it into the cache for the copy that follows.
             let crc = crc32fast::hash(payload);
@@ -235,6 +241,48 @@ macro_rules! scan_sized {
 }
 
 const NO_COUNTS: Freq = Freq { ll: [0; NUM_LL], off: [0; NUM_OFF] };
+
+/// Asks for the machine code of the one-pass encoder that a payload of `n`
+/// bytes will run, so that it is on its way while the checksum is computed.
+///
+/// A thread that did megabytes of other work since its last payload no longer
+/// has the encoder in its instruction cache, and instructions that are missing
+/// stall the processor one cache line after the other; this asks for all of
+/// them at once.  Only on arm64, where it was measured to help, and only with
+/// the feature `prefetch`: the language has no safe way to say it, so it is
+/// the one place that needs `unsafe`.
+#[cfg(all(feature = "prefetch", target_arch = "aarch64", not(miri)))]
+#[allow(unsafe_code)]
+#[inline(always)]
+fn fetch_encoder(n: usize) {
+    type Encoder = fn(
+        &Codes, &mut Tab, &mut Freq, &mut [Seq; MAX_SEQS], &Input, u16, u16, bool, &mut Output, usize, Place,
+    ) -> usize;
+    // As `scan_sized` chooses.
+    let code = match n {
+        0..=1024 => scan::<10, true, false> as Encoder,
+        1025..=4096 => scan::<12, true, false> as Encoder,
+        4097..=8192 => scan::<13, true, false> as Encoder,
+        _ => scan::<14, true, false> as Encoder,
+    } as usize;
+    let mut line = code & !63;
+    while line < code + 2048 {
+        // SAFETY: a prefetch is a hint.  It reads nothing and does not
+        // fault, whatever the address.
+        unsafe {
+            core::arch::asm!(
+                "prfm pldl2keep, [{line}]",
+                line = in(reg) line,
+                options(nostack, readonly, preserves_flags)
+            );
+        }
+        line += 64;
+    }
+}
+
+#[cfg(not(all(feature = "prefetch", target_arch = "aarch64", not(miri))))]
+#[inline(always)]
+fn fetch_encoder(_n: usize) {}
 
 impl State {
     /// A payload of at most `CHUNK` bytes, which is at the front of `inp`, as

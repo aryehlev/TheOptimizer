@@ -13,6 +13,12 @@ pub(crate) const HDR_BYTES: usize = 576;
 /// notices, without a test per literal.
 pub(crate) const LIT_NONE: u32 = 0x8000_0000;
 
+/// The length of `Codes::len`: the first power of two above `MAX_MATCH`.  The
+/// compiler does not always see that a match is no longer than `MAX_MATCH`,
+/// but it does see that it is below this, and then the table is read without
+/// a check.
+pub(crate) const LEN_TAB: usize = 512;
+
 /// Fields of a `Codes::len` entry.
 pub(crate) const LEN_VALUE_MASK: u32 = (1 << 19) - 1;
 pub(crate) const LEN_NBITS_SHIFT: u32 = 19;
@@ -28,8 +34,9 @@ pub(crate) struct Codes {
     pub lit: [u32; 256],
     /// Match length -> the codeword of its length symbol with the extra bits
     /// already appended (at most 14 + 5 bits) | their number << 19 | the index
-    /// of the length symbol << 24.  0 if the symbol has no codeword.
-    pub len: [u32; MAX_MATCH + 1],
+    /// of the length symbol << 24.  0 if the symbol has no codeword, and
+    /// beyond `MAX_MATCH`.
+    pub len: [u32; LEN_TAB],
     /// End of block: codeword | number of bits << 16.
     pub eob: u32,
     /// Offset slot -> codeword | number of bits << 16.  0 without a codeword.
@@ -207,7 +214,7 @@ impl HeaderBits<'_> {
 pub(crate) static FIXED: Codes = {
     let mut c = Codes {
         lit: [0; 256],
-        len: [0; MAX_MATCH + 1],
+        len: [0; LEN_TAB],
         eob: 0,
         off: [0; NUM_OFF],
         hdr_bits: 3,
