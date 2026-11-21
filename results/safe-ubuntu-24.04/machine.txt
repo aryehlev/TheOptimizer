@@ -1,5 +1,5 @@
 x86_64
-Model name:                              AMD EPYC 9V45 96-Core Processor
+Model name:                              Intel(R) Xeon(R) 6975P-C
 L1d cache:                               96 KiB (2 instances)
-L2 cache:                                2 MiB (2 instances)
-L3 cache:                                32 MiB (1 instance)
+L2 cache:                                4 MiB (2 instances)
+L3 cache:                                480 MiB (1 instance)
