@@ -1,0 +1,75 @@
+machine: x86_64, Intel(R) Xeon(R) 6975P-C
+sample requests found: 4002 distinct; of 1 KiB or more: 192 (of 2 KiB or more: 10, of 3 KiB or more: 1)
+  of those of 1 KiB or more, not Prebid Server test fixtures: 70
+capture of one exchange's requests: 1000, 1771 B on average
+
+each request with codes made from that same request (what the search alone costs):
+  synthetic bid requests (bench/rtbgen.py)        400 requests,  3744 B on average: stock 58.1% of input; codes +0.64%, fast +1.87%
+  all sample requests of 1 KiB or more            192 requests,  1377 B on average: stock 52.2% of input; codes +2.12%, fast +4.00%
+    exchange samples in RTB4FREE                   46 requests,  1442 B on average: stock 60.0% of input; codes +1.70%, fast +3.25%
+    Prebid Server test fixtures                   122 requests,  1334 B on average: stock 48.4% of input; codes +2.44%, fast +4.56%
+    spec examples, library test data               24 requests,  1474 B on average: stock 55.0% of input; codes +1.65%, fast +3.24%
+    of 2 KiB or more                               10 requests,  2514 B on average: stock 44.6% of input; codes +1.61%, fast +3.23%
+
+the capture: 1,000 requests of one kind, one session
+  nothing else between the calls
+    stock     9.70 us  100.0% of stock   output +0.00%
+    codes     3.67 us   37.8% of stock   output +5.07%
+    fast      2.41 us   24.8% of stock   output +3.17%
+  64 MiB of other memory walked before each call
+    stock    14.65 us  100.0% of stock   output +0.00%
+    codes     5.96 us   40.7% of stock   output +5.03%
+    fast      3.70 us   25.3% of stock   output +3.17%
+
+exchange samples, spec examples and library test data, shuffled: many kinds of request on one session
+  nothing else between the calls
+    stock    10.16 us  100.0% of stock   output +0.00%
+    codes     5.92 us   58.3% of stock   output +3.37%
+    fast      2.93 us   28.8% of stock   output +4.78%
+  64 MiB of other memory walked before each call
+    stock    14.28 us  100.0% of stock   output +0.00%
+    codes     7.63 us   53.4% of stock   output +3.37%
+    fast      3.52 us   24.6% of stock   output +4.78%
+
+the same with the Prebid Server test fixtures
+  nothing else between the calls
+    stock    10.30 us  100.0% of stock   output +0.00%
+    codes     6.18 us   60.0% of stock   output +5.56%
+    fast      3.41 us   33.1% of stock   output +7.71%
+  64 MiB of other memory walked before each call
+    stock    15.06 us  100.0% of stock   output +0.00%
+    codes     7.67 us   50.9% of stock   output +5.56%
+    fast      3.67 us   24.4% of stock   output +7.71%
+
+for comparison, the synthetic bid requests
+  nothing else between the calls
+    stock    18.51 us  100.0% of stock   output +0.00%
+    codes    13.45 us   72.7% of stock   output +1.03%
+    fast      5.89 us   31.8% of stock   output +2.19%
+  64 MiB of other memory walked before each call
+    stock    23.47 us  100.0% of stock   output +0.00%
+    codes    15.79 us   67.3% of stock   output +1.03%
+    fast      7.12 us   30.3% of stock   output +2.19%
+
+in tokio, the capture (bench/arm.sh):
+other work per request: walks 0 KiB
+  stock                              9.60 us   output 75.0% of input
+  gzip_with                          8.88 us   output 75.0% of input
+  gzip_codes_with                    3.47 us   output 78.8% of input
+  gzip_codes_with,table_order_15     3.24 us   output 78.8% of input
+  gzip_fast_with                     2.23 us   output 77.4% of input
+  gzip_fast_with,table_order_12      2.26 us   output 77.4% of input
+other work per request: walks 4096 KiB
+  stock                             12.47 us   output 75.0% of input
+  gzip_with                         11.90 us   output 75.0% of input
+  gzip_codes_with                    4.84 us   output 78.8% of input
+  gzip_codes_with,table_order_15     5.38 us   output 78.8% of input
+  gzip_fast_with                     2.92 us   output 77.4% of input
+  gzip_fast_with,table_order_12      3.10 us   output 77.4% of input
+other work per request: walks 65536 KiB
+  stock                             14.90 us   output 75.0% of input
+  gzip_with                         14.20 us   output 75.0% of input
+  gzip_codes_with                    6.08 us   output 78.8% of input
+  gzip_codes_with,table_order_15    10.23 us   output 78.8% of input
+  gzip_fast_with                     3.88 us   output 77.3% of input
+  gzip_fast_with,table_order_12      4.20 us   output 77.3% of input
