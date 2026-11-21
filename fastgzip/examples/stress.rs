@@ -19,7 +19,7 @@ fn main() {
     let count: usize = args.get(2).map_or(100_000, |s| s.parse().unwrap());
     let mut dump = args.get(3).map(|p| std::io::BufWriter::new(std::fs::File::create(p).unwrap()));
     let mut rng = Rng(seed.wrapping_mul(0x9E37_79B9_7F4A_7C15) | 1);
-    let mut gz: Vec<gzhot::Gzip> = (0..4).map(|_| gzhot::Gzip::new()).collect();
+    let mut gz: Vec<fastgzip::Gzip> = (0..4).map(|_| fastgzip::Gzip::new()).collect();
     let mut back = Vec::new();
     let (mut bytes_in, mut bytes_out) = (0u64, 0u64);
     // Phases, as traffic has them: a long stretch of one kind of request,
@@ -72,7 +72,7 @@ fn main() {
             f.write_all(out).unwrap();
         }
         if rng.below(5000) == 0 {
-            gz[which] = gzhot::Gzip::new();
+            gz[which] = fastgzip::Gzip::new();
         }
     }
     println!("ok: seed {seed}, {count} payloads, {bytes_in} -> {bytes_out} bytes, {:?}", gz[0].stats());

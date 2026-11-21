@@ -2,7 +2,7 @@ name: the Rust encoder
 on:
   push:
     branches: [gzlocal-arm-bench]
-    paths: ['gzhot/**', 'exp/rust/**', '.github/workflows/rust.yml']
+    paths: ['fastgzip/**', 'exp/rust/**', '.github/workflows/rust.yml']
 permissions:
   contents: write
 jobs:

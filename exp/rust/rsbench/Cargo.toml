@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 gzlocal = { path = "../../../gzlocal" }
-gzhot = { path = "../../../gzhot" }
+fastgzip = { path = "../../../fastgzip" }
 flate2 = "1"
 
 [profile.release]

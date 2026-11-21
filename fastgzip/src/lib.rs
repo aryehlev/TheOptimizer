@@ -4,13 +4,13 @@
 //! ```
 //! // On the worker thread, inside the task; `body` is your request body.
 //! # let (payload, mut body) = (vec![b'a'; 5000], Vec::new());
-//! gzhot::gzip_with(&payload, |gz| body.extend_from_slice(gz));
+//! fastgzip::gzip_with(&payload, |gz| body.extend_from_slice(gz));
 //! ```
 //!
 //! or keep a compressor of your own, for instance one per recipient:
 //!
 //! ```
-//! let mut gz = gzhot::Gzip::new();
+//! let mut gz = fastgzip::Gzip::new();
 //! let bytes: &[u8] = gz.compress(b"{\"id\":\"1\"}");
 //! # assert_eq!(&bytes[..2], &[0x1f, 0x8b]);
 //! ```

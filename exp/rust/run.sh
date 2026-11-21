@@ -1,5 +1,5 @@
 #!/bin/sh
-# The pure-Rust encoder (gzhot/) on this machine: its tests, a stress run with
+# The pure-Rust encoder (fastgzip/) on this machine: its tests, a stress run with
 # every assertion on, Miri, and its time and output size against the C
 # encoders (stock libdeflate and gzlocal's gzip_fast_with).
 #
@@ -8,7 +8,6 @@
 set -e
 TESTS=1     # tests, stress, other decoders, Miri
 MAIN=1      # the tables against the C encoders
-EXPS=""     # variants of the encoder to compare (GZHOT_EXP values), or nothing
 cd "$(dirname "$0")"
 HERE=$(pwd)
 ROOT=$(cd ../.. && pwd)
@@ -20,7 +19,7 @@ echo "machine: $(uname -m), $(nproc) CPUs, $(lscpu 2>/dev/null | sed -n 's/^Mode
 echo "$(rustc --version)"
 
 if [ $TESTS = 1 ]; then
-cd $ROOT/gzhot
+cd $ROOT/fastgzip
 count() { grep 'test result' | awk '{p+=$4; f+=$6} END {print p " passed, " f " failed"}'; }
 echo "tests, debug build:    $(cargo test 2>&1 | count)"
 echo "tests, checked build:  $(cargo test --profile checked 2>&1 | count)"
@@ -100,11 +99,11 @@ taskset -c $CPU ./target/release/rsbench 40 $W/rtb_single.bin $W/capture.bin $W/
 cd $ROOT/gzlocal
 cargo build --release --examples > /dev/null 2>&1
 cargo build --release --examples --features stock --target-dir target-stock > /dev/null 2>&1
-cd $ROOT/gzhot
+cd $ROOT/fastgzip
 cargo build --release --examples > /dev/null 2>&1
 STOCK=$ROOT/gzlocal/target-stock/release/examples/tokio_bench
 C=$ROOT/gzlocal/target/release/examples/tokio_bench
-R=$ROOT/gzhot/target/release/examples/tokio_bench
+R=$ROOT/fastgzip/target/release/examples/tokio_bench
 row() {
   name=$1; shift
   echo "$name $("$@" | sed -n 's/.*median \([0-9.]*\) us.*out \([0-9.]*\)% of in.*/\1 \2/p')" >> $W/runs
@@ -117,11 +116,11 @@ tokio() { # file, cut
     for run in 1 2 3 4 5; do
       row stock_libdeflate $STOCK $1 $2 $n 2 $other inline
       row C_gzip_fast_with $C $1 $2 $n 2 $other fast
-      row Rust_gzhot $R $1 $2 $n 2 $other local
+      row Rust_fastgzip $R $1 $2 $n 2 $other local
     done
     echo "  other work per request: walks $((other / 1024)) KiB"
     base=$(grep "^stock_libdeflate " $W/runs | sort -k2 -n | head -1 | awk '{print $2}')
-    for v in stock_libdeflate C_gzip_fast_with Rust_gzhot; do
+    for v in stock_libdeflate C_gzip_fast_with Rust_fastgzip; do
       grep "^$v " $W/runs | sort -k2 -n | head -1 | awk -v b=$base '{printf "    %-18s %6.2f us  %5.1f%% of stock   output %s%% of input\n", $1, $2, $2*100/b, $3}'
     done
   done
@@ -137,44 +136,9 @@ echo "in tokio, 2 workers, 22 KB payloads (six synthetic requests in an array):"
 tokio $W/rtb_x6.bin 0
 fi
 
-# Variants of the encoder, chosen when compiling (GZHOT_EXP, see gzhot/src/enc.rs).
-if [ -n "$EXPS" ]; then
-  for e in $EXPS; do
-    (cd $HERE/rsbench && GZHOT_EXP=$e CARGO_TARGET_DIR=$W/t_$e cargo build --release > /dev/null 2>&1)
-    (cd $ROOT/gzhot && GZHOT_EXP=$e CARGO_TARGET_DIR=$W/g_$e cargo build --release --examples > /dev/null 2>&1)
-  done
-  : > $W/ab
-  for turn in 1 2 3 4 5 6 7 8 9; do
-    for e in $EXPS; do
-      ONLY_RUST=1 taskset -c $CPU $W/t_$e/release/rsbench 12 $W/rtb_single.bin $W/capture.bin $W/mixed_exchange.bin |
-        awk -v e=$e '/bin:/{set=$1} /gzhot \(/{print e, set, $3, $(NF-2)}' >> $W/ab
-    done
-  done
-  echo
-  echo "variants, one thread: the lowest of 9 turns of 12 passes, and the output against stock"
-  sort -k2,2 -k1,1n -k3,3n $W/ab | awk '{k=$2" "$1} !(k in seen){seen[k]=1; printf "  %-20s variant %-3s %7.3f us  %s\n", $2, $1, $3, $4}'
-  for other in 0 16777216 67108864; do
-    n=16000
-    if [ $other != 0 ]; then n=2400; fi
-    : > $W/ab2
-    for turn in 1 2 3 4 5 6 7 8 9; do
-      for e in $EXPS; do
-        echo "$e rtb $($W/g_$e/release/examples/tokio_bench $W/rtb_single.bin 0 $n 2 $other local | sed -n 's/.*median \([0-9.]*\) us.*/\1/p')" >> $W/ab2
-        echo "$e capture $($W/g_$e/release/examples/tokio_bench $W/capture.jsonl lines $n 2 $other local | sed -n 's/.*median \([0-9.]*\) us.*/\1/p')" >> $W/ab2
-      done
-    done
-    echo "variants, in tokio after walking $((other / 1024)) KiB: the lowest and the middle median of 9 runs"
-    sort -k2,2 -k1,1n -k3,3n $W/ab2 | awk '{k=$2" "$1; c[k]++; if (c[k]==1) lo[k]=$3; if (c[k]==5) printf "  %-20s variant %-3s %7.2f us  %7.2f us\n", $2, $1, lo[k], $3}'
-  done
-fi
-
-# The machine code of the encoder, for reading: the default build, and the
-# build with every variant on.
-R=$ROOT/gzhot/target/release/examples/tokio_bench
-(cd $ROOT/gzhot && cargo build --release --examples > /dev/null 2>&1)
-if [ -x $W/g_31/release/examples/tokio_bench ]; then
-  objdump -d --no-show-raw-insn -C $W/g_31/release/examples/tokio_bench | awk '/^[0-9a-f]+ <gzhot::enc::scan::<12, true, false>>:/{p=1} p&&/^$/{exit} p' > $OUT/scan_12_emit_31.s
-fi
-objdump -d --no-show-raw-insn -C $R | awk '/^[0-9a-f]+ <gzhot::enc::scan::<12, true, false>>:/{p=1} p&&/^$/{exit} p' > $OUT/scan_12_emit.s
+# The machine code of the encoder, for reading.
+R=$ROOT/fastgzip/target/release/examples/tokio_bench
+(cd $ROOT/fastgzip && cargo build --release --examples > /dev/null 2>&1)
+objdump -d --no-show-raw-insn -C $R | awk '/^[0-9a-f]+ <fastgzip::enc::scan::<12, true, false>>:/{p=1} p&&/^$/{exit} p' > $OUT/scan_12_emit.s
 echo
 echo "the one-pass encoder for 1 to 4 KiB: $(wc -l < $OUT/scan_12_emit.s) instructions (scan_12_emit.s)"

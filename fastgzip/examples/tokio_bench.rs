@@ -12,8 +12,8 @@
 //! 1), it makes a fresh copy of the payload, as a serializer would, compresses
 //! it and times only that:
 //!
-//!   local     gzhot::gzip_with on the worker thread
-//!   fresh     a new gzhot::Gzip for every payload (what not to do)
+//!   local     fastgzip::gzip_with on the worker thread
+//!   fresh     a new fastgzip::Gzip for every payload (what not to do)
 //!   blocking  gzip_with moved to tokio's blocking pool with spawn_blocking
 
 use std::cell::RefCell;
@@ -91,9 +91,9 @@ fn main() {
                         in_bytes += payload.len();
                         let t0 = Instant::now();
                         let n = match mode {
-                            "local" => gzhot::gzip_with(&payload, |gz| gz.len()),
-                            "fresh" => gzhot::Gzip::new().compress(&payload).len(),
-                            "blocking" => tokio::task::spawn_blocking(move || gzhot::gzip_with(&payload, |gz| gz.len()))
+                            "local" => fastgzip::gzip_with(&payload, |gz| gz.len()),
+                            "fresh" => fastgzip::Gzip::new().compress(&payload).len(),
+                            "blocking" => tokio::task::spawn_blocking(move || fastgzip::gzip_with(&payload, |gz| gz.len()))
                                 .await
                                 .unwrap(),
                             _ => panic!("mode must be local, fresh or blocking"),
@@ -121,7 +121,7 @@ fn main() {
     let n = times.len();
     let mean = times.iter().sum::<u64>() as f64 / n as f64 / 1e3;
     println!(
-        "gzhot {} | {} payloads of {} B avg, {} per request | workers {} | other work {} KiB | median {:.2} us  mean {:.2}  p90 {:.2} | out {:.1}% of in | {:.0} payloads/s",
+        "fastgzip {} | {} payloads of {} B avg, {} per request | workers {} | other work {} KiB | median {:.2} us  mean {:.2}  p90 {:.2} | out {:.1}% of in | {:.0} payloads/s",
         mode,
         n,
         in_bytes / n,

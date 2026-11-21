@@ -1,4 +1,4 @@
-# gzhot
+# fastgzip
 
 gzip for a stream of small, similar payloads (JSON requests of a few
 kilobytes) on a hot path. Pure Rust: no C, no build script, one dependency
@@ -6,18 +6,18 @@ kilobytes) on a hot path. Pure Rust: no C, no build script, one dependency
 
 ```rust
 // on the worker thread, inside the task
-gzhot::gzip_with(&payload, |gz| body.extend_from_slice(gz));
+fastgzip::gzip_with(&payload, |gz| body.extend_from_slice(gz));
 ```
 
 or with a compressor of your own (one per kind of payload, see below):
 
 ```rust
-let mut gz = gzhot::Gzip::new();
+let mut gz = fastgzip::Gzip::new();
 let bytes: &[u8] = gz.compress(&payload); // valid until the next call
 ```
 
 It is the fast mode of gzlocal 0.4 written again in Rust, with every part
-looked at for what it costs: `gzhot::gzip_with` takes the place of
+looked at for what it costs: `fastgzip::gzip_with` takes the place of
 `gzlocal::gzip_fast_with`. It came out faster than the C version, and unlike
 it, it stays fast for payloads over 16 KiB.
 
@@ -28,7 +28,7 @@ Microseconds per call inside tokio (2 workers), on a GitHub arm64 runner
 calls, which is what decides how much of the compressor is still in the
 caches when the next payload arrives.
 
-| payloads | other work | stock libdeflate, level 1 | gzlocal 0.4 `gzip_fast_with` (C) | gzhot | gzhot's share of stock's time |
+| payloads | other work | stock libdeflate, level 1 | gzlocal 0.4 `gzip_fast_with` (C) | fastgzip | fastgzip's share of stock's time |
 |---|---|---|---|---|---|
 | synthetic bid requests, 3.7 KB | none | 17.34 | 5.57 | **5.16** | 29.8% |
 | | 4 MiB | 18.08 | 6.10 | **5.44** | 30.1% |
@@ -45,7 +45,7 @@ three kinds; see Output size for others.
 
 On the x86-64 runner of the same run (Xeon 6975P-C) the 3.7 KB requests take
 17.98 / 21.05 / 23.19 with stock libdeflate, 5.36 / 6.15 / 7.29 with the C
-version and 4.89 / 5.48 / 6.42 with gzhot.
+version and 4.89 / 5.48 / 6.42 with fastgzip.
 
 Each figure is the lowest median of five runs. The scripts and their output
 are in the branch `gzlocal-arm-bench` (`exp/rust/run.sh`,
@@ -249,7 +249,7 @@ is:
 
 Against stock libdeflate at level 1, each set through one compressor:
 
-| payloads | size | stock's output | gzhot's is larger by |
+| payloads | size | stock's output | fastgzip's is larger by |
 |---|---|---|---|
 | synthetic bid requests | 3.7 KB | 58.1% of the input | 2.1% |
 | requests of one exchange (published capture; 62% of each is a base64 blob) | 1.8 KB | 75.0% | 3.0% |

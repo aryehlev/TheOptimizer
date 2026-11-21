@@ -1,4 +1,4 @@
-//! gzhot (Rust) against the C encoders on the same payloads, one thread.
+//! fastgzip (Rust) against the C encoders on the same payloads, one thread.
 //! usage: rsbench <rounds> <records.bin>...   ([u32 len][bytes] repeated)
 //! Per call: best of <rounds> passes over all payloads, the encoders taking turns.
 use std::io::Read;
@@ -25,10 +25,10 @@ fn main() {
         let mut stock = gzlocal::Gzip::new(1);
         let mut cfast = gzlocal::Gzip::with_session(gzlocal::Session::CodesFast);
         let mut ccodes = gzlocal::Gzip::with_session(gzlocal::Session::Codes);
-        let mut rust = gzhot::Gzip::new();
+        let mut rust = fastgzip::Gzip::new();
         let mut best = [f64::MAX; 4];
         let mut size = [0usize; 4];
-        // ONLY_RUST=1: time only gzhot (stock once, for the size).
+        // ONLY_RUST=1: time only fastgzip (stock once, for the size).
         let only_rust = std::env::var("ONLY_RUST").is_ok();
         for round in 0..rounds {
             for which in 0..4 {
@@ -58,7 +58,7 @@ fn main() {
         }
         let name = path.rsplit('/').next().unwrap();
         println!("{name}: {} payloads, {} B on average", recs.len(), total_in / recs.len());
-        for (which, label) in ["libdeflate level 1", "C Session::Codes", "C Session::CodesFast", "gzhot (Rust)"].iter().enumerate() {
+        for (which, label) in ["libdeflate level 1", "C Session::Codes", "C Session::CodesFast", "fastgzip (Rust)"].iter().enumerate() {
             if only_rust && which != 3 {
                 continue;
             }
@@ -70,6 +70,6 @@ fn main() {
                 (size[which] as f64 / size[0] as f64 - 1.0) * 100.0
             );
         }
-        println!("  gzhot: {:?}", rust.stats());
+        println!("  fastgzip: {:?}", rust.stats());
     }
 }

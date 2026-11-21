@@ -2,7 +2,7 @@ mod gen;
 
 use flate2::read::MultiGzDecoder;
 use gen::{any_payload, bid_request, Rng};
-use gzhot::Gzip;
+use fastgzip::Gzip;
 use std::io::Read;
 
 /// Decodes with flate2 (miniz_oxide), an implementation that shares no code
@@ -129,14 +129,14 @@ fn thread_local() {
     let mut rng = Rng(6);
     for _ in 0..50 {
         let data = bid_request(&mut rng, 4000, 0);
-        let back = gzhot::gzip_with(&data, |gz| {
+        let back = fastgzip::gzip_with(&data, |gz| {
             let mut back = Vec::new();
             MultiGzDecoder::new(gz).read_to_end(&mut back).unwrap();
             back
         });
         assert!(back == data);
     }
-    assert!(gzhot::local_stats().one_pass >= 45);
+    assert!(fastgzip::local_stats().one_pass >= 45);
 }
 
 #[test]

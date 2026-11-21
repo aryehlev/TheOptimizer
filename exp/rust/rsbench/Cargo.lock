@@ -34,6 +34,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "fastgzip"
+version = "0.1.0"
+dependencies = [
+ "crc32fast",
+]
+
+[[package]]
 name = "find-msvc-tools"
 version = "0.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -48,13 +55,6 @@ dependencies = [
  "crc32fast",
  "miniz_oxide",
  "zlib-rs",
-]
-
-[[package]]
-name = "gzhot"
-version = "0.1.0"
-dependencies = [
- "crc32fast",
 ]
 
 [[package]]
@@ -78,8 +78,8 @@ dependencies = [
 name = "rsbench"
 version = "0.0.0"
 dependencies = [
+ "fastgzip",
  "flate2",
- "gzhot",
  "gzlocal",
 ]
 

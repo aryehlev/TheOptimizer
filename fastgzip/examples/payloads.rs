@@ -30,7 +30,7 @@ fn main() {
     }
     assert!(!payloads.is_empty(), "no payloads in {path}");
 
-    let mut gz = gzhot::Gzip::new();
+    let mut gz = fastgzip::Gzip::new();
     let (mut bytes_in, mut bytes_out) = (0usize, 0usize);
     let mut back = Vec::new();
     for p in &payloads {
