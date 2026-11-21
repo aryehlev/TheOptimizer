@@ -1,0 +1,19 @@
+machine: x86_64, Intel(R) Xeon(R) 6975P-C
+other work per request: walks 0 KiB
+  regular_libdeflate,new_compressor_per_call      21.00 us   output 58.1% of input
+  regular_libdeflate,one_compressor_per_thread    18.02 us   output 58.1% of input
+  patched,new_compressor_per_call                 20.65 us   output 58.1% of input
+  patched,gzip_codes_with                         12.67 us   output 58.7% of input
+  patched,gzip_fast_with                           5.39 us   output 59.4% of input
+other work per request: walks 4096 KiB
+  regular_libdeflate,new_compressor_per_call      24.34 us   output 58.1% of input
+  regular_libdeflate,one_compressor_per_thread    21.24 us   output 58.1% of input
+  patched,new_compressor_per_call                 24.28 us   output 58.1% of input
+  patched,gzip_codes_with                         14.49 us   output 58.7% of input
+  patched,gzip_fast_with                           6.33 us   output 59.4% of input
+other work per request: walks 65536 KiB
+  regular_libdeflate,new_compressor_per_call      27.27 us   output 58.0% of input
+  regular_libdeflate,one_compressor_per_thread    25.40 us   output 58.0% of input
+  patched,new_compressor_per_call                 28.16 us   output 58.0% of input
+  patched,gzip_codes_with                         16.63 us   output 58.7% of input
+  patched,gzip_fast_with                           7.63 us   output 59.3% of input

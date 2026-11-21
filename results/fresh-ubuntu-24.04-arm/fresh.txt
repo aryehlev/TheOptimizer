@@ -1,0 +1,19 @@
+machine: aarch64, Neoverse-N2
+other work per request: walks 0 KiB
+  regular_libdeflate,new_compressor_per_call      20.46 us   output 58.1% of input
+  regular_libdeflate,one_compressor_per_thread    17.33 us   output 58.1% of input
+  patched,new_compressor_per_call                 20.61 us   output 58.1% of input
+  patched,gzip_codes_with                         12.35 us   output 58.7% of input
+  patched,gzip_fast_with                           5.56 us   output 59.4% of input
+other work per request: walks 4096 KiB
+  regular_libdeflate,new_compressor_per_call      21.62 us   output 58.1% of input
+  regular_libdeflate,one_compressor_per_thread    18.22 us   output 58.1% of input
+  patched,new_compressor_per_call                 21.62 us   output 58.1% of input
+  patched,gzip_codes_with                         13.03 us   output 58.7% of input
+  patched,gzip_fast_with                           6.21 us   output 59.4% of input
+other work per request: walks 65536 KiB
+  regular_libdeflate,new_compressor_per_call      23.83 us   output 58.0% of input
+  regular_libdeflate,one_compressor_per_thread    20.43 us   output 58.0% of input
+  patched,new_compressor_per_call                 24.01 us   output 58.0% of input
+  patched,gzip_codes_with                         14.86 us   output 58.7% of input
+  patched,gzip_fast_with                           7.62 us   output 59.3% of input
