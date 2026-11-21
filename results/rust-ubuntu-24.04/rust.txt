@@ -1,63 +1,45 @@
-machine: x86_64, 4 CPUs, AMD EPYC 7763 64-Core Processor
+machine: x86_64, 4 CPUs, AMD EPYC 9V45 96-Core Processor
 rustc 1.100.0 (0ef1bc386 2026-11-09)
 
 variants, one thread: the lowest of 9 turns of 12 passes, and the output against stock
-  capture.bin:         variant 0     3.314 us  +3.02%
-  capture.bin:         variant 1     3.327 us  +3.02%
-  capture.bin:         variant 2     3.327 us  +3.02%
-  capture.bin:         variant 3     3.347 us  +3.02%
-  capture.bin:         variant 4     3.330 us  +3.02%
-  capture.bin:         variant 7     3.348 us  +3.02%
-  mixed_exchange.bin:  variant 0     2.516 us  +4.65%
-  mixed_exchange.bin:  variant 1     2.535 us  +4.65%
-  mixed_exchange.bin:  variant 2     2.530 us  +4.65%
-  mixed_exchange.bin:  variant 3     2.539 us  +4.65%
-  mixed_exchange.bin:  variant 4     2.532 us  +4.65%
-  mixed_exchange.bin:  variant 7     2.551 us  +4.65%
-  rtb_single.bin:      variant 0     7.359 us  +2.10%
-  rtb_single.bin:      variant 1     7.397 us  +2.10%
-  rtb_single.bin:      variant 2     7.411 us  +2.10%
-  rtb_single.bin:      variant 3     7.439 us  +2.10%
-  rtb_single.bin:      variant 4     7.393 us  +2.10%
-  rtb_single.bin:      variant 7     7.440 us  +2.10%
-variants, in tokio after walking 0 KiB: the lowest median of 5 runs
-  capture              variant 0      3.28 us
-  capture              variant 1      3.28 us
-  capture              variant 2      3.30 us
-  capture              variant 3      3.31 us
-  capture              variant 4      3.29 us
-  capture              variant 7      3.32 us
-  rtb                  variant 0      7.15 us
-  rtb                  variant 1      7.14 us
-  rtb                  variant 2      7.20 us
-  rtb                  variant 3      7.17 us
-  rtb                  variant 4      7.14 us
-  rtb                  variant 7      7.23 us
-variants, in tokio after walking 4096 KiB: the lowest median of 5 runs
-  capture              variant 0      3.43 us
-  capture              variant 1      3.44 us
-  capture              variant 2      3.44 us
-  capture              variant 3      3.47 us
-  capture              variant 4      3.43 us
-  capture              variant 7      3.50 us
-  rtb                  variant 0      7.57 us
-  rtb                  variant 1      7.51 us
-  rtb                  variant 2      7.61 us
-  rtb                  variant 3      7.61 us
-  rtb                  variant 4      7.54 us
-  rtb                  variant 7      7.64 us
-variants, in tokio after walking 65536 KiB: the lowest median of 5 runs
-  capture              variant 0      4.95 us
-  capture              variant 1      4.81 us
-  capture              variant 2      5.20 us
-  capture              variant 3      4.92 us
-  capture              variant 4      5.04 us
-  capture              variant 7      4.94 us
-  rtb                  variant 0      9.76 us
-  rtb                  variant 1      9.50 us
-  rtb                  variant 2      9.96 us
-  rtb                  variant 3      9.69 us
-  rtb                  variant 4      9.81 us
-  rtb                  variant 7      9.80 us
+  capture.bin:         variant 0     1.758 us  +3.02%
+  capture.bin:         variant 4     1.774 us  +3.02%
+  capture.bin:         variant 8     1.753 us  +3.02%
+  capture.bin:         variant 12    1.767 us  +3.02%
+  mixed_exchange.bin:  variant 0     1.307 us  +4.65%
+  mixed_exchange.bin:  variant 4     1.310 us  +4.65%
+  mixed_exchange.bin:  variant 8     1.301 us  +4.65%
+  mixed_exchange.bin:  variant 12    1.304 us  +4.65%
+  rtb_single.bin:      variant 0     4.167 us  +2.10%
+  rtb_single.bin:      variant 4     4.160 us  +2.10%
+  rtb_single.bin:      variant 8     4.160 us  +2.10%
+  rtb_single.bin:      variant 12    4.161 us  +2.10%
+variants, in tokio after walking 0 KiB: the lowest and the middle median of 9 runs
+  capture              variant 0      1.74 us     1.74 us
+  capture              variant 4      1.75 us     1.75 us
+  capture              variant 8      1.74 us     1.74 us
+  capture              variant 12     1.75 us     1.75 us
+  rtb                  variant 0      3.92 us     3.96 us
+  rtb                  variant 4      3.97 us     3.99 us
+  rtb                  variant 8      3.94 us     3.95 us
+  rtb                  variant 12     3.96 us     3.98 us
+variants, in tokio after walking 16384 KiB: the lowest and the middle median of 9 runs
+  capture              variant 0      2.06 us     2.10 us
+  capture              variant 4      2.03 us     2.13 us
+  capture              variant 8      2.03 us     2.11 us
+  capture              variant 12     2.05 us     2.12 us
+  rtb                  variant 0      4.81 us     4.92 us
+  rtb                  variant 4      4.63 us     4.85 us
+  rtb                  variant 8      4.70 us     4.82 us
+  rtb                  variant 12     4.67 us     4.88 us
+variants, in tokio after walking 65536 KiB: the lowest and the middle median of 9 runs
+  capture              variant 0      2.79 us     2.98 us
+  capture              variant 4      2.84 us     3.06 us
+  capture              variant 8      2.80 us     2.96 us
+  capture              variant 12     2.94 us     3.06 us
+  rtb                  variant 0      6.01 us     6.24 us
+  rtb                  variant 4      5.94 us     6.17 us
+  rtb                  variant 8      6.00 us     6.15 us
+  rtb                  variant 12     5.83 us     6.15 us
 
 the one-pass encoder for 1 to 4 KiB: 601 instructions (scan_12_emit.s)
