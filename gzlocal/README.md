@@ -28,9 +28,10 @@ microseconds per call:
 | `gzip_fast_with` | 5.6 | 7.3 | 2.2% larger |
 
 The sizes are for those requests. Both sessions cost more on payloads that
-compress further, the fast one most (see "Output size" below), so measure your
-own before choosing: `sh bench/arm.sh payloads.jsonl`, one payload per line,
-prints the time and the output size of each.
+compress further, the fast one most: on sample bid requests that others have
+published it was 3 to 5% (see "Published sample bid requests" below). So
+measure your own before choosing: `sh bench/arm.sh payloads.jsonl`, one payload
+per line, prints the time and the output size of each.
 
 ## What each one does
 
@@ -163,6 +164,37 @@ requests for 8, 16 and 32 KiB (`set_fast_table_order(11)`, `12`, `13`). The
 three are within 3% of each other in time with warm caches. After 64 MiB of
 other work the 32 KiB table is 12% slower than the 8 KiB one on the N2 and 18%
 slower on the EPYC.
+
+### Published sample bid requests
+
+Production bid requests are not published: they carry user data. What is
+public are sample requests in exchange documentation, in the OpenRTB
+specification and in the test data of open-source bidders and ad servers (192
+distinct ones of 1 KiB or more, 1.4 KB on average, ten of them over 2 KiB),
+and one capture of 1,000 requests of a single exchange in RTB4FREE's
+repository, 1.8 KB each, of which three fifths is the original protobuf as
+base64. On the Neoverse N2, against stock:
+
+| | time | output |
+|---|---|---|
+| the capture, `gzip_fast_with`, in tokio | 27 to 32% | +3.2% |
+| the capture, `gzip_codes_with`, in tokio | 41 to 45% | +5.1% |
+| 70 samples of many exchanges on one session, `Session::CodesFast` | 28 to 32% | +4.8% |
+| the same, `Session::Codes` | 59 to 64% | +3.4% |
+
+With each of the 192 samples compressed by a session whose codes were made
+from that same sample, which leaves what the search costs, the fast search
+gives +4.0% (+3.2% for the ten largest) and libdeflate's +2.1%; the synthetic
+requests give +1.9% and +0.6% that way. The samples are more repetitive than
+the synthetic requests (stock brings them to 52% of their size, not 58%), and
+they are small, so what a session costs per payload weighs more.
+
+Two things these show beyond the numbers. Many kinds of request on one session
+cost more than one kind does: keep a session per kind, for example per
+recipient. And `gzip_codes_with` came out larger than `gzip_fast_with` on the
+capture because it does not search long identifier-like runs, and the base64
+in those requests repeats itself; with that skipping compiled out
+(`-DSESS_TOKEN_CHECK=0`) it gives +2.2% there and takes 60% longer.
 
 ### Other gzip encoders on the same payloads
 
