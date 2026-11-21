@@ -94,7 +94,6 @@ struct State {
     /// Blocks in a row that the shared codes fitted badly.
     misses: u32,
     miss_limit: u32,
-    last_out: u32,
     stats: Stats,
     shared: Codes,
     freq: Freq,
@@ -149,28 +148,8 @@ impl Gzip {
     /// bytes.  They are valid until the next call.
     pub fn compress(&mut self, payload: &[u8]) -> &[u8] {
         let n = payload.len();
-        if EXP & 1 != 0 {
-            // lit, len, eob, off, the header's length and its first 128 bytes
-            let c = &self.st.shared as *const Codes as usize;
-            let mut line = c & !63;
-            while line < c + 2324 {
-                prefetch(line as *const u8, true);
-                line += 64;
-            }
-        }
-        if EXP & 4 != 0 {
-            type F = unsafe fn(&Codes, &mut Tab, &mut Freq, &mut [Seq; MAX_SEQS], &[u8], usize, bool, *mut u8, usize, Place) -> usize;
-            let f = match n {
-                0..=1024 => scan::<10, true, false> as F,
-                1025..=4096 => scan::<12, true, false> as F,
-                4097..=8192 => scan::<13, true, false> as F,
-                _ => scan::<14, true, false> as F,
-            } as usize;
-            let mut line = f & !63;
-            while line < f + 1728 {
-                prefetch(line as *const u8, false);
-                line += 64;
-            }
+        if n >= MIN_ONE_PASS && self.st.valid && self.st.direct_ok {
+            fetch_encoder(n);
         }
         // The checksum first.  It reads the payload front to back, which
         // also brings it into the cache for the encoder.
@@ -185,10 +164,6 @@ impl Gzip {
         self.out.reserve(cap); // no call once the buffer has grown
         let out = self.out.as_mut_ptr();
         let st = &mut *self.st;
-        if EXP & 2 != 0 {
-            // SAFETY: within the capacity.
-            unsafe { core::ptr::write_bytes(out, 0, ((st.last_out as usize + 63) & !63).min(cap)) };
-        }
 
         // SAFETY: the buffer has `cap` bytes; the encoder is given what is
         // left of them and stays within what the comment above adds up.
@@ -205,7 +180,6 @@ impl Gzip {
             core::ptr::copy_nonoverlapping(crc.to_le_bytes().as_ptr(), out.add(o), 4);
             core::ptr::copy_nonoverlapping((n as u32).to_le_bytes().as_ptr(), out.add(o + 4), 4);
             self.out.set_len(o + 8);
-            st.last_out = (o + 8).min(1 << 20) as u32;
         }
         &self.out
     }
@@ -235,48 +209,46 @@ macro_rules! scan_sized {
 
 const NO_COUNTS: Freq = Freq { ll: [0; NUM_LL], off: [0; NUM_OFF] };
 
-/// Experiments, chosen when compiling: GZHOT_EXP=<bits>.
-///   1: ask for the tables of the shared codes before the checksum is computed
-///   2: zero as much of the output buffer as the last output took
-///   4: ask for the encoder's machine code as well
-const EXP: usize = match option_env!("GZHOT_EXP") {
-    Some(s) => {
-        let b = s.as_bytes();
-        let (mut i, mut v) = (0, 0);
-        while i < b.len() {
-            v = v * 10 + (b[i] - b'0') as usize;
-            i += 1;
-        }
-        v
-    }
-    None => 0,
-};
-
-/// A hint to bring the cache line at `p` close: `near` into the first-level
-/// data cache, otherwise into the second level.
+/// Asks for the machine code of the one-pass encoder that a payload of `n`
+/// bytes will run, so that it is on its way while the checksum is computed.
+///
+/// A thread that did megabytes of other work since its last payload no longer
+/// has the encoder in its instruction cache, and instructions that are missing
+/// stall the processor one cache line after the other; this asks for all of
+/// them at once.  On the arm64 machine it was measured on (Neoverse N2) a
+/// call is 2% faster after 16 MiB of other work and 3 to 5% after 64 MiB, and
+/// no slower when everything is at hand.  On x86-64 it made no difference,
+/// so there it is left out.
 #[inline(always)]
-fn prefetch(p: *const u8, near: bool) {
-    #[cfg(target_arch = "aarch64")]
-    // SAFETY: a prefetch does not fault, whatever the address.
-    unsafe {
-        if near {
-            core::arch::asm!("prfm pldl1keep, [{p}]", p = in(reg) p, options(nostack, readonly, preserves_flags));
-        } else {
-            core::arch::asm!("prfm pldl2keep, [{p}]", p = in(reg) p, options(nostack, readonly, preserves_flags));
+fn fetch_encoder(n: usize) {
+    #[cfg(all(target_arch = "aarch64", not(miri)))]
+    {
+        type Encoder = unsafe fn(
+            &Codes, &mut Tab, &mut Freq, &mut [Seq; MAX_SEQS], &[u8], usize, bool, *mut u8, usize, Place,
+        ) -> usize;
+        // As `scan_sized` chooses.
+        let code = match n {
+            0..=1024 => scan::<10, true, false> as Encoder,
+            1025..=4096 => scan::<12, true, false> as Encoder,
+            4097..=8192 => scan::<13, true, false> as Encoder,
+            _ => scan::<14, true, false> as Encoder,
+        } as usize;
+        let mut line = code & !63;
+        while line < code + 2048 {
+            // SAFETY: a prefetch is a hint.  It reads nothing and does not
+            // fault, whatever the address.
+            unsafe {
+                core::arch::asm!(
+                    "prfm pldl2keep, [{line}]",
+                    line = in(reg) line,
+                    options(nostack, readonly, preserves_flags)
+                );
+            }
+            line += 64;
         }
     }
-    #[cfg(target_arch = "x86_64")]
-    // SAFETY: as above.
-    unsafe {
-        use core::arch::x86_64::{_mm_prefetch, _MM_HINT_T0, _MM_HINT_T1};
-        if near {
-            _mm_prefetch::<_MM_HINT_T0>(p as *const i8);
-        } else {
-            _mm_prefetch::<_MM_HINT_T1>(p as *const i8);
-        }
-    }
-    #[cfg(not(any(target_arch = "aarch64", target_arch = "x86_64")))]
-    let _ = (p, near);
+    #[cfg(not(all(target_arch = "aarch64", not(miri))))]
+    let _ = n;
 }
 
 impl State {

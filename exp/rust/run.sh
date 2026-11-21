@@ -6,9 +6,9 @@
 #   OUT=<dir>       where the listing of the encoder's machine code goes
 #   REAL_SRC=<dir>  where the repositories with sample requests are checked out
 set -e
-TESTS=0     # tests, stress, other decoders, Miri
-MAIN=0      # the tables against the C encoders
-EXPS="0 4 8 12"   # variants of the encoder to compare (GZHOT_EXP values), or nothing
+TESTS=1     # tests, stress, other decoders, Miri
+MAIN=1      # the tables against the C encoders
+EXPS=""     # variants of the encoder to compare (GZHOT_EXP values), or nothing
 cd "$(dirname "$0")"
 HERE=$(pwd)
 ROOT=$(cd ../.. && pwd)
@@ -144,7 +144,7 @@ if [ -n "$EXPS" ]; then
     (cd $ROOT/gzhot && GZHOT_EXP=$e CARGO_TARGET_DIR=$W/g_$e cargo build --release --examples > /dev/null 2>&1)
   done
   : > $W/ab
-  for turn in 1 2 3; do
+  for turn in 1 2 3 4 5 6 7 8 9; do
     for e in $EXPS; do
       ONLY_RUST=1 taskset -c $CPU $W/t_$e/release/rsbench 12 $W/rtb_single.bin $W/capture.bin $W/mixed_exchange.bin |
         awk -v e=$e '/bin:/{set=$1} /gzhot \(/{print e, set, $3, $(NF-2)}' >> $W/ab
