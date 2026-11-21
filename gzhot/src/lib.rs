@@ -680,3 +680,13 @@ pub fn gzip_with<R>(payload: &[u8], f: impl FnOnce(&[u8]) -> R) -> R {
 pub fn local_stats() -> Stats {
     LOCAL.with(|g| g.borrow().stats())
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn size() {
+        // What the README says a compressor takes.
+        let bytes = std::mem::size_of::<super::State>();
+        assert!((72 << 10..76 << 10).contains(&bytes), "{bytes}");
+    }
+}

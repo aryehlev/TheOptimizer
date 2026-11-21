@@ -10,6 +10,11 @@ branch or the files whenever you like.
 open-source bidders have published. It downloads them when it runs; none are
 kept here. Its output is in `results/real-*/real.txt`.
 
+`gzhot/` is the fast encoder written again in Rust, without libdeflate; see
+`gzhot/README.md`. `exp/rust/run.sh` runs its tests, a stress batch with every
+assertion on, Miri, and its timings against the C encoders; the output is in
+`results/rust-*/rust.txt`.
+
 `gzlocal` is gzip for small payloads with one libdeflate compressor per thread;
 see `gzlocal/README.md`. `gzlocal/vendor` holds libdeflate (MIT, see
 `gzlocal/vendor/COPYING.libdeflate`), stock and patched.
