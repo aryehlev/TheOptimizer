@@ -34,6 +34,28 @@ unsafe fn rd32(p: *const u8, i: usize, n: usize) -> u32 {
     u32::from_le(ptr::read_unaligned(p.add(i) as *const u32))
 }
 
+/// The four bytes at `base + i`, where `base` itself may lie one byte before
+/// what it points into.
+#[inline(always)]
+unsafe fn at32(base: *const u8, i: usize) -> u32 {
+    u32::from_le(ptr::read_unaligned(base.wrapping_add(i) as *const u32))
+}
+
+/// Where in `Chains::next` an entry has its link.  A payload of up to 32768
+/// bytes has no entry that large, and that table holds nothing but entries
+/// of the payload at hand.  (`Chains::links` can hold what an earlier
+/// payload left, which is read, though never followed: there the index is
+/// always cut to size.)
+#[inline(always)]
+fn link_of<const BIG: bool>(entry: usize) -> usize {
+    debug_assert!(BIG || entry < WINDOW);
+    if BIG {
+        entry & (WINDOW - 1)
+    } else {
+        entry
+    }
+}
+
 /// Four bytes as they lie, for comparing with four others.
 #[inline(always)]
 unsafe fn raw32(p: *const u8, i: usize, n: usize) -> u32 {
@@ -209,6 +231,7 @@ pub(crate) unsafe fn fastest<const ORDER: u32, const BIG: bool>(
     sink: Sink,
     st: &mut Resume,
     soft_end: usize,
+    early: bool,
 ) -> usize {
     use crate::levels::FAST_MAX_SEQS;
     let n = inp.len();
@@ -346,6 +369,11 @@ pub(crate) unsafe fn fastest<const ORDER: u32, const BIG: bool>(
             // the window's end, the window moves first.
             let end = pos + len;
             if n - end >= 5 {
+                if BIG && early {
+                    // The bucket of the position after the match is asked
+                    // for before the match's own positions are entered.
+                    fetch(tab.add(lz_hash(rd32(ip, end, n), ORDER)));
+                }
                 if BIG && end - 1 - base >= WINDOW {
                     slide!();
                     stop = stop_at!();
@@ -525,10 +553,12 @@ unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool, const W: 
     }
     let off = if BIG { *off } else { 0 };
     // The entry of `p`; the entries above `lim` stand for positions within
-    // reach of it; and the byte of entry s is at `ent + s - 1`.
+    // reach of it; and the byte of entry s is at `ent + s`.  (So `ent` is
+    // one byte before the payload when `off` is 0, and never read there:
+    // an entry that stands for a position is at least 1.)
     let e = p + 1 - off;
     let lim = if BIG { e.saturating_sub(WINDOW) } else { 0 };
-    let ent = ip.add(off);
+    let ent = ip.wrapping_add(off).wrapping_sub(1);
     debug_assert!(e < 2 * WINDOW && nh.0 < 1 << Orders::<LG>::O3 && nh.1 < 1 << Orders::<LG>::O4);
     let node3 = *c.h3.add(nh.0) as usize;
     let node4 = *c.h4.add(nh.1) as usize;
@@ -540,7 +570,7 @@ unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool, const W: 
         ahead = *c.links.add(node4 & (WINDOW - 1));
         *c.links.add(e & (WINDOW - 1)) = ahead << 16 | node4 as u64;
     } else {
-        *c.next.add(e & (WINDOW - 1)) = node4 as u16;
+        *c.next.add(link_of::<BIG>(e)) = node4 as u16;
     }
     let next_seq = rd32(ip, p + 1, n);
     *nh = (
@@ -560,7 +590,7 @@ unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool, const W: 
             if node3 <= lim {
                 break 'out;
             }
-            if best_len < 3 && (rd32(ent, node3 - 1, n - off) ^ seq4) & 0xFF_FFFF == 0 {
+            if best_len < 3 && (at32(ent, node3) ^ seq4) & 0xFF_FFFF == 0 {
                 best_len = 3;
                 best = node3 + off - 1;
             }
@@ -578,7 +608,7 @@ unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool, const W: 
             macro_rules! advance {
                 ($out:lifetime) => {
                     debug_assert!(node4 + off - 1 < p);
-                    node4 = *c.next.add(node4 & (WINDOW - 1)) as usize;
+                    node4 = *c.next.add(link_of::<BIG>(node4)) as usize;
                     depth -= 1;
                     if node4 <= lim || depth == 0 {
                         break $out;
@@ -587,7 +617,7 @@ unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool, const W: 
             }
             if best_len < 4 {
                 loop {
-                    if rd32(ent, node4 - 1, n - off) == seq4 {
+                    if at32(ent, node4) == seq4 {
                         break;
                     }
                     advance!('out);
@@ -600,14 +630,14 @@ unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool, const W: 
                 advance!('out);
             }
             loop {
-                let mut m;
                 loop {
-                    m = node4 + off - 1;
-                    if rd32(ip, m + best_len - 3, n) == rd32(ip, p + best_len - 3, n) && rd32(ip, m, n) == seq4 {
+                    debug_assert!(node4 + off - 1 + best_len + 1 <= n);
+                    if at32(ent, node4 + best_len - 3) == rd32(ip, p + best_len - 3, n) && at32(ent, node4) == seq4 {
                         break;
                     }
                     advance!('out);
                 }
+                let m = node4 + off - 1;
                 let len = extend(ip, n, m, p, 4, max_len);
                 if len > best_len {
                     best_len = len;
@@ -628,12 +658,12 @@ unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool, const W: 
         // candidate.  Only a candidate that passes is looked at further.
         let mut tail_at = best_len.max(3) - 3;
         let mut tail = raw32(ip, p + tail_at, n);
-        let mut tails = ent.add(tail_at);
+        let mut tails = ent.wrapping_add(tail_at);
         macro_rules! passes {
             ($node:expr) => {{
                 let node: usize = $node;
                 debug_assert!(node >= 1 && node + off - 1 < p && node + off - 1 + tail_at + 4 <= n);
-                ptr::read_unaligned(tails.add(node - 1) as *const u32) == tail
+                ptr::read_unaligned(tails.wrapping_add(node) as *const u32) == tail
             }};
         }
         let mut node = node4;
@@ -655,7 +685,7 @@ unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool, const W: 
                         }
                         tail_at = best_len - 3;
                         tail = raw32(ip, p + tail_at, n);
-                        tails = ent.add(tail_at);
+                        tails = ent.wrapping_add(tail_at);
                     }
                 }
             }
@@ -713,7 +743,7 @@ unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool, const W: 
                 };
             } else {
                 loop {
-                    node = *c.next.add(node & (WINDOW - 1)) as usize;
+                    node = *c.next.add(link_of::<BIG>(node)) as usize;
                     if node <= lim {
                         break 'out;
                     }
@@ -741,9 +771,17 @@ unsafe fn hc_skip<const LG: u32, const BIG: bool, const HOPS: bool>(
     nh: &mut (usize, usize),
     from: usize,
     count: usize,
+    early: bool,
 ) {
     if count + 5 > c.n - from {
         return;
+    }
+    if BIG && early {
+        // What the position after these will need of the tables is asked
+        // for before they are entered.
+        let s = rd32(c.ip, from + count, c.n);
+        fetch(c.h3.add(lz_hash(s & 0xFF_FFFF, Orders::<LG>::O3)));
+        fetch(c.h4.add(lz_hash(s, Orders::<LG>::O4)));
     }
     let (mut h3, mut h4) = *nh;
     let mut q = from;
@@ -758,10 +796,9 @@ unsafe fn hc_skip<const LG: u32, const BIG: bool, const HOPS: bool>(
             *c.h3.add(h3) = e as u16;
             let head = *c.h4.add(h4);
             if HOPS {
-                *c.links.add(e & (WINDOW - 1)) =
-                    *c.links.add(head as usize & (WINDOW - 1)) << 16 | head as u64;
+                *c.links.add(e & (WINDOW - 1)) = *c.links.add(head as usize & (WINDOW - 1)) << 16 | head as u64;
             } else {
-                *c.next.add(e & (WINDOW - 1)) = head;
+                *c.next.add(link_of::<BIG>(e)) = head;
             }
             *c.h4.add(h4) = e as u16;
             let s = rd32(c.ip, q + 1, c.n);
@@ -774,7 +811,7 @@ unsafe fn hc_skip<const LG: u32, const BIG: bool, const HOPS: bool>(
         }
         *off = slide_chains(c, *off, HOPS);
     }
-    if BIG {
+    if BIG && !early {
         fetch(c.h3.add(h3));
         fetch(c.h4.add(h4));
     }
@@ -849,7 +886,7 @@ unsafe fn chain_literals<const LG: u32, const BIG: bool, const HOPS: bool, const
             let links = t.chain.cast::<u64>();
             *links.add(e & (WINDOW - 1)) = *links.add(head as usize & (WINDOW - 1)) << 16 | head as u64;
         } else {
-            *t.chain.cast::<u16>().add(e & (WINDOW - 1)) = head;
+            *t.chain.cast::<u16>().add(link_of::<BIG>(e)) = head;
         }
         let s = rd32(t.ip, q + 1, t.n);
         h3 = lz_hash(s & 0xFF_FFFF, Orders::<LG>::O3);
@@ -900,15 +937,19 @@ macro_rules! chain_stop {
         stop
     }};
 }
-/// The literals at `pos` that `chain_literals` can tell, if the search is
-/// for a match longer than fewer than four bytes (`$quick`).  Evaluates to
-/// whether the block goes on.
+/// The literals at `pos` that `chain_literals` can tell.  For a search
+/// that asks for a match longer than fewer than four bytes, after a
+/// position that turned out a literal: where there is one there are often
+/// more.  Evaluates to whether the block goes on.
 macro_rules! chain_run {
     ($LG:ident, $BIG:ident, $HOPS:ident, $c:ident, $plain:ident, $st:ident, $split:ident, $splitting:ident,
      $n:ident, $begin:ident, $soft_end:ident, $pos:ident, $nh:ident, $off:ident, $n_seqs:ident, $sink:ident,
-     $stop:ident, $quick:expr) => {{
+     $stop:ident, $recalc:expr) => {{
         let mut on = true;
-        if $quick && $pos < $stop {
+        if $pos >= $stop {
+            $stop = chain_stop!($BIG, $split, $splitting, $n, $begin, $soft_end, $pos, $off, $recalc);
+        }
+        if $pos < $stop {
             let lim = if $BIG { ($pos + 1 - $off).saturating_sub(WINDOW) } else { 0 };
             if *$c.h3.add($nh.0) as usize <= lim {
                 let mut hashes = $nh;
@@ -973,7 +1014,7 @@ macro_rules! chain_goes_on {
 /// `soft_end` is where the block ends at the latest (see `levels.rs`).
 pub(crate) unsafe fn greedy<const LG: u32, const BIG: bool, const W: bool>(
     c: Chains,
-    quick: bool,
+    (quick, early): (bool, bool),
     min_len: usize,
     sink: Sink,
     st: &mut Resume,
@@ -985,27 +1026,28 @@ pub(crate) unsafe fn greedy<const LG: u32, const BIG: bool, const W: bool>(
     let mut plain = Plain::of(c, HOPS, sink);
     let mut stop = 0;
     loop {
-        if pos >= stop {
-            stop = chain_stop!(BIG, split, splitting, n, begin, soft_end, pos, off, usize::MAX);
-        }
-        if !chain_run!(LG, BIG, HOPS, c, plain, st, split, splitting, n, begin, soft_end, pos, nh, off, n_seqs, sink,
-                       stop, quick && min_len <= 4)
-        {
-            break;
-        }
         let max_len = (n - pos).min(MAX_MATCH);
         let nice_len = c.nice.min(max_len);
         let (len, dist) =
             hc_longest::<LG, BIG, HOPS, W>(c, &mut off, &mut nh, pos, min_len - 1, max_len, nice_len, c.depth);
-        if len >= min_len && (len > MIN_MATCH || dist <= 4096) {
+        let matched = len >= min_len && (len > MIN_MATCH || dist <= 4096);
+        if matched {
             chain_match!(sink, split, splitting, run_start, n_seqs, pos, len, dist);
-            hc_skip::<LG, BIG, HOPS>(c, &mut off, &mut nh, pos + 1, len - 1);
+            hc_skip::<LG, BIG, HOPS>(c, &mut off, &mut nh, pos + 1, len - 1, early);
             pos += len;
         } else {
             chain_literal!(c, sink, split, splitting, pos);
             pos += 1;
         }
         if !chain_goes_on!(BIG, st, split, splitting, n, begin, soft_end, pos, nh, off, n_seqs, sink) {
+            break;
+        }
+        if !matched
+            && quick
+            && min_len <= 4
+            && !chain_run!(LG, BIG, HOPS, c, plain, st, split, splitting, n, begin, soft_end, pos, nh, off, n_seqs,
+                           sink, stop, usize::MAX)
+        {
             break;
         }
     }
@@ -1018,7 +1060,7 @@ pub(crate) unsafe fn greedy<const LG: u32, const BIG: bool, const W: bool>(
 #[allow(clippy::too_many_arguments)]
 pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool, const W: bool>(
     c: Chains,
-    quick: bool,
+    (quick, early): (bool, bool),
     mut min_len: usize,
     two: bool,
     sink: Sink,
@@ -1041,15 +1083,8 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool, cons
     let mut plain = Plain::of(c, HOPS, sink);
     let mut stop = 0;
     loop {
-        if pos >= stop {
-            stop = chain_stop!(BIG, split, splitting, n, begin, soft_end, pos, off, next_recalc);
-        }
-        if !chain_run!(LG, BIG, HOPS, c, plain, st, split, splitting, n, begin, soft_end, pos, nh, off, n_seqs, sink,
-                       stop, quick && min_len <= 4)
-        {
-            break;
-        }
-        'step: {
+        // A step; true if it was a position without a match.
+        let literal = 'step: {
             if pos >= next_recalc {
                 min_len = crate::levels::later_min_len(&*(sink.f_ll as *const [u32; NUM_LL]), c.depth);
                 next_recalc += (n - next_recalc).min(pos - begin);
@@ -1061,16 +1096,16 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool, cons
             if cur_len < min_len || (cur_len == MIN_MATCH && cur_dist > 8192) {
                 chain_literal!(c, sink, split, splitting, pos);
                 pos += 1;
-                break 'step;
+                break 'step true;
             }
             pos += 1;
             // A match at pos - 1, found with the limits of that position.
             loop {
                 if cur_len >= limits(pos - 1).1 {
                     chain_match!(sink, split, splitting, run_start, n_seqs, pos - 1, cur_len, cur_dist);
-                    hc_skip::<LG, BIG, HOPS>(c, &mut off, &mut nh, pos, cur_len - 1);
+                    hc_skip::<LG, BIG, HOPS>(c, &mut off, &mut nh, pos, cur_len - 1, early);
                     pos += cur_len - 1;
-                    break 'step;
+                    break 'step false;
                 }
                 // The next position, with half the candidates.
                 let (max_len, nice_len) = limits(pos);
@@ -1100,18 +1135,26 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool, cons
                     }
                     chain_match!(sink, split, splitting, run_start, n_seqs, pos - 3, cur_len, cur_dist);
                     if cur_len > 3 {
-                        hc_skip::<LG, BIG, HOPS>(c, &mut off, &mut nh, pos, cur_len - 3);
+                        hc_skip::<LG, BIG, HOPS>(c, &mut off, &mut nh, pos, cur_len - 3, early);
                         pos += cur_len - 3;
                     }
                 } else {
                     chain_match!(sink, split, splitting, run_start, n_seqs, pos - 2, cur_len, cur_dist);
-                    hc_skip::<LG, BIG, HOPS>(c, &mut off, &mut nh, pos, cur_len - 2);
+                    hc_skip::<LG, BIG, HOPS>(c, &mut off, &mut nh, pos, cur_len - 2, early);
                     pos += cur_len - 2;
                 }
-                break 'step;
+                break 'step false;
             }
-        }
+        };
         if !chain_goes_on!(BIG, st, split, splitting, n, begin, soft_end, pos, nh, off, n_seqs, sink) {
+            break;
+        }
+        if literal
+            && quick
+            && min_len <= 4
+            && !chain_run!(LG, BIG, HOPS, c, plain, st, split, splitting, n, begin, soft_end, pos, nh, off, n_seqs,
+                           sink, stop, next_recalc)
+        {
             break;
         }
     }

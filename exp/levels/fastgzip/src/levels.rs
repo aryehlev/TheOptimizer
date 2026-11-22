@@ -742,7 +742,8 @@ pub(crate) struct Levels {
     pub(crate) hops_from: u32,
     /// For measurements: 1 the walk as one loop, 2 the loop over positions
     /// without a candidate, 4 the writer that asks whether a match has
-    /// literals before it.
+    /// literals before it, 8 asking early for what the position after a
+    /// match needs of the tables.
     pub(crate) variant: u32,
     pub(crate) stats: Stats,
     t: Box<Tables>,
@@ -895,10 +896,11 @@ impl Levels {
                 let begin = st.pos;
                 let soft_end = Self::soft_end(n, begin, FAST_SOFT_MAX_BLOCK);
                 let sink = sink!();
+                let early = self.variant & 8 != 0;
                 let n_seqs = if big {
-                    fastest::<15, true>(inp, tab, sink, &mut st, soft_end)
+                    fastest::<15, true>(inp, tab, sink, &mut st, soft_end, early)
                 } else {
-                    by_size!(order; O => fastest::<O, false>(inp, tab, sink, &mut st, soft_end); 9 10 11 12 13 14 15)
+                    by_size!(order; O => fastest::<O, false>(inp, tab, sink, &mut st, soft_end, early); 9 10 11 12 13 14 15)
                 };
                 if finish!(begin, st.pos, n_seqs, bitpos) {
                     return Some(bitpos);
@@ -943,7 +945,7 @@ impl Levels {
             let min_len = first_min_len(&inp[begin..soft_end], self.depth);
             let sink = sink!();
             let parse = self.parse;
-            let (one_loop, quick) = (self.variant & 1 != 0, self.variant & 2 != 0);
+            let (one_loop, quick) = (self.variant & 1 != 0, (self.variant & 2 != 0, self.variant & 8 != 0));
             macro_rules! search {
                 ($LG:ident, $BIG:literal, $HOPS:literal) => {
                     if one_loop {

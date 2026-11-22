@@ -120,13 +120,14 @@ if [ -n "$EXP" ]; then
   # slash; the one after it is before/ and the same in every row).
   #   VARIANT   1 the walk along a chain as one loop, 2 the loop over
   #             positions without a candidate, 4 the writer that asks
-  #             whether a match has literals before it
+  #             whether a match has literals before it, 8 asking early for
+  #             what the position after a match needs of the tables
   #   HOPS_FROM 14: chains four steps at a time from payloads of 8 KiB on
   cd $HERE/ab
   cargo build --release > /dev/null 2>&1
   S="$W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin"
   B="$W/big/req_x24.bin $W/big/text_200k.bin $W/big/code_200k.bin"
-  for v in 7 6 5 3 4 2 1 0 7; do
+  for v in 7 6 5 4 3 2 15 14 7; do
     echo
     echo "VARIANT=$v"
     VARIANT=$v LEVELS=1,2,5,9 taskset -c $CPU ./target/release/ab $ROUNDS $S
@@ -135,7 +136,7 @@ if [ -n "$EXP" ]; then
   for h in 16 15 14 13 16; do
     echo
     echo "HOPS_FROM=$h"
-    HOPS_FROM=$h LEVELS=5-9 taskset -c $CPU ./target/release/ab $ROUNDS $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin
+    VARIANT=6 HOPS_FROM=$h LEVELS=5-9 taskset -c $CPU ./target/release/ab $ROUNDS $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin
   done
   exit 0
 fi
