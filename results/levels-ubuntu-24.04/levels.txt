@@ -1,472 +1,93 @@
-machine: x86_64, 4 CPUs, AMD EPYC 7763 64-Core Processor
-  L1d cache:                               64 KiB (2 instances)
-  L2 cache:                                1 MiB (2 instances)
-  L3 cache:                                32 MiB (1 instance)
+machine: x86_64, 4 CPUs, Intel(R) Xeon(R) 6975P-C
+  L1d cache:                               96 KiB (2 instances)
+  L2 cache:                                4 MiB (2 instances)
+  L3 cache:                                480 MiB (1 instance)
 rustc 1.100.0 (0ef1bc386 2026-11-09)
 
-now/before, as shares of libdeflate's time (run 1):
-capture.bin       L1 0.79/0.83  L2 0.89/0.96  L3 0.89/0.96  L5 0.81/0.85  L7 0.81/0.85  L9 0.81/0.84
-rtb_single.bin    L1 0.89/0.95  L2 1.01/1.02  L3 1.01/1.02  L5 0.96/0.98  L7 0.97/0.99  L9 0.96/0.97
-rtb_5k.bin        L1 0.91/0.98  L2 1.00/1.00  L3 1.00/1.00  L5 0.95/0.98  L7 0.96/0.98  L9 0.95/0.97
-rtb_x3.bin        L1 0.92/0.98  L2 1.04/1.04  L3 1.04/1.04  L5 0.99/0.99  L7 1.01/1.01  L9 1.00/1.00
-rtb_x6.bin        L1 0.88/0.97  L2 1.07/1.08  L3 1.07/1.07  L5 1.03/1.04  L7 1.08/1.07  L9 1.07/1.07
-req_x12.bin       L1 0.85/2.17  L2 1.10/1.75  L3 1.10/1.72  L5 1.03/1.64  L7 1.03/1.69  L9 1.01/1.67
-req_x24.bin       L1 0.83/2.16  L2 1.12/1.75  L3 1.11/1.71  L5 1.04/1.64  L7 1.05/1.71  L9 1.01/1.65
-req_x100.bin      L1 0.81/2.41  L2 1.14/1.91  L3 1.13/1.86  L5 1.08/1.78  L7 1.08/1.82  L9 1.05/1.80
-text_200k.bin     L1 1.12/2.41  L2 1.09/1.95  L3 1.09/1.86  L5 1.10/1.88  L7 1.09/2.03  L9 1.05/2.13
-code_200k.bin     L1 0.83/1.98  L2 1.14/1.76  L3 1.14/1.72  L5 1.14/1.71  L7 1.12/1.84  L9 1.07/1.90
-mixed_210k.bin    L1 0.86/2.16  L2 1.13/1.81  L3 1.13/1.77  L5 1.10/1.73  L7 1.10/1.83  L9 1.07/1.86
+now/before, as shares of libdeflate's time (limits: at every step):
+capture.bin       L1 0.78/0.81  L2 0.89/0.93  L3 0.89/0.93  L5 0.83/0.88  L7 0.83/0.88  L9 0.82/0.88
+rtb_single.bin    L1 0.87/0.93  L2 0.97/1.02  L3 0.97/1.01  L5 0.93/0.98  L7 0.94/0.98  L9 0.93/0.98
+rtb_5k.bin        L1 0.89/0.96  L2 0.96/1.00  L3 0.96/1.00  L5 0.91/0.96  L7 0.93/0.97  L9 0.91/0.97
+rtb_x3.bin        L1 0.88/0.94  L2 0.99/1.04  L3 0.99/1.04  L5 0.95/1.01  L7 0.98/1.03  L9 0.96/1.02
+rtb_x6.bin        L1 0.84/0.89  L2 1.01/1.05  L3 1.01/1.05  L5 0.99/1.03  L7 1.04/1.08  L9 1.03/1.07
+req_x12.bin       L1 0.81/1.76  L2 1.05/1.55  L3 1.04/1.53  L5 1.00/1.49  L7 1.01/1.56  L9 1.00/1.55
+req_x24.bin       L1 0.79/1.76  L2 1.08/1.56  L3 1.07/1.55  L5 1.03/1.51  L7 1.04/1.60  L9 1.02/1.60
+req_x100.bin      L1 0.76/1.90  L2 1.10/1.67  L3 1.09/1.65  L5 1.06/1.59  L7 1.06/1.68  L9 1.04/1.68
+text_200k.bin     L1 1.07/1.94  L2 1.06/1.71  L3 1.06/1.68  L5 1.04/1.67  L7 1.03/1.88  L9 1.02/2.03
+code_200k.bin     L1 0.78/1.68  L2 1.06/1.54  L3 1.06/1.53  L5 1.04/1.53  L7 1.04/1.69  L9 1.02/1.74
+mixed_210k.bin    L1 0.81/1.78  L2 1.07/1.60  L3 1.08/1.59  L5 1.05/1.56  L7 1.05/1.69  L9 1.03/1.72
 
-now/before, as shares of libdeflate's time (run 2):
-capture.bin       L1 0.78/0.83  L2 0.87/0.93  L3 0.88/0.94  L5 0.81/0.85  L7 0.80/0.84  L9 0.80/0.84
-rtb_single.bin    L1 0.89/0.95  L2 1.01/1.02  L3 1.01/1.02  L5 0.96/0.98  L7 0.97/0.99  L9 0.96/0.98
-rtb_5k.bin        L1 0.91/0.98  L2 1.00/1.00  L3 1.00/1.00  L5 0.95/0.97  L7 0.96/0.98  L9 0.95/0.97
-rtb_x3.bin        L1 0.92/0.98  L2 1.06/1.05  L3 1.05/1.04  L5 1.00/1.01  L7 1.02/1.02  L9 1.01/1.01
-rtb_x6.bin        L1 0.88/0.94  L2 1.08/1.05  L3 1.08/1.05  L5 1.03/1.03  L7 1.08/1.06  L9 1.08/1.06
-req_x12.bin       L1 0.85/2.17  L2 1.10/1.77  L3 1.10/1.75  L5 1.02/1.63  L7 1.02/1.68  L9 0.99/1.65
-req_x24.bin       L1 0.83/2.16  L2 1.11/1.75  L3 1.11/1.72  L5 1.06/1.66  L7 1.06/1.69  L9 1.03/1.68
-req_x100.bin      L1 0.81/2.41  L2 1.13/1.93  L3 1.13/1.87  L5 1.08/1.78  L7 1.08/1.82  L9 1.05/1.81
-text_200k.bin     L1 1.11/2.41  L2 1.08/1.95  L3 1.09/1.86  L5 1.09/1.86  L7 1.08/2.01  L9 1.04/2.13
-code_200k.bin     L1 0.83/1.98  L2 1.13/1.76  L3 1.13/1.72  L5 1.12/1.69  L7 1.11/1.81  L9 1.07/1.87
-mixed_210k.bin    L1 0.86/2.16  L2 1.13/1.82  L3 1.12/1.78  L5 1.10/1.73  L7 1.09/1.84  L9 1.05/1.85
+now/before, as shares of libdeflate's time (limits: carried):
+capture.bin       L1 0.78/0.81  L2 0.90/0.93  L3 0.90/0.93  L5 0.82/0.88  L7 0.82/0.88  L9 0.82/0.88
+rtb_single.bin    L1 0.86/0.92  L2 0.98/1.02  L3 0.98/1.01  L5 0.94/0.98  L7 0.96/0.98  L9 0.95/0.98
+rtb_5k.bin        L1 0.89/0.95  L2 0.96/1.00  L3 0.96/1.00  L5 0.92/0.96  L7 0.93/0.97  L9 0.92/0.96
+rtb_x3.bin        L1 0.88/0.94  L2 1.00/1.04  L3 1.00/1.04  L5 0.96/1.01  L7 0.99/1.03  L9 0.98/1.02
+rtb_x6.bin        L1 0.84/0.89  L2 1.02/1.05  L3 1.03/1.04  L5 1.00/1.03  L7 1.06/1.08  L9 1.05/1.07
+req_x12.bin       L1 0.81/1.76  L2 1.06/1.56  L3 1.06/1.55  L5 1.01/1.48  L7 1.02/1.56  L9 1.00/1.55
+req_x24.bin       L1 0.79/1.76  L2 1.08/1.56  L3 1.08/1.55  L5 1.04/1.50  L7 1.05/1.61  L9 1.02/1.60
+req_x100.bin      L1 0.77/1.91  L2 1.11/1.67  L3 1.10/1.65  L5 1.06/1.60  L7 1.06/1.69  L9 1.04/1.69
+text_200k.bin     L1 1.06/1.94  L2 1.08/1.71  L3 1.08/1.67  L5 1.06/1.67  L7 1.04/1.88  L9 1.02/2.02
+code_200k.bin     L1 0.78/1.68  L2 1.08/1.54  L3 1.08/1.53  L5 1.06/1.53  L7 1.05/1.69  L9 1.03/1.74
+mixed_210k.bin    L1 0.81/1.78  L2 1.09/1.59  L3 1.09/1.59  L5 1.06/1.56  L7 1.06/1.69  L9 1.04/1.73
 
-instructions executed (libdeflate, before, now):
-rtb_single.bin L1  77266860  90951950  87131021
-rtb_single.bin L2  124672308  132199433  125148806
-rtb_single.bin L5  158179790  147594921  138457465
-rtb_single.bin L9  165820664  154026066  145189605
-rtb_x6.bin L1  48169231  57790291  53299554
-rtb_x6.bin L2  82851048  93623579  90691085
-rtb_x6.bin L5  108493050  103414209  98236853
-rtb_x6.bin L9  120188610  113385904  106793717
+now/before, as shares of libdeflate's time (limits: at every step):
+capture.bin       L1 0.78/0.80  L2 0.89/0.94  L3 0.89/0.94  L5 0.83/0.88  L7 0.82/0.88  L9 0.82/0.88
+rtb_single.bin    L1 0.86/0.92  L2 0.97/1.02  L3 0.97/1.01  L5 0.93/0.98  L7 0.94/0.98  L9 0.93/0.98
+rtb_5k.bin        L1 0.88/0.95  L2 0.96/1.00  L3 0.96/1.00  L5 0.91/0.96  L7 0.92/0.97  L9 0.91/0.96
+rtb_x3.bin        L1 0.88/0.94  L2 0.99/1.05  L3 1.00/1.04  L5 0.95/1.01  L7 0.98/1.03  L9 0.96/1.02
+rtb_x6.bin        L1 0.84/0.89  L2 1.01/1.05  L3 1.01/1.04  L5 0.99/1.03  L7 1.04/1.08  L9 1.03/1.07
+req_x12.bin       L1 0.81/1.75  L2 1.05/1.55  L3 1.05/1.55  L5 1.00/1.49  L7 1.01/1.55  L9 1.00/1.54
+req_x24.bin       L1 0.79/1.75  L2 1.07/1.56  L3 1.07/1.55  L5 1.03/1.51  L7 1.04/1.60  L9 1.02/1.60
+req_x100.bin      L1 0.76/1.90  L2 1.09/1.66  L3 1.09/1.65  L5 1.05/1.60  L7 1.06/1.69  L9 1.04/1.68
+text_200k.bin     L1 1.06/1.94  L2 1.06/1.72  L3 1.06/1.67  L5 1.04/1.67  L7 1.03/1.88  L9 1.02/2.02
+code_200k.bin     L1 0.78/1.68  L2 1.06/1.54  L3 1.07/1.53  L5 1.04/1.53  L7 1.04/1.69  L9 1.02/1.74
+mixed_210k.bin    L1 0.81/1.77  L2 1.07/1.59  L3 1.07/1.59  L5 1.05/1.56  L7 1.05/1.69  L9 1.03/1.72
 
-now, level 2, rtb_single.bin:
-35,444,715 (28.32%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::greedy::<12, false> [/home/runner/wor
-17,457,042 (13.95%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/write.rs:fastgzip::write::write_block::<true> [/home/runner/w
-12,778,255 (10.21%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::greedy::<13, false> [/home/runner/wor
- 5,660,220 ( 4.52%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/huff.rs:fastgzip::huff::make_lens [/home/runner/work/TheOptim
- 3,039,822 ( 2.43%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/levels.rs:<fastgzip::levels::Levels>::deflate [/home/runner/w
- 2,866,431 ( 2.29%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/codes.rs:<fastgzip::codes::Codes>::build_own [/home/runner/wo
-grep: write error: Broken pipe
-_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_: 44,622,730 instructions run
-             ...
-     467,405   247890  mov    %r14,%rax
-     467,405   247893  mov    %r11,%rbx
-     467,405   247896  mov    0x0(%r13,%r11,1),%ecx
-     467,405   24789b  mov    %ecx,%edx
-     467,405   24789d  and    $0xffffff,%edx
-     467,405   2478a3  imul   $0x1e35a7bd,%edx,%r14d
-     467,405   2478aa  shr    $0x13,%r14d
-     467,405   2478ae  movzwl (%r8,%r14,2),%ebp
-     467,405   2478b3  mov    %bx,(%r8,%rax,2)
-     467,405   2478b8  movzwl (%r9,%r15,2),%edx
-     467,405   2478bd  mov    %bx,(%r9,%r15,2)
-     467,405   2478c2  imul   $0x1e35a7bd,%ecx,%r15d
-     467,405   2478c9  shr    $0x12,%r15d
-     467,405   2478cd  mov    0x50(%rsp),%rcx
-     467,405   2478d2  mov    %dx,(%rcx,%r11,2)
-     467,405   2478d7  movzbl -0x1(%r13,%r11,1),%ecx
-     467,405   2478dd  mov    0x60(%rsp),%rdx
-     467,405   2478e2  incl   (%rdx,%rcx,4)
-     467,405   2478e5  cmp    %r14,%rax
-     467,405   2478e8  cmove  %r11,%rbp
-     467,405   2478ec  inc    %r11
-     467,405   2478ef  cmp    %rdi,%r11
-     467,405   2478f2  jae    2478ff <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
-     467,227   2478f4  lea    0x1(%rbx),%r11
-     467,227   2478f8  test   %rbp,%rbp
-     467,227   2478fb  je     247890 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
-             ...
-     440,108   247e00  lea    (%r11,%rsi,1),%edi
-     440,108   247e04  mov    %di,(%r8,%r14,2)
-     440,108   247e09  mov    0x30(%rsp),%r9
-     440,108   247e0e  movzwl (%r9,%r15,2),%r9d
-     440,108   247e13  mov    %r9w,(%rcx,%rsi,2)
-     440,108   247e18  mov    0x30(%rsp),%r9
-     440,108   247e1d  mov    %di,(%r9,%r15,2)
-     440,108   247e22  mov    (%rax,%rsi,1),%edi
-     440,108   247e25  imul   $0x1e35a7bd,%edi,%r15d
-     440,108   247e2c  and    $0xffffff,%edi
-     440,108   247e32  imul   $0x1e35a7bd,%edi,%r14d
-     440,108   247e39  shr    $0x13,%r14d
-     440,108   247e3d  shr    $0x12,%r15d
-     440,108   247e41  inc    %rsi
-     440,108   247e44  cmp    %rsi,%rdx
-     440,108   247e47  jne    247e00 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
-             ...
+now/before, as shares of libdeflate's time (limits: carried):
+capture.bin       L1 0.78/0.81  L2 0.90/0.93  L3 0.90/0.93  L5 0.82/0.88  L7 0.82/0.88  L9 0.82/0.88
+rtb_single.bin    L1 0.86/0.93  L2 0.98/1.02  L3 0.98/1.02  L5 0.95/0.98  L7 0.96/0.99  L9 0.95/0.98
+rtb_5k.bin        L1 0.89/0.95  L2 0.96/1.01  L3 0.96/1.01  L5 0.92/0.97  L7 0.93/0.97  L9 0.93/0.97
+rtb_x3.bin        L1 0.88/0.94  L2 1.01/1.05  L3 1.01/1.05  L5 0.97/1.01  L7 0.99/1.03  L9 0.98/1.01
+rtb_x6.bin        L1 0.84/0.89  L2 1.03/1.05  L3 1.03/1.05  L5 1.00/1.03  L7 1.06/1.08  L9 1.05/1.07
+req_x12.bin       L1 0.81/1.76  L2 1.06/1.55  L3 1.06/1.55  L5 1.01/1.49  L7 1.02/1.56  L9 1.00/1.55
+req_x24.bin       L1 0.79/1.76  L2 1.08/1.56  L3 1.08/1.55  L5 1.04/1.50  L7 1.04/1.59  L9 1.02/1.60
+req_x100.bin      L1 0.76/1.91  L2 1.10/1.66  L3 1.10/1.64  L5 1.06/1.59  L7 1.06/1.68  L9 1.03/1.69
+text_200k.bin     L1 1.07/1.94  L2 1.09/1.71  L3 1.09/1.68  L5 1.06/1.67  L7 1.04/1.88  L9 1.02/2.03
+code_200k.bin     L1 0.78/1.68  L2 1.08/1.54  L3 1.08/1.53  L5 1.06/1.53  L7 1.05/1.69  L9 1.03/1.74
+mixed_210k.bin    L1 0.81/1.78  L2 1.09/1.60  L3 1.09/1.59  L5 1.06/1.56  L7 1.05/1.69  L9 1.03/1.72
 
-where the time goes (share of samples by function):
-old level 2: 35.2 us a payload, 20003 samples (1237328360)
-   61.1%  fastgzip::fast::greedy
-   15.4%  fastgzip::write::write_block
-    6.8%  fastgzip::huff::make_lens
-    5.6%  <fastgzip::levels::Levels>::deflate
-    3.8%  <fastgzip::codes::Codes>::build_own
-    3.3%  <fastgzip::codes::Codes>::write_header
-    2.8%  ??
-fg level 2: 34.6 us a payload, 20011 samples (1259112310)
-   63.9%  fastgzip::fast::greedy
-   13.3%  fastgzip::write::write_block
-    6.9%  fastgzip::huff::make_lens
-    5.4%  <fastgzip::levels::Levels>::deflate
-    3.6%  <fastgzip::codes::Codes>::build_own
-    3.1%  <fastgzip::codes::Codes>::write_header
-    2.5%  ??
+instructions executed (libdeflate, before, now; limits: at every step):
+rtb_single.bin L1  77270642  90947361  86924599
+rtb_single.bin L2  124676090  132194844  117680297
+rtb_single.bin L5  158183572  147590332  129771944
+rtb_single.bin L9  165824446  154021477  134888491
+rtb_x6.bin L1  48173013  57794073  53197339
+rtb_x6.bin L2  82854830  93627361  83107504
+rtb_x6.bin L5  108496832  103417991  89623232
+rtb_x6.bin L9  120192392  113389686  96750246
+req_x24.bin L1  43496063  129095891  44150042
+req_x24.bin L2  76401496  182258995  82358928
+req_x24.bin L5  102341131  195124254  99376366
+req_x24.bin L9  124848209  230513027  120058074
+text_200k.bin L1  38466416  133784077  42319590
+text_200k.bin L2  61985053  171565657  72035986
+text_200k.bin L5  94662306  201913067  103729344
+text_200k.bin L9  213343299  378771654  199359849
 
-6greedyKmc_EB4_: 44.3% of 20003 samples
-        ...
-  0.12%   247913  cmp    r14,r8
-  0.08%   247916  jae    247f73 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x733>
-  0.00%   24791c  mov    rcx,r8
-  0.16%   24791f  sub    rcx,r14
-  0.22%   247922  cmp    rcx,0x102
-  0.07%   247929  mov    r9d,0x102
-  0.61%   24792f  cmovb  r9,rcx
-  0.14%   247933  cmp    rbx,r9
-  0.17%   247936  mov    rsi,r9
-        ...
-  0.00%   247945  mov    rdi,r10
-  0.00%   247948  cmp    rdi,QWORD PTR [rsp+0xb0]
-  0.00%   247950  jae    247c6a <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x42a>
-  0.00%   247956  jmp    247c80 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x440>
-  0.00%   24795b  nop    DWORD PTR [rax+rax*1+0x0]
-  0.00%   247960  movzx  edx,WORD PTR [r12+r15*2]
-  1.84%   247965  movzx  ebx,WORD PTR [r11+r13*2]
-  1.51%   24796a  mov    WORD PTR [r12+r15*2],r14w
-  1.24%   24796f  mov    WORD PTR [r11+r13*2],r14w
-  1.21%   247974  mov    rax,QWORD PTR [rsp+0x30]
-  0.17%   247979  mov    WORD PTR [rax+r14*2],bx
-  0.57%   24797e  lea    rax,[rbp+r14*1+0x0]
-  0.15%   247983  mov    QWORD PTR [rsp+0x40],rax
-  0.18%   247988  mov    r11d,DWORD PTR [rbp+r14*1+0x0]
-  0.22%   24798d  mov    eax,DWORD PTR [rbp+r14*1+0x1]
-  0.43%   247992  imul   r13d,eax,0x1e35a7bd
-  0.42%   247999  and    eax,0xffffff
-  0.02%   24799e  imul   r15d,eax,0x1e35a7bd
-  0.35%   2479a5  shr    r15d,0x13
-  0.34%   2479a9  shr    r13d,0x12
-  0.04%   2479ad  mov    r12,r14
-  0.16%   2479b0  cmp    r10,0x4
-  0.01%   2479b4  jae    247a40 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x200>
-  0.00%   2479ba  mov    rdi,r10
-  0.26%   2479bd  test   rdx,rdx
-  0.41%   2479c0  je     247c40 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x400>
-  0.00%   2479c6  mov    QWORD PTR [rsp+0x38],rsi
-  2.70%   2479cb  mov    edi,0x3
-  0.04%   2479d0  mov    rsi,r14
-  0.00%   2479d3  mov    r10,QWORD PTR [rsp+0x20]
-  0.81%   2479d8  cmp    r10,0x3
-  0.24%   2479dc  je     2479fd <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x1bd>
-  0.00%   2479de  mov    eax,DWORD PTR [rbp+rdx*1+0x0]
-  0.50%   2479e2  xor    eax,r11d
-  0.17%   2479e5  test   eax,0xffffff
-  0.27%   2479ea  cmovne rdx,r14
-        ...
-  0.02%   2479f1  mov    eax,0x3
-  0.01%   2479f6  cmove  rdi,rax
-  0.12%   2479fa  mov    rsi,rdx
-  0.00%   2479fd  test   rbx,rbx
-  0.01%   247a00  je     247a35 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x1f5>
-  0.00%   247a02  mov    r10d,DWORD PTR [rsp+0x4c]
-  0.78%   247a07  mov    r12,rbx
-  0.00%   247a0a  nop    WORD PTR [rax+rax*1+0x0]
-  0.02%   247a10  cmp    DWORD PTR [rbp+r12*1+0x0],r11d
-  0.32%   247a15  je     247ba3 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x363>
-  0.00%   247a1b  mov    rax,QWORD PTR [rsp+0x30]
-  0.41%   247a20  movzx  r12d,WORD PTR [rax+r12*2]
-  0.24%   247a25  sub    r10d,0x1
-  0.00%   247a29  setb   al
-  0.00%   247a2c  test   r12,r12
-  0.00%   247a2f  je     247a35 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x1f5>
-  0.00%   247a31  test   al,al
-  0.11%   247a33  je     247a10 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x1d0>
-  0.00%   247a35  mov    r12,rsi
-  0.37%   247a38  jmp    247c40 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x400>
-  0.00%   247a3d  nop    DWORD PTR [rax]
-  0.00%   247a40  mov    rdi,r10
-        ...
-  0.11%   247a6d  mov    rax,QWORD PTR [rsp+0x40]
-  0.00%   247a72  mov    edx,DWORD PTR [rax+rdi*1-0x3]
-  0.22%   247a76  dec    r10d
-  0.00%   247a79  nop    DWORD PTR [rax+0x0]
-  0.00%   247a80  lea    rsi,[rbx+rbp*1]
-  0.09%   247a84  cmp    DWORD PTR [rdi+rsi*1-0x3],edx
-  0.53%   247a88  jne    247a8f <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x24f>
-  0.00%   247a8a  cmp    DWORD PTR [rsi],r11d
-  0.10%   247a8d  je     247ac0 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x280>
-        ...
-  0.17%   247c31  test   rbx,rbx
-  0.03%   247c34  je     247c40 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x400>
-  0.00%   247c36  test   r10d,r10d
-  0.26%   247c39  jne    247a68 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x228>
-  0.00%   247c3f  nop
-  0.02%   247c40  mov    rax,r14
-  1.50%   247c43  sub    rax,r12
-  0.24%   247c46  mov    rbx,QWORD PTR [rsp+0xa8]
-  0.97%   247c4e  mov    r12,QWORD PTR [rsp+0xa0]
-  0.40%   247c56  mov    r11,QWORD PTR [rsp+0x60]
-  0.28%   247c5b  mov    r10,QWORD PTR [rsp+0x20]
-  0.33%   247c60  cmp    rdi,QWORD PTR [rsp+0xb0]
-  0.82%   247c68  jb     247c80 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x440>
-  0.00%   247c6a  cmp    rdi,0x3
-  0.61%   247c6e  ja     247d20 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x4e0>
-  0.00%   247c74  cmp    rax,0x1000
-  0.02%   247c7a  jbe    247d20 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x4e0>
-  0.00%   247c80  movzx  eax,BYTE PTR [rbp+r14*1+0x0]
-  0.91%   247c86  mov    rcx,QWORD PTR [rsp+0x68]
-  0.14%   247c8b  inc    DWORD PTR [rcx+rax*4]
-  2.64%   247c8e  cmp    QWORD PTR [rsp+0x28],0x0
-  0.31%   247c94  je     247910 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0xd0>
-  0.00%   247c9a  mov    ecx,eax
-        ...
-  0.00%   247d13  je     24791c <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0xdc>
-  0.00%   247d19  jmp    247f73 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x733>
-  0.00%   247d1e  xchg   ax,ax
-  0.00%   247d20  dec    eax
-  0.07%   247d22  mov    esi,0x3f
-  0.03%   247d27  bsr    esi,eax
-  0.91%   247d2a  xor    esi,0x1f
-  0.18%   247d2d  mov    r8d,eax
-  0.01%   247d30  cmp    eax,0x2
-        ...
-  0.21%   247d6f  mov    esi,r8d
-  0.00%   247d72  not    r9d
-  0.00%   247d75  and    eax,r9d
-  0.16%   247d78  movzx  r8d,BYTE PTR [rdi+0x208c00]
-  0.02%   247d80  mov    r9,QWORD PTR [rsp+0x68]
-  0.00%   247d85  inc    DWORD PTR [r9+r8*4+0x404]
-  0.78%   247d8d  mov    r8,rdi
-  0.00%   247d90  shl    r8,0x10
-  0.00%   247d94  mov    r9,QWORD PTR [rsp+0x90]
-  0.00%   247d9c  inc    DWORD PTR [r9+rsi*4]
-  0.39%   247da0  or     r8,rdx
-  0.00%   247da3  shl    rax,0x20
-  0.00%   247da7  shl    rsi,0x30
-        ...
-  0.10%   247ed7  inc    r14d
-  0.01%   247eda  movzx  esi,r14w
-  0.01%   247ede  xor    r8d,r8d
-  0.00%   247ee1  data16 data16 data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
-  0.13%   247ef0  lea    r9d,[rsi+r8*1]
-  0.14%   247ef4  mov    WORD PTR [r12+r15*2],r9w
-  1.91%   247ef9  movzx  r10d,WORD PTR [r11+r13*2]
-  1.83%   247efe  mov    WORD PTR [rdx+r8*2],r10w
-  0.37%   247f03  mov    WORD PTR [r11+r13*2],r9w
-  0.66%   247f08  mov    r9d,DWORD PTR [rcx+r8*1]
-  0.18%   247f0c  imul   r13d,r9d,0x1e35a7bd
-  0.03%   247f13  and    r9d,0xffffff
-  0.12%   247f1a  imul   r15d,r9d,0x1e35a7bd
-  0.12%   247f21  shr    r15d,0x13
-  0.70%   247f25  shr    r13d,0x12
-  0.41%   247f29  inc    r8
-  0.04%   247f2c  cmp    rdi,r8
-  0.28%   247f2f  jne    247ef0 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x6b0>
-
-6greedyKmc_Kb0_: 46.7% of 20011 samples
-        ...
-  0.00%   273dcb  mov    rdi,QWORD PTR [rsp+0x8]
-  0.00%   273dd0  jmp    273de9 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x1a9>
-  0.00%   273dd2  data16 data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
-  0.00%   273de0  cmp    r11,rdi
-  0.02%   273de3  cmovae rdi,QWORD PTR [rsp+0x68]
-  0.22%   273de9  movzx  eax,WORD PTR [r8+r14*2]
-  0.59%   273dee  movzx  ebp,ax
-  0.15%   273df1  cmp    r11,rdi
-  0.01%   273df4  jae    2741c0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x580>
-  0.00%   273dfa  test   ax,ax
-  0.00%   273dfd  jne    2741c0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x580>
-  0.00%   273e03  cmp    QWORD PTR [rsp],0x0
-  0.86%   273e08  je     274077 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x437>
-  0.00%   273e0e  lea    rax,[r12+r11*1]
-  0.00%   273e12  inc    rax
-        ...
-  0.00%   2740f2  inc    r11
-  0.00%   2740f5  test   rbp,rbp
-  0.00%   2740f8  je     274090 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x450>
-  0.00%   2740fa  jmp    2741c0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x580>
-  0.00%   2740ff  nop
-  0.09%   274100  mov    rax,r14
-  0.48%   274103  mov    rbx,r11
-  0.35%   274106  mov    ecx,DWORD PTR [r13+r11*1+0x0]
-  0.51%   27410b  mov    edx,ecx
-  0.00%   27410d  and    edx,0xffffff
-  0.15%   274113  imul   r14d,edx,0x1e35a7bd
-  0.10%   27411a  shr    r14d,0x13
-  0.60%   27411e  movzx  ebp,WORD PTR [r8+r14*2]
-  4.42%   274123  mov    WORD PTR [r8+rax*2],bx
-  0.17%   274128  movzx  edx,WORD PTR [r9+r15*2]
-  0.36%   27412d  mov    WORD PTR [r9+r15*2],bx
-  0.43%   274132  imul   r15d,ecx,0x1e35a7bd
-  0.01%   274139  shr    r15d,0x12
-  0.01%   27413d  mov    rcx,QWORD PTR [rsp+0x50]
-  0.03%   274142  mov    WORD PTR [rcx+r11*2],dx
-  0.17%   274147  movzx  ecx,BYTE PTR [r13+r11*1-0x1]
-  0.72%   27414d  mov    rdx,QWORD PTR [rsp+0x60]
-  0.14%   274152  inc    DWORD PTR [rdx+rcx*4]
-  1.19%   274155  cmp    rax,r14
-  0.17%   274158  cmove  rbp,r11
-  0.00%   27415c  inc    r11
-  0.02%   27415f  cmp    r11,rdi
-  0.00%   274162  jae    27416f <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x52f>
-  0.00%   274164  lea    r11,[rbx+0x1]
-  0.01%   274168  test   rbp,rbp
-  0.54%   27416b  je     274100 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x4c0>
-  0.00%   27416d  jmp    27419d <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x55d>
-  0.00%   27416f  cmp    r11,QWORD PTR [rsp+0x58]
-        ...
-  0.00%   274187  cmp    r11,rax
-  0.00%   27418a  jb     274100 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x4c0>
-  0.00%   274190  inc    rbx
-  0.00%   274193  mov    r11,rbx
-  0.00%   274196  mov    rdi,QWORD PTR [rsp+0x20]
-  0.00%   27419b  jmp    2741c0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x580>
-  2.11%   27419d  inc    rbx
-  0.39%   2741a0  mov    r11,rbx
-  0.00%   2741a3  jmp    2741c0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x580>
-  0.00%   2741a5  cmp    rdi,QWORD PTR [rsp+0x58]
-  0.00%   2741aa  jae    27473d <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0xafd>
-  0.00%   2741b0  mov    r11,rdi
-  0.00%   2741b3  xor    edi,edi
-  0.00%   2741b5  data16 cs nop WORD PTR [rax+rax*1+0x0]
-  0.00%   2741c0  mov    r10,QWORD PTR [rsp+0x58]
-  2.32%   2741c5  sub    r10,r11
-  0.33%   2741c8  cmp    r10,0x102
-  0.41%   2741cf  mov    rbx,r11
-  0.01%   2741d2  mov    r11d,0x102
-  0.00%   2741d8  cmovb  r11,r10
-  0.38%   2741dc  mov    rax,QWORD PTR [rsp+0xe0]
-  0.03%   2741e4  cmp    rax,r11
-  0.19%   2741e7  mov    rcx,r11
-        ...
-  0.00%   2741f9  jmp    27445a <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x81a>
-  0.00%   2741fe  xchg   ax,ax
-  0.00%   274200  mov    QWORD PTR [rsp+0x8],rdi
-  0.04%   274205  movzx  edi,WORD PTR [r9+r15*2]
-  0.22%   27420a  mov    rax,QWORD PTR [rsp+0x70]
-  0.10%   27420f  mov    WORD PTR [rax+r14*2],bx
-  0.48%   274214  mov    WORD PTR [r9+r15*2],bx
-  0.06%   274219  mov    rax,QWORD PTR [rsp+0x50]
-  0.05%   27421e  mov    WORD PTR [rax+rbx*2],di
-  0.48%   274222  mov    r15d,DWORD PTR [r12+rbx*1]
-  0.09%   274226  mov    r14d,DWORD PTR [r12+rbx*1+0x1]
-  0.02%   27422b  mov    rax,rbx
-        ...
-  0.02%   27424d  mov    rax,rbx
-  0.06%   274250  mov    r12,rsi
-  0.01%   274253  cmp    rsi,0x3
-  0.01%   274257  je     27427d <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x63d>
-  0.00%   274259  mov    rax,QWORD PTR [rsp+0x18]
-  0.05%   27425e  mov    eax,DWORD PTR [rax+rbp*1]
-  0.61%   274261  xor    eax,DWORD PTR [rsp+0x48]
-  1.25%   274265  test   eax,0xffffff
-  0.31%   27426a  cmovne rbp,r15
-  0.40%   27426e  mov    rdx,r12
-  0.00%   274271  mov    eax,0x3
-  0.00%   274276  cmove  rdx,rax
-        ...
-  0.25%   2742bc  mov    rsi,rdx
-  0.00%   2742bf  sub    rsi,0x3
-  0.06%   2742c3  mov    r9,r13
-  0.00%   2742c6  mov    r13d,0x0
-  0.04%   2742cc  cmovae r13,rsi
-  0.10%   2742d0  mov    ebp,DWORD PTR [r8+r13*1]
-  0.83%   2742d4  add    r13,r12
-  0.00%   2742d7  cmp    DWORD PTR [rdi+r13*1],ebp
-  0.46%   2742db  sete   r12b
-  0.14%   2742df  mov    QWORD PTR [rsp+0x40],rbx
-  0.00%   2742e4  lea    rsi,[r9+rbx*1]
-        ...
-  0.00%   2742f0  mov    r9,QWORD PTR [rsp+0x30]
-  0.03%   2742f5  mov    esi,DWORD PTR [rsp+0x9c]
-  0.01%   2742fc  mov    rbx,rdx
-  0.00%   2742ff  test   r12b,0x1
-  0.18%   274303  jne    274310 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x6d0>
-  0.00%   274305  mov    r12,QWORD PTR [rsp+0x18]
-  0.44%   27430a  jmp    2743f0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7b0>
-  0.00%   27430f  nop
-  0.00%   274310  mov    r12,QWORD PTR [rsp+0x18]
-        ...
-  0.02%   2743ec  mov    rbx,rdx
-  0.00%   2743ef  nop
-  0.00%   2743f0  dec    esi
-  0.02%   2743f2  je     274420 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7e0>
-  0.00%   2743f4  mov    rdx,QWORD PTR [rsp+0x50]
-  0.02%   2743f9  movzx  edi,WORD PTR [rdx+rdi*2]
-  0.77%   2743fd  test   rdi,rdi
-  0.10%   274400  je     274420 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7e0>
-  0.00%   274402  cmp    DWORD PTR [r13+rdi*1+0x0],ebp
-  1.12%   274407  jne    2743f0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7b0>
-  0.00%   274409  mov    r12b,0x1
-  0.10%   27440c  test   r12b,0x1
-  0.00%   274410  je     274305 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x6c5>
-  0.00%   274416  jmp    274310 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x6d0>
-  0.00%   27441b  nop    DWORD PTR [rax+rax*1+0x0]
-  0.00%   274420  mov    rdx,rbx
-  0.53%   274423  mov    r13,QWORD PTR [rsp+0x38]
-  0.23%   274428  mov    rsi,QWORD PTR [rsp+0x28]
-  0.00%   27442d  mov    rbx,QWORD PTR [rsp+0x40]
-  0.22%   274432  imul   r15d,r14d,0x1e35a7bd
-  0.09%   274439  and    r14d,0xffffff
-  0.04%   274440  imul   r14d,r14d,0x1e35a7bd
-  0.05%   274447  shr    r14d,0x13
-  0.42%   27444b  shr    r15d,0x12
-  0.00%   27444f  mov    rcx,rbx
-  0.01%   274452  sub    rcx,rax
-        ...
-  0.13%   27445a  mov    r11,rbx
-  0.00%   27445d  cmp    rdx,QWORD PTR [rsp+0x78]
-  0.18%   274462  mov    r8,QWORD PTR [rsp+0x70]
-  0.04%   274467  mov    rbp,QWORD PTR [rsp+0xb8]
-  0.16%   27446f  jb     274488 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x848>
-  0.06%   274471  cmp    rdx,0x3
-  0.45%   274475  ja     274590 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x950>
-  0.00%   27447b  cmp    rcx,0x1000
-  0.06%   274482  jbe    274590 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x950>
-  0.01%   274488  movzx  eax,BYTE PTR [r12+r11*1]
-  0.40%   27448d  mov    rcx,QWORD PTR [rsp+0x60]
-  0.04%   274492  inc    DWORD PTR [rcx+rax*4]
-  0.47%   274495  cmp    QWORD PTR [rsp],0x0
-  0.00%   27449a  je     2744b1 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x871>
-  0.00%   27449c  mov    ecx,eax
-        ...
-  0.00%   274590  mov    rbx,rdi
-  0.00%   274593  dec    ecx
-  0.04%   274595  mov    eax,ecx
-  0.00%   274597  cmp    ecx,0x2
-  0.09%   27459a  jb     2745bb <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x97b>
-  0.00%   27459c  bsr    eax,ecx
-  0.70%   27459f  xor    eax,0x1f
-  0.10%   2745a2  mov    sil,0x1e
-  0.01%   2745a5  sub    sil,al
-        ...
-  0.01%   2745cb  shl    rcx,0x29
-  0.00%   2745cf  or     rcx,rdi
-  0.00%   2745d2  mov    eax,eax
-  0.14%   2745d4  movzx  esi,BYTE PTR [rdx+0x20a4f8]
-  0.02%   2745db  mov    rdi,QWORD PTR [rsp+0x60]
-  0.02%   2745e0  inc    DWORD PTR [rdi+rsi*4+0x404]
-  0.74%   2745e7  mov    rsi,QWORD PTR [rsp+0xd8]
-  0.00%   2745ef  inc    DWORD PTR [rsi+rax*4]
-  0.50%   2745f2  mov    rsi,rax
-  0.00%   2745f5  shl    rsi,0x38
-  0.00%   2745f9  or     rsi,rcx
-        ...
-  0.00%   274660  mov    rcx,QWORD PTR [rsp+0x50]
-  0.00%   274665  lea    rcx,[rcx+r11*2]
-  0.04%   274669  mov    esi,0x1
-  0.17%   27466e  xchg   ax,ax
-  0.00%   274670  lea    edi,[r11+rsi*1]
-  0.14%   274674  mov    WORD PTR [r8+r14*2],di
-  2.48%   274679  mov    r9,QWORD PTR [rsp+0x30]
-  0.23%   27467e  movzx  r9d,WORD PTR [r9+r15*2]
-  1.45%   274683  mov    WORD PTR [rcx+rsi*2],r9w
-  0.08%   274688  mov    r9,QWORD PTR [rsp+0x30]
-  0.17%   27468d  mov    WORD PTR [r9+r15*2],di
-  0.77%   274692  mov    edi,DWORD PTR [rax+rsi*1]
-  0.19%   274695  imul   r15d,edi,0x1e35a7bd
-  0.00%   27469c  and    edi,0xffffff
-  0.27%   2746a2  imul   r14d,edi,0x1e35a7bd
-  0.08%   2746a9  shr    r14d,0x13
-  0.40%   2746ad  shr    r15d,0x12
-  0.04%   2746b1  inc    rsi
-  0.06%   2746b4  cmp    rdx,rsi
+instructions executed (libdeflate, before, now; limits: carried):
+rtb_single.bin L1  77270654  90947373  86924611
+rtb_single.bin L2  124676102  132194856  120185417
+rtb_single.bin L5  158183584  147590344  131073476
+rtb_single.bin L9  165824458  154021489  136002710
+rtb_x6.bin L1  48173025  57794085  53197351
+rtb_x6.bin L2  82854842  93627373  84427790
+rtb_x6.bin L5  108496844  103418003  90991210
+rtb_x6.bin L9  120192404  113389698  98188989
+req_x24.bin L1  43496075  129095903  44150054
+req_x24.bin L2  76401508  182259007  84511233
+req_x24.bin L5  102341143  195124266  100978490
+req_x24.bin L9  124848221  230513039  121391207
+text_200k.bin L1  38466428  133784089  42319602
+text_200k.bin L2  61985065  171565669  74816701
+text_200k.bin L5  94662318  201913079  105747319
+text_200k.bin L9  213343311  378771666  192015059
