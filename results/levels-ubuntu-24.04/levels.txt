@@ -1,56 +1,44 @@
-machine: x86_64, 4 CPUs, Intel(R) Xeon(R) 6975P-C
+machine: x86_64, 4 CPUs, INTEL(R) XEON(R) PLATINUM 8573C
   L1d cache:                               96 KiB (2 instances)
   L2 cache:                                4 MiB (2 instances)
-  L3 cache:                                480 MiB (1 instance)
+  L3 cache:                                260 MiB (1 instance)
 rustc 1.100.0 (0ef1bc386 2026-11-09)
 
 now/before, as shares of libdeflate's time (run 1):
-capture.bin       L1 0.80/0.81  L2 0.91/0.92  L3 0.91/0.92  L5 0.82/0.87  L7 0.82/0.87  L9 0.81/0.86
-rtb_single.bin    L1 0.88/0.94  L2 0.99/1.02  L3 0.98/1.01  L5 0.95/0.98  L7 0.96/0.98  L9 0.93/0.97
-rtb_5k.bin        L1 0.92/0.97  L2 0.96/0.99  L3 0.96/0.99  L5 0.91/0.96  L7 0.92/0.97  L9 0.91/0.95
-rtb_x3.bin        L1 0.92/0.96  L2 1.00/1.06  L3 1.01/1.06  L5 0.95/1.05  L7 0.98/1.07  L9 0.96/1.04
-rtb_x6.bin        L1 0.87/0.90  L2 1.02/1.03  L3 1.02/1.03  L5 0.99/1.03  L7 1.04/1.08  L9 1.03/1.06
-req_x12.bin       L1 0.83/1.79  L2 1.06/1.56  L3 1.06/1.54  L5 1.03/1.50  L7 1.04/1.58  L9 1.01/1.56
-req_x24.bin       L1 0.81/1.82  L2 1.09/1.56  L3 1.08/1.55  L5 1.06/1.54  L7 1.07/1.63  L9 1.03/1.61
-req_x100.bin      L1 0.78/1.98  L2 1.10/1.65  L3 1.10/1.66  L5 1.08/1.64  L7 1.08/1.73  L9 1.04/1.69
-text_200k.bin     L1 1.07/2.00  L2 1.08/1.73  L3 1.08/1.70  L5 1.08/1.73  L7 1.06/1.93  L9 1.03/2.06
-code_200k.bin     L1 0.79/1.69  L2 1.07/1.54  L3 1.08/1.55  L5 1.09/1.57  L7 1.08/1.73  L9 1.04/1.76
-mixed_210k.bin    L1 0.82/1.82  L2 1.08/1.60  L3 1.09/1.62  L5 1.09/1.62  L7 1.08/1.73  L9 1.04/1.73
+capture.bin       L1 0.76/0.77  L2 0.86/0.89  L3 0.87/0.89  L5 0.80/0.84  L7 0.80/0.85  L9 0.78/0.83
+rtb_single.bin    L1 0.86/0.92  L2 0.94/0.97  L3 0.94/0.97  L5 0.92/0.96  L7 0.92/0.96  L9 0.90/0.94
+rtb_5k.bin        L1 0.88/0.95  L2 0.92/0.96  L3 0.92/0.96  L5 0.90/0.95  L7 0.91/0.95  L9 0.89/0.93
+rtb_x3.bin        L1 0.90/0.95  L2 0.97/1.01  L3 0.97/1.01  L5 0.95/0.99  L7 0.97/1.01  L9 0.95/0.99
+rtb_x6.bin        L1 0.85/0.90  L2 0.99/1.01  L3 1.00/1.02  L5 0.98/1.01  L7 1.04/1.05  L9 1.03/1.04
+req_x12.bin       L1 0.82/1.92  L2 1.03/1.66  L3 1.04/1.64  L5 1.02/1.59  L7 1.03/1.65  L9 1.01/1.61
+req_x24.bin       L1 0.80/1.94  L2 1.05/1.67  L3 1.06/1.66  L5 1.06/1.61  L7 1.06/1.68  L9 1.03/1.65
+req_x100.bin      L1 0.77/2.16  L2 1.08/1.83  L3 1.07/1.80  L5 1.08/1.73  L7 1.08/1.81  L9 1.05/1.78
+text_200k.bin     L1 1.08/2.20  L2 1.07/1.89  L3 1.07/1.85  L5 1.09/1.85  L7 1.08/2.02  L9 1.04/2.08
+code_200k.bin     L1 0.79/1.84  L2 1.06/1.66  L3 1.07/1.65  L5 1.09/1.65  L7 1.09/1.79  L9 1.05/1.80
+mixed_210k.bin    L1 0.82/1.97  L2 1.07/1.71  L3 1.07/1.71  L5 1.09/1.69  L7 1.09/1.79  L9 1.06/1.79
 
 now/before, as shares of libdeflate's time (run 2):
-capture.bin       L1 0.81/0.81  L2 0.90/0.92  L3 0.91/0.92  L5 0.82/0.87  L7 0.82/0.87  L9 0.81/0.86
-rtb_single.bin    L1 0.88/0.93  L2 0.99/1.02  L3 0.98/1.02  L5 0.94/0.98  L7 0.95/0.98  L9 0.93/0.97
-rtb_5k.bin        L1 0.91/0.97  L2 0.95/0.99  L3 0.96/0.99  L5 0.91/0.96  L7 0.93/0.97  L9 0.91/0.95
-rtb_x3.bin        L1 0.92/0.96  L2 1.00/1.03  L3 1.01/1.03  L5 0.95/1.01  L7 0.98/1.03  L9 0.96/1.01
-rtb_x6.bin        L1 0.87/0.90  L2 1.02/1.03  L3 1.02/1.03  L5 0.99/1.03  L7 1.04/1.08  L9 1.03/1.06
-req_x12.bin       L1 0.83/1.82  L2 1.06/1.56  L3 1.06/1.56  L5 1.03/1.54  L7 1.04/1.62  L9 1.01/1.59
-req_x24.bin       L1 0.81/1.84  L2 1.08/1.61  L3 1.08/1.60  L5 1.06/1.57  L7 1.07/1.65  L9 1.03/1.64
-req_x100.bin      L1 0.78/1.96  L2 1.10/1.68  L3 1.10/1.65  L5 1.08/1.65  L7 1.08/1.74  L9 1.04/1.73
-text_200k.bin     L1 1.08/1.98  L2 1.08/1.77  L3 1.08/1.75  L5 1.08/1.76  L7 1.06/1.97  L9 1.03/2.09
-code_200k.bin     L1 0.79/1.74  L2 1.07/1.57  L3 1.08/1.59  L5 1.09/1.61  L7 1.08/1.76  L9 1.04/1.79
-mixed_210k.bin    L1 0.82/1.84  L2 1.09/1.64  L3 1.09/1.63  L5 1.09/1.61  L7 1.09/1.76  L9 1.05/1.77
+capture.bin       L1 0.76/0.77  L2 0.87/0.88  L3 0.87/0.88  L5 0.80/0.84  L7 0.80/0.84  L9 0.78/0.82
+rtb_single.bin    L1 0.86/0.93  L2 0.94/0.98  L3 0.94/0.97  L5 0.91/0.96  L7 0.92/0.96  L9 0.90/0.94
+rtb_5k.bin        L1 0.89/0.95  L2 0.93/0.97  L3 0.93/0.96  L5 0.89/0.94  L7 0.90/0.95  L9 0.88/0.93
+rtb_x3.bin        L1 0.90/0.95  L2 0.97/1.01  L3 0.97/1.01  L5 0.94/0.99  L7 0.97/1.01  L9 0.95/0.99
+rtb_x6.bin        L1 0.86/0.90  L2 0.99/1.02  L3 0.99/1.02  L5 0.98/1.01  L7 1.03/1.06  L9 1.02/1.04
+req_x12.bin       L1 0.82/1.94  L2 1.03/1.66  L3 1.04/1.65  L5 1.02/1.59  L7 1.03/1.64  L9 1.01/1.61
+req_x24.bin       L1 0.80/1.97  L2 1.05/1.67  L3 1.05/1.66  L5 1.05/1.61  L7 1.06/1.67  L9 1.03/1.66
+req_x100.bin      L1 0.77/2.17  L2 1.08/1.81  L3 1.07/1.81  L5 1.07/1.74  L7 1.08/1.81  L9 1.05/1.78
+text_200k.bin     L1 1.08/2.21  L2 1.07/1.88  L3 1.07/1.86  L5 1.09/1.85  L7 1.08/2.00  L9 1.04/2.09
+code_200k.bin     L1 0.79/1.84  L2 1.06/1.67  L3 1.07/1.64  L5 1.09/1.65  L7 1.08/1.80  L9 1.05/1.80
+mixed_210k.bin    L1 0.82/2.00  L2 1.07/1.72  L3 1.07/1.70  L5 1.09/1.68  L7 1.09/1.80  L9 1.06/1.80
 
 instructions executed (libdeflate, before, now):
-rtb_single.bin L1  77268401  90945120  86692632
-rtb_single.bin L2  124673849  132192603  117255942
-rtb_single.bin L5  158181331  147588091  128398860
-rtb_single.bin L9  165822205  154019236  134293511
-rtb_x6.bin L1  48170772  57791832  53153133
-rtb_x6.bin L2  82852589  93625120  82840461
-rtb_x6.bin L5  108494591  103415750  89817318
-rtb_x6.bin L9  120190151  113387445  97795796
-req_x24.bin L1  43493822  129093650  44127168
-req_x24.bin L2  76399255  182256754  82288868
-req_x24.bin L5  102338890  195122013  101129104
-req_x24.bin L9  124845968  230510786  121720654
-text_200k.bin L1  38499536  133858785  42344792
-text_200k.bin L2  62055658  171540099  72081620
-text_200k.bin L5  94702542  202078913  106208190
-text_200k.bin L9  213678682  379248380  193138571
-code_200k.bin L1  49087430  152796821  54228619
-code_200k.bin L2  78122022  206449540  97377579
-code_200k.bin L5  116648412  241286990  135918401
-code_200k.bin L9  193440560  355695299  193776951
+rtb_single.bin L1  77269125  90954215  86694142
+rtb_single.bin L2  124674573  132201698  117257452
+rtb_single.bin L5  158182055  147597186  128400370
+rtb_single.bin L9  165822929  154028331  134295021
+rtb_x6.bin L1  48171496  57792556  53153843
+rtb_x6.bin L2  82853313  93625844  82841171
+rtb_x6.bin L5  108495315  103416474  89818028
+rtb_x6.bin L9  120190875  113388169  97796506
 
 now, level 2, rtb_single.bin:
 30,029,624 (25.61%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::greedy::<12, false> [/home/runner/wor
@@ -62,261 +50,438 @@ now, level 2, rtb_single.bin:
 grep: write error: Broken pipe
 _RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_: 39,012,333 instructions run
              ...
-     170,570   247070  cmp    %rdi,%r14
-     170,570   247073  cmovae 0x70(%rsp),%rdi
-     170,876   247079  movzwl 0x0(%rbp,%r12,2),%eax
-     170,876   24707f  cmp    %rdi,%r14
-     170,876   247082  jae    24734e <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
-     169,895   247088  test   %ax,%ax
-     169,895   24708b  mov    0x30(%rsp),%rbx
-     169,895   247090  jne    247353 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     170,570   2470b0  cmp    %rdi,%r14
+     170,570   2470b3  cmovae 0x70(%rsp),%rdi
+     170,876   2470b9  movzwl 0x0(%rbp,%r12,2),%eax
+     170,876   2470bf  cmp    %rdi,%r14
+     170,876   2470c2  jae    24738e <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     169,895   2470c8  test   %ax,%ax
+     169,895   2470cb  mov    0x30(%rsp),%rbx
+     169,895   2470d0  jne    247393 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
              ...
-     467,587   247160  mov    %r14w,0x0(%rbp,%r12,2)
-     467,587   247166  movzwl 0x0(%r13,%r15,2),%eax
-     467,587   24716c  mov    %r14w,0x0(%r13,%r15,2)
-     467,587   247172  mov    %ax,(%rbx,%r14,2)
-     467,587   247177  lea    0x1(%r14),%rax
-     467,587   24717b  mov    (%r10,%r14,1),%ecx
-     467,587   24717f  imul   $0x1e35a7bd,%ecx,%r15d
-     467,587   247186  and    $0xffffff,%ecx
-     467,587   24718c  imul   $0x1e35a7bd,%ecx,%r12d
-     467,587   247193  shr    $0x13,%r12d
-     467,587   247197  shr    $0x12,%r15d
-     467,587   24719b  movzbl -0x1(%r10,%r14,1),%ecx
-     467,587   2471a1  mov    0x80(%rsp),%rdx
-     467,587   2471a9  incl   (%rdx,%rcx,4)
-     467,587   2471ac  cmp    %rdi,%rax
-     467,587   2471af  jae    2471eb <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
-     467,405   2471b1  inc    %r14
-     467,405   2471b4  cmpw   $0x0,0x0(%rbp,%r12,2)
-     467,405   2471bb  je     247160 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     467,587   2471a0  mov    %r14w,0x0(%rbp,%r12,2)
+     467,587   2471a6  movzwl 0x0(%r13,%r15,2),%eax
+     467,587   2471ac  mov    %r14w,0x0(%r13,%r15,2)
+     467,587   2471b2  mov    %ax,(%rbx,%r14,2)
+     467,587   2471b7  lea    0x1(%r14),%rax
+     467,587   2471bb  mov    (%r10,%r14,1),%ecx
+     467,587   2471bf  imul   $0x1e35a7bd,%ecx,%r15d
+     467,587   2471c6  and    $0xffffff,%ecx
+     467,587   2471cc  imul   $0x1e35a7bd,%ecx,%r12d
+     467,587   2471d3  shr    $0x13,%r12d
+     467,587   2471d7  shr    $0x12,%r15d
+     467,587   2471db  movzbl -0x1(%r10,%r14,1),%ecx
+     467,587   2471e1  mov    0x80(%rsp),%rdx
+     467,587   2471e9  incl   (%rdx,%rcx,4)
+     467,587   2471ec  cmp    %rdi,%rax
+     467,587   2471ef  jae    24722b <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     467,405   2471f1  inc    %r14
+     467,405   2471f4  cmpw   $0x0,0x0(%rbp,%r12,2)
+     467,405   2471fb  je     2471a0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
              ...
-     170,876   247353  mov    0x78(%rsp),%r9
-     170,876   247358  sub    %r14,%r9
-     170,876   24735b  cmp    $0x102,%r9
-     170,876   247362  mov    $0x102,%r11d
-     170,876   247368  cmovb  %r9,%r11
-     170,876   24736c  mov    0xe0(%rsp),%rcx
-     170,876   247374  cmp    %r11,%rcx
-     170,876   247377  mov    %r11,%rdx
-     170,876   24737a  cmovb  %rcx,%rdx
-     170,876   24737e  cmp    $0x5,%r9
-     170,876   247382  jae    2473b0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     170,876   247393  mov    0x78(%rsp),%r9
+     170,876   247398  sub    %r14,%r9
+     170,876   24739b  cmp    $0x102,%r9
+     170,876   2473a2  mov    $0x102,%r11d
+     170,876   2473a8  cmovb  %r9,%r11
+     170,876   2473ac  mov    0xe0(%rsp),%rcx
+     170,876   2473b4  cmp    %r11,%rcx
+     170,876   2473b7  mov    %r11,%rdx
+     170,876   2473ba  cmovb  %rcx,%rdx
+     170,876   2473be  cmp    $0x5,%r9
+     170,876   2473c2  jae    2473f0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
              ...
-     169,713   2473b0  mov    %rdx,0x68(%rsp)
-     169,713   2473b5  mov    %rdi,0x10(%rsp)
-     169,713   2473ba  movzwl 0x0(%r13,%r15,2),%edi
-     169,713   2473c0  mov    %r14w,0x0(%rbp,%r12,2)
-     169,713   2473c6  mov    %r14w,0x0(%r13,%r15,2)
-     169,713   2473cc  mov    %di,(%rbx,%r14,2)
-     169,713   2473d1  mov    0x38(%rsp),%rcx
-     169,713   2473d6  mov    (%rcx,%r14,1),%edx
-     169,713   2473da  mov    %edx,0x5c(%rsp)
-     169,713   2473de  mov    0x1(%rcx,%r14,1),%r12d
-     169,713   2473e3  mov    0xc0(%rsp),%r15
-     169,713   2473eb  cmp    $0x4,%r15
-     169,713   2473ef  jae    247440 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
-     169,713   2473f1  movzwl %ax,%eax
-     169,713   2473f4  mov    %r14,%rcx
-     169,713   2473f7  mov    %r15,%rdx
-     169,713   2473fa  test   %rax,%rax
-     169,713   2473fd  je     2475ea <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
-     169,713   247403  mov    $0x3,%edx
-     169,713   247408  mov    %r14,%rcx
-     169,713   24740b  cmp    $0x3,%r15
-     169,713   24740f  je     247436 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     169,713   2473f0  mov    %rdx,0x68(%rsp)
+     169,713   2473f5  mov    %rdi,0x10(%rsp)
+     169,713   2473fa  movzwl 0x0(%r13,%r15,2),%edi
+     169,713   247400  mov    %r14w,0x0(%rbp,%r12,2)
+     169,713   247406  mov    %r14w,0x0(%r13,%r15,2)
+     169,713   24740c  mov    %di,(%rbx,%r14,2)
      169,713   247411  mov    0x38(%rsp),%rcx
-     169,713   247416  mov    (%rcx,%rax,1),%ecx
-     169,713   247419  xor    0x5c(%rsp),%ecx
-     169,713   24741d  test   $0xffffff,%ecx
-     169,713   247423  cmovne %r14,%rax
-     169,713   247427  mov    %r15,%rdx
-     169,713   24742a  mov    $0x3,%ecx
-     169,713   24742f  cmove  %rcx,%rdx
-     169,713   247433  mov    %rax,%rcx
-     169,713   247436  test   %rdi,%rdi
-     169,713   247439  jne    247460 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     169,713   247416  mov    (%rcx,%r14,1),%edx
+     169,713   24741a  mov    %edx,0x5c(%rsp)
+     169,713   24741e  mov    0x1(%rcx,%r14,1),%r12d
+     169,713   247423  mov    0xc0(%rsp),%r15
+     169,713   24742b  cmp    $0x4,%r15
+     169,713   24742f  jae    247480 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     169,713   247431  movzwl %ax,%eax
+     169,713   247434  mov    %r14,%rcx
+     169,713   247437  mov    %r15,%rdx
+     169,713   24743a  test   %rax,%rax
+     169,713   24743d  je     24762a <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     169,713   247443  mov    $0x3,%edx
+     169,713   247448  mov    %r14,%rcx
+     169,713   24744b  cmp    $0x3,%r15
+     169,713   24744f  je     247476 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     169,713   247451  mov    0x38(%rsp),%rcx
+     169,713   247456  mov    (%rcx,%rax,1),%ecx
+     169,713   247459  xor    0x5c(%rsp),%ecx
+     169,713   24745d  test   $0xffffff,%ecx
+     169,713   247463  cmovne %r14,%rax
+     169,713   247467  mov    %r15,%rdx
+     169,713   24746a  mov    $0x3,%ecx
+     169,713   24746f  cmove  %rcx,%rdx
+     169,713   247473  mov    %rax,%rcx
+     169,713   247476  test   %rdi,%rdi
+     169,713   247479  jne    2474a0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
              ...
-     169,713   2475ea  imul   $0x1e35a7bd,%r12d,%r15d
-     169,713   2475f1  and    $0xffffff,%r12d
-     169,713   2475f8  imul   $0x1e35a7bd,%r12d,%r12d
-     169,713   2475ff  shr    $0x13,%r12d
-     169,713   247603  shr    $0x12,%r15d
-     169,713   247607  mov    %r14,%rax
-     169,713   24760a  sub    %rcx,%rax
-     169,713   24760d  mov    0x10(%rsp),%rdi
-     169,713   247612  cmp    0xa0(%rsp),%rdx
-     169,713   24761a  jb     247632 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     169,713   24762a  imul   $0x1e35a7bd,%r12d,%r15d
+     169,713   247631  and    $0xffffff,%r12d
+     169,713   247638  imul   $0x1e35a7bd,%r12d,%r12d
+     169,713   24763f  shr    $0x13,%r12d
+     169,713   247643  shr    $0x12,%r15d
+     169,713   247647  mov    %r14,%rax
+     169,713   24764a  sub    %rcx,%rax
+     169,713   24764d  mov    0x10(%rsp),%rdi
+     169,713   247652  cmp    0xa0(%rsp),%rdx
+     169,713   24765a  jb     247672 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
              ...
-     170,876   247667  mov    0x78(%rsp),%rbx
-     170,876   24766c  sub    %r14,%rbx
-     170,876   24766f  jbe    2478e1 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
-     170,570   247675  mov    %rax,0x50(%rsp)
-     170,570   24767a  test   %r8,%r8
-     170,570   24767d  je     247070 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     170,876   2476a7  mov    0x78(%rsp),%rbx
+     170,876   2476ac  sub    %r14,%rbx
+     170,876   2476af  jbe    247921 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
+     170,570   2476b5  mov    %rax,0x50(%rsp)
+     170,570   2476ba  test   %r8,%r8
+     170,570   2476bd  je     2470b0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
              ...
-     440,108   247830  lea    (%r14,%rsi,1),%edi
-     440,108   247834  mov    %di,0x0(%rbp,%r12,2)
-     440,108   24783a  movzwl 0x0(%r13,%r15,2),%r10d
-     440,108   247840  mov    %r10w,(%rcx,%rsi,2)
-     440,108   247845  mov    %di,0x0(%r13,%r15,2)
-     440,108   24784b  mov    (%rax,%rsi,1),%edi
-     440,108   24784e  imul   $0x1e35a7bd,%edi,%r15d
-     440,108   247855  and    $0xffffff,%edi
-     440,108   24785b  imul   $0x1e35a7bd,%edi,%r12d
-     440,108   247862  shr    $0x13,%r12d
-     440,108   247866  shr    $0x12,%r15d
-     440,108   24786a  inc    %rsi
-     440,108   24786d  cmp    %rsi,%rdx
-     440,108   247870  jne    247830 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
-             ...
-
-now, level 5, rtb_single.bin:
-36,599,912 (28.50%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::lazy::<12, false, false> [/home/runne
-17,011,368 (13.25%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/write.rs:fastgzip::write::write_block [/home/runner/work/TheO
-13,283,191 (10.35%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::lazy::<13, false, false> [/home/runne
- 5,527,484 ( 4.30%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/huff.rs:fastgzip::huff::make_lens [/home/runner/work/TheOptim
- 3,044,228 ( 2.37%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/levels.rs:<fastgzip::levels::Levels>::deflate [/home/runner/w
- 2,873,276 ( 2.24%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/codes.rs:<fastgzip::codes::Codes>::build_own [/home/runner/wo
-grep: write error: Broken pipe
-_RINvNtCs1DOzvPKoZM3_8fastgzip4fast4lazyKmc_Kb0_KBG_EB4_: 47,387,116 instructions run
-             ...
-     463,197   23d610  mov    %r12w,0x0(%rbp,%r14,2)
-     463,197   23d616  movzwl 0x0(%r13,%r15,2),%eax
-     463,197   23d61c  mov    %r12w,0x0(%r13,%r15,2)
-     463,197   23d622  mov    %ax,(%rsi,%r12,2)
-     463,197   23d627  lea    0x1(%r12),%rax
-     463,197   23d62c  mov    (%r10,%r12,1),%ecx
-     463,197   23d630  imul   $0x1e35a7bd,%ecx,%r15d
-     463,197   23d637  and    $0xffffff,%ecx
-     463,197   23d63d  imul   $0x1e35a7bd,%ecx,%r14d
-     463,197   23d644  shr    $0x13,%r14d
-     463,197   23d648  shr    $0x12,%r15d
-     463,197   23d64c  movzbl -0x1(%r10,%r12,1),%ecx
-     463,197   23d652  incl   (%rbx,%rcx,4)
-     463,197   23d655  cmp    %r8,%rax
-     463,197   23d658  jae    23d697 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast4lazyKmc_Kb0_KBG_EB4
-     463,015   23d65a  inc    %r12
-     463,015   23d65d  cmpw   $0x0,0x0(%rbp,%r14,2)
-     463,015   23d664  je     23d610 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast4lazyKmc_Kb0_KBG_EB4
-             ...
-     295,476   23eb10  lea    (%r10,%r11,1),%eax
-     295,476   23eb14  mov    %ax,0x0(%rbp,%r14,2)
-     295,476   23eb1a  movzwl 0x0(%r13,%r15,2),%ebx
-     295,476   23eb20  mov    %bx,(%r8,%r11,2)
-     295,476   23eb25  mov    %ax,0x0(%r13,%r15,2)
-     295,476   23eb2b  mov    (%rsi,%r11,1),%eax
-     295,476   23eb2f  imul   $0x1e35a7bd,%eax,%r15d
-     295,476   23eb36  and    $0xffffff,%eax
-     295,476   23eb3b  imul   $0x1e35a7bd,%eax,%r14d
-     295,476   23eb42  shr    $0x13,%r14d
-     295,476   23eb46  shr    $0x12,%r15d
-     295,476   23eb4a  inc    %r11
-     295,476   23eb4d  cmp    %r11,%rdi
-     295,476   23eb50  jne    23eb10 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast4lazyKmc_Kb0_KBG_EB4
-             ...
-
-now, level 2, text_200k.bin:
-41,240,610 (57.21%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::greedy::<15, true> [/home/runner/work
- 8,442,143 (11.71%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/write.rs:fastgzip::write::write_block [/home/runner/work/TheO
- 2,898,267 ( 4.02%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ptr/mod.rs:fastgzip::fast::greedy::<15, true>
- 2,850,018 ( 3.95%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/num/uint_macros.rs:fastgzip::fast::greedy::<15, true>
- 2,781,008 ( 3.86%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/write.rs:fastgzip::fast::greedy::<15, true>
- 1,951,827 ( 2.71%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/levels.rs:fastgzip::fast::greedy::<15, true>
-grep: write error: Broken pipe
-_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmf_Kb1_EB4_: 55,786,607 instructions run
-             ...
-     354,385   249500  and    $0x7fff,%ebx
-     354,385   249506  mov    0x50(%rsp),%r10
-     354,385   24950b  movzwl (%r10,%rbx,2),%ebx
-     354,385   249510  cmp    %rbx,%rdx
-     354,385   249513  jae    249530 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmf_Kb1_EB4_+
-     307,898   249515  cmp    %r14d,(%rcx,%rbx,1)
-     307,898   249519  je     249521 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmf_Kb1_EB4_+
-     277,229   24951b  dec    %eax
-     277,229   24951d  jne    249500 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmf_Kb1_EB4_+
-             ...
-     988,743   2497a0  mov    %r13w,0x0(%rbp,%r12,2)
-     988,743   2497a6  movzwl (%r14,%r15,2),%edx
-     988,743   2497ab  mov    %rdi,%r12
-     988,743   2497ae  mov    %r13d,%edi
-     988,743   2497b1  and    $0x7fff,%edi
-     988,743   2497b7  mov    %dx,(%r10,%rdi,2)
-     988,743   2497bc  mov    %r12,%rdi
-     988,743   2497bf  mov    %r13w,(%r14,%r15,2)
-     988,743   2497c4  mov    0x1(%r12,%r13,1),%edx
-     988,743   2497c9  inc    %r13
-     988,743   2497cc  imul   $0x1e35a7bd,%edx,%r15d
-     988,743   2497d3  and    $0xffffff,%edx
-     988,743   2497d9  imul   $0x1e35a7bd,%edx,%r12d
-     988,743   2497e0  shr    $0x11,%r12d
-     988,743   2497e4  shr    $0x10,%r15d
-     988,743   2497e8  dec    %rcx
-     988,743   2497eb  jne    2497a0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmf_Kb1_EB4_+
+     440,108   247870  lea    (%r14,%rsi,1),%edi
+     440,108   247874  mov    %di,0x0(%rbp,%r12,2)
+     440,108   24787a  movzwl 0x0(%r13,%r15,2),%r10d
+     440,108   247880  mov    %r10w,(%rcx,%rsi,2)
+     440,108   247885  mov    %di,0x0(%r13,%r15,2)
+     440,108   24788b  mov    (%rax,%rsi,1),%edi
+     440,108   24788e  imul   $0x1e35a7bd,%edi,%r15d
+     440,108   247895  and    $0xffffff,%edi
+     440,108   24789b  imul   $0x1e35a7bd,%edi,%r12d
+     440,108   2478a2  shr    $0x13,%r12d
+     440,108   2478a6  shr    $0x12,%r15d
+     440,108   2478aa  inc    %rsi
+     440,108   2478ad  cmp    %rsi,%rdx
+     440,108   2478b0  jne    247870 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+
              ...
 
 where the time goes (share of samples by function):
-old level 2: 27.6 us a payload, 6007 samples (475761468)
-   59.2%  fastgzip::fast::greedy
-   18.7%  fastgzip::write::write_block
-    7.2%  fastgzip::huff::make_lens
-    4.3%  <fastgzip::codes::Codes>::write_header
-    3.6%  <fastgzip::codes::Codes>::build_own
-    2.8%  <fastgzip::levels::Levels>::deflate
-    2.7%  ??
-fg level 2: 26.6 us a payload, 6002 samples (493188628)
-   61.5%  fastgzip::fast::greedy
-   16.6%  fastgzip::write::write_block
-    8.1%  fastgzip::huff::make_lens
-    3.2%  <fastgzip::codes::Codes>::write_header
-    3.2%  <fastgzip::codes::Codes>::build_own
-    3.0%  ??
-    3.0%  <fastgzip::levels::Levels>::deflate
-old level 2: 27.4 us a payload, 6002 samples (477504184)
-   59.4%  fastgzip::fast::greedy
-   19.1%  fastgzip::write::write_block
-    7.9%  fastgzip::huff::make_lens
-    3.1%  <fastgzip::codes::Codes>::write_header
-    3.1%  <fastgzip::codes::Codes>::build_own
-    3.0%  <fastgzip::levels::Levels>::deflate
-    2.8%  ??
-fg level 2: 26.5 us a payload, 6001 samples (494059986)
-   62.2%  fastgzip::fast::greedy
-   15.7%  fastgzip::write::write_block
-    8.4%  fastgzip::huff::make_lens
+old level 2: 35.3 us a payload, 20006 samples (1235585644)
+   59.7%  fastgzip::fast::greedy
+   19.2%  fastgzip::write::write_block
+    7.6%  fastgzip::huff::make_lens
     3.5%  <fastgzip::codes::Codes>::write_header
     3.2%  <fastgzip::codes::Codes>::build_own
     2.8%  <fastgzip::levels::Levels>::deflate
+    2.5%  ??
+fg level 2: 33.6 us a payload, 20012 samples (1300066136)
+   61.6%  fastgzip::fast::greedy
+   16.4%  fastgzip::write::write_block
+    7.8%  fastgzip::huff::make_lens
+    3.6%  <fastgzip::codes::Codes>::write_header
+    3.4%  <fastgzip::codes::Codes>::build_own
+    3.0%  <fastgzip::levels::Levels>::deflate
     2.8%  ??
-old level 5: 31.9 us a payload, 6007 samples (403611448)
-   65.7%  fastgzip::fast::lazy
-   15.8%  fastgzip::write::write_block
-    7.0%  fastgzip::huff::make_lens
-    3.3%  <fastgzip::codes::Codes>::write_header
-    2.6%  <fastgzip::codes::Codes>::build_own
-    2.4%  ??
-    2.3%  <fastgzip::levels::Levels>::deflate
-fg level 5: 30.1 us a payload, 5999 samples (427554500)
-   65.9%  fastgzip::fast::lazy
-   13.5%  fastgzip::write::write_block
-    7.7%  fastgzip::huff::make_lens
-    3.4%  <fastgzip::codes::Codes>::write_header
-    3.0%  <fastgzip::codes::Codes>::build_own
-    2.9%  <fastgzip::levels::Levels>::deflate
-    2.3%  ??
-old level 5: 31.9 us a payload, 6006 samples (403611448)
-   65.3%  fastgzip::fast::lazy
-   15.6%  fastgzip::write::write_block
-    7.3%  fastgzip::huff::make_lens
-    3.0%  <fastgzip::codes::Codes>::write_header
-    2.8%  <fastgzip::codes::Codes>::build_own
-    2.5%  <fastgzip::levels::Levels>::deflate
-    2.3%  ??
-fg level 5: 30.0 us a payload, 6008 samples (428409609)
-   66.4%  fastgzip::fast::lazy
-   14.2%  fastgzip::write::write_block
-    6.2%  fastgzip::huff::make_lens
-    3.5%  <fastgzip::codes::Codes>::write_header
-    2.9%  <fastgzip::codes::Codes>::build_own
-    2.8%  ??
-    2.7%  <fastgzip::levels::Levels>::deflate
+
+6greedyKmc_EB4_: 44.3% of 20006 samples
+        ...
+  0.34%   247810  inc    r14
+  0.14%   247813  cmp    r14,r8
+  0.00%   247816  jae    247e73 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x733>
+  0.20%   24781c  mov    rcx,r8
+  0.23%   24781f  sub    rcx,r14
+  0.32%   247822  cmp    rcx,0x102
+  0.38%   247829  mov    r9d,0x102
+  0.36%   24782f  cmovb  r9,rcx
+  0.49%   247833  cmp    rbx,r9
+  0.52%   247836  mov    rsi,r9
+  0.34%   247839  cmovb  rsi,rbx
+  0.54%   24783d  cmp    rcx,0x5
+  0.00%   247841  jae    247860 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x120>
+  0.00%   247843  xor    eax,eax
+  0.00%   247845  mov    rdi,r10
+  0.00%   247848  cmp    rdi,QWORD PTR [rsp+0xb0]
+  0.00%   247850  jae    247b6a <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x42a>
+  0.00%   247856  jmp    247b80 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x440>
+  0.00%   24785b  nop    DWORD PTR [rax+rax*1+0x0]
+  0.24%   247860  movzx  edx,WORD PTR [r12+r15*2]
+  1.37%   247865  movzx  ebx,WORD PTR [r11+r13*2]
+  0.75%   24786a  mov    WORD PTR [r12+r15*2],r14w
+  0.33%   24786f  mov    WORD PTR [r11+r13*2],r14w
+  0.35%   247874  mov    rax,QWORD PTR [rsp+0x30]
+  0.34%   247879  mov    WORD PTR [rax+r14*2],bx
+  0.32%   24787e  lea    rax,[rbp+r14*1+0x0]
+  0.26%   247883  mov    QWORD PTR [rsp+0x40],rax
+  0.15%   247888  mov    r11d,DWORD PTR [rbp+r14*1+0x0]
+  0.29%   24788d  mov    eax,DWORD PTR [rbp+r14*1+0x1]
+  0.37%   247892  imul   r13d,eax,0x1e35a7bd
+  0.25%   247899  and    eax,0xffffff
+  0.17%   24789e  imul   r15d,eax,0x1e35a7bd
+  0.33%   2478a5  shr    r15d,0x13
+  0.21%   2478a9  shr    r13d,0x12
+  0.22%   2478ad  mov    r12,r14
+  0.13%   2478b0  cmp    r10,0x4
+  0.00%   2478b4  jae    247940 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x200>
+  0.41%   2478ba  mov    rdi,r10
+  0.31%   2478bd  test   rdx,rdx
+  0.10%   2478c0  je     247b40 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x400>
+  0.39%   2478c6  mov    QWORD PTR [rsp+0x38],rsi
+  3.50%   2478cb  mov    edi,0x3
+  0.05%   2478d0  mov    rsi,r14
+  0.01%   2478d3  mov    r10,QWORD PTR [rsp+0x20]
+  0.03%   2478d8  cmp    r10,0x3
+  0.00%   2478dc  je     2478fd <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x1bd>
+  0.34%   2478de  mov    eax,DWORD PTR [rbp+rdx*1+0x0]
+  0.04%   2478e2  xor    eax,r11d
+  0.03%   2478e5  test   eax,0xffffff
+  0.03%   2478ea  cmovne rdx,r14
+  0.57%   2478ee  mov    rdi,r10
+  0.01%   2478f1  mov    eax,0x3
+  0.02%   2478f6  cmove  rdi,rax
+  0.01%   2478fa  mov    rsi,rdx
+  0.09%   2478fd  test   rbx,rbx
+  0.01%   247900  je     247935 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x1f5>
+  0.25%   247902  mov    r10d,DWORD PTR [rsp+0x4c]
+  1.43%   247907  mov    r12,rbx
+  0.11%   24790a  nop    WORD PTR [rax+rax*1+0x0]
+  0.08%   247910  cmp    DWORD PTR [rbp+r12*1+0x0],r11d
+  0.00%   247915  je     247aa3 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x363>
+  0.27%   24791b  mov    rax,QWORD PTR [rsp+0x30]
+  0.54%   247920  movzx  r12d,WORD PTR [rax+r12*2]
+  0.11%   247925  sub    r10d,0x1
+  0.00%   247929  setb   al
+        ...
+  0.10%   247984  cmp    DWORD PTR [rdi+rsi*1-0x3],edx
+  0.00%   247988  jne    24798f <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x24f>
+  0.07%   24798a  cmp    DWORD PTR [rsi],r11d
+  0.00%   24798d  je     2479c0 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x280>
+  0.13%   24798f  mov    rax,QWORD PTR [rsp+0x30]
+  0.02%   247994  movzx  ebx,WORD PTR [rax+rbx*2]
+  0.44%   247998  sub    r10d,0x1
+  0.09%   24799c  setb   al
+  0.06%   24799f  test   rbx,rbx
+        ...
+  0.09%   247aa7  mov    edi,0x4
+  0.01%   247aac  cmp    rcx,0xc
+  0.00%   247ab0  jb     247ade <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x39e>
+  0.03%   247ab2  mov    esi,0xc
+  0.01%   247ab7  nop    WORD PTR [rax+rax*1+0x0]
+  0.03%   247ac0  mov    r8,QWORD PTR [rdx+rdi*1]
+  0.88%   247ac4  lea    rax,[r14+rbp*1]
+  0.03%   247ac8  mov    rax,QWORD PTR [rax+rdi*1]
+  0.14%   247acc  cmp    r8,rax
+        ...
+  0.00%   247b2c  movzx  ebx,WORD PTR [rax+r12*2]
+  0.04%   247b31  test   rbx,rbx
+  0.00%   247b34  je     247b40 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x400>
+  0.17%   247b36  test   r10d,r10d
+  0.00%   247b39  jne    247968 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x228>
+  0.00%   247b3f  nop
+  0.83%   247b40  mov    rax,r14
+  1.02%   247b43  sub    rax,r12
+  1.89%   247b46  mov    rbx,QWORD PTR [rsp+0xa8]
+  1.26%   247b4e  mov    r12,QWORD PTR [rsp+0xa0]
+  0.48%   247b56  mov    r11,QWORD PTR [rsp+0x60]
+  0.59%   247b5b  mov    r10,QWORD PTR [rsp+0x20]
+  0.83%   247b60  cmp    rdi,QWORD PTR [rsp+0xb0]
+  0.00%   247b68  jb     247b80 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x440>
+  0.27%   247b6a  cmp    rdi,0x3
+  0.00%   247b6e  ja     247c20 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x4e0>
+  0.24%   247b74  cmp    rax,0x1000
+  0.00%   247b7a  jbe    247c20 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x4e0>
+  0.33%   247b80  movzx  eax,BYTE PTR [rbp+r14*1+0x0]
+  0.65%   247b86  mov    rcx,QWORD PTR [rsp+0x68]
+  0.42%   247b8b  inc    DWORD PTR [rcx+rax*4]
+  1.33%   247b8e  cmp    QWORD PTR [rsp+0x28],0x0
+  0.22%   247b94  je     247810 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0xd0>
+  0.00%   247b9a  mov    ecx,eax
+        ...
+  0.02%   247c5e  mov    esi,0x0
+  0.02%   247c63  cmovb  ecx,esi
+  0.09%   247c66  mov    r9d,0xffffffff
+  0.02%   247c6c  shl    r9d,cl
+  0.09%   247c6f  mov    esi,r8d
+  0.13%   247c72  not    r9d
+  0.35%   247c75  and    eax,r9d
+  0.21%   247c78  movzx  r8d,BYTE PTR [rdi+0x208c00]
+  0.12%   247c80  mov    r9,QWORD PTR [rsp+0x68]
+        ...
+  0.02%   247dd3  lea    rdx,[rdx+r14*2]
+  0.08%   247dd7  inc    r14d
+  0.04%   247dda  movzx  esi,r14w
+  0.03%   247dde  xor    r8d,r8d
+  0.09%   247de1  data16 data16 data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+  0.20%   247df0  lea    r9d,[rsi+r8*1]
+  0.36%   247df4  mov    WORD PTR [r12+r15*2],r9w
+  1.06%   247df9  movzx  r10d,WORD PTR [r11+r13*2]
+  0.47%   247dfe  mov    WORD PTR [rdx+r8*2],r10w
+  0.42%   247e03  mov    WORD PTR [r11+r13*2],r9w
+  0.55%   247e08  mov    r9d,DWORD PTR [rcx+r8*1]
+  0.14%   247e0c  imul   r13d,r9d,0x1e35a7bd
+  0.18%   247e13  and    r9d,0xffffff
+  0.20%   247e1a  imul   r15d,r9d,0x1e35a7bd
+  0.20%   247e21  shr    r15d,0x13
+  0.41%   247e25  shr    r13d,0x12
+  0.18%   247e29  inc    r8
+  0.43%   247e2c  cmp    rdi,r8
+  0.00%   247e2f  jne    247df0 <_RINvNtCs8eLNAe9K9Ab_8fastgzip4fast6greedyKmc_EB4_+0x6b0>
+  0.09%   247e31  mov    r14,QWORD PTR [rsp+0x18]
+
+6greedyKmc_Kb0_: 45.1% of 20012 samples
+        ...
+  0.00%   2739ae  add    DWORD PTR [r8+0x50],eax
+  0.00%   2739b2  add    r14,rax
+  0.00%   2739b5  mov    r10,QWORD PTR [rsp+0x18]
+  0.00%   2739ba  mov    rbx,QWORD PTR [rsp+0x30]
+  0.00%   2739bf  jmp    273ba0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x440>
+  0.00%   2739c4  data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+  0.35%   2739d0  mov    WORD PTR [rbp+r12*2+0x0],r14w
+  1.06%   2739d6  movzx  eax,WORD PTR [r13+r15*2+0x0]
+  0.52%   2739dc  mov    WORD PTR [r13+r15*2+0x0],r14w
+  0.22%   2739e2  mov    WORD PTR [rbx+r14*2],ax
+  0.19%   2739e7  lea    rax,[r14+0x1]
+  0.19%   2739eb  mov    ecx,DWORD PTR [r10+r14*1]
+  0.23%   2739ef  imul   r15d,ecx,0x1e35a7bd
+  0.20%   2739f6  and    ecx,0xffffff
+  0.17%   2739fc  imul   r12d,ecx,0x1e35a7bd
+  0.72%   273a03  shr    r12d,0x13
+  0.22%   273a07  shr    r15d,0x12
+  0.17%   273a0b  movzx  ecx,BYTE PTR [r10+r14*1-0x1]
+  0.30%   273a11  mov    rdx,QWORD PTR [rsp+0x80]
+  0.35%   273a19  inc    DWORD PTR [rdx+rcx*4]
+  1.28%   273a1c  cmp    rax,rdi
+  0.00%   273a1f  jae    273a5b <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x2fb>
+  0.81%   273a21  inc    r14
+  0.45%   273a24  cmp    WORD PTR [rbp+r12*2+0x0],0x0
+  1.25%   273a2b  je     2739d0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x270>
+  0.61%   273a2d  jmp    273ba0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x440>
+  0.00%   273a32  data16 data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+  0.00%   273a40  mov    ecx,DWORD PTR [r8+0x50]
+        ...
+  0.00%   273b83  mov    rbx,QWORD PTR [rsp+0x30]
+  0.00%   273b88  jae    273ba0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x440>
+  0.00%   273b8a  cmp    WORD PTR [rbp+r12*2+0x0],0x0
+  0.00%   273b91  je     273910 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x1b0>
+  0.00%   273b97  nop    WORD PTR [rax+rax*1+0x0]
+  0.21%   273ba0  movzx  eax,WORD PTR [rbp+r12*2+0x0]
+  3.14%   273ba6  cmp    r14,rdi
+  0.00%   273ba9  jae    273bc3 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x463>
+  0.00%   273bab  test   ax,ax
+  0.00%   273bae  je     273910 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x1b0>
+  0.01%   273bb4  jmp    273bc3 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x463>
+  0.00%   273bb6  movzx  eax,WORD PTR [rbp+r12*2+0x0]
+  0.00%   273bbc  xor    edi,edi
+  0.01%   273bbe  mov    rbx,QWORD PTR [rsp+0x30]
+  0.50%   273bc3  mov    r9,QWORD PTR [rsp+0x78]
+  1.22%   273bc8  sub    r9,r14
+  0.03%   273bcb  cmp    r9,0x102
+  0.04%   273bd2  mov    r11d,0x102
+  1.02%   273bd8  cmovb  r11,r9
+  0.15%   273bdc  mov    rcx,QWORD PTR [rsp+0xe0]
+  0.02%   273be4  cmp    rcx,r11
+  0.05%   273be7  mov    rdx,r11
+  0.60%   273bea  cmovb  rdx,rcx
+  0.36%   273bee  cmp    r9,0x5
+  0.00%   273bf2  jae    273c20 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x4c0>
+  0.00%   273bf4  xor    eax,eax
+        ...
+  0.06%   273c2a  movzx  edi,WORD PTR [r13+r15*2+0x0]
+  0.17%   273c30  mov    WORD PTR [rbp+r12*2+0x0],r14w
+  0.34%   273c36  mov    WORD PTR [r13+r15*2+0x0],r14w
+  0.05%   273c3c  mov    WORD PTR [rbx+r14*2],di
+  0.08%   273c41  mov    rcx,QWORD PTR [rsp+0x38]
+  0.02%   273c46  mov    edx,DWORD PTR [rcx+r14*1]
+  0.52%   273c4a  mov    DWORD PTR [rsp+0x5c],edx
+  0.05%   273c4e  mov    r12d,DWORD PTR [rcx+r14*1+0x1]
+  0.03%   273c53  mov    r15,QWORD PTR [rsp+0xc0]
+        ...
+  0.00%   273cbb  jae    273e5a <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x6fa>
+  0.00%   273cc1  mov    rcx,r14
+  0.00%   273cc4  mov    rdx,r15
+  0.00%   273cc7  test   di,di
+  0.00%   273cca  je     273e5a <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x6fa>
+  0.18%   273cd0  mov    QWORD PTR [rsp+0x60],rcx
+  1.32%   273cd5  mov    DWORD PTR [rsp+0x2c],r12d
+  0.00%   273cda  mov    rcx,QWORD PTR [rsp+0x38]
+  0.02%   273cdf  lea    rbx,[rcx+r14*1]
+  0.01%   273ce3  mov    rax,rdx
+  0.00%   273ce6  sub    rax,0x3
+  0.02%   273cea  mov    r15d,0x0
+  0.03%   273cf0  cmovae r15,rax
+  0.01%   273cf4  mov    QWORD PTR [rsp+0xb0],rbx
+  0.75%   273cfc  mov    eax,DWORD PTR [rbx+r15*1]
+  0.22%   273d00  add    r15,rcx
+  0.00%   273d03  cmp    DWORD PTR [rdi+r15*1],eax
+        ...
+  0.00%   273d44  jb     273d81 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x621>
+  0.00%   273d46  mov    rcx,QWORD PTR [rsp+0x18]
+  0.01%   273d4b  lea    r10,[rcx+rdi*1]
+  0.00%   273d4f  mov    ebx,0xc
+  0.03%   273d54  data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+  0.04%   273d60  mov    rsi,QWORD PTR [r10+rbx*1-0x9]
+  0.47%   273d65  mov    rcx,QWORD PTR [rsp+0x48]
+  0.25%   273d6a  mov    rcx,QWORD PTR [rcx+rbx*1-0x9]
+  0.08%   273d6f  cmp    rsi,rcx
+        ...
+  0.03%   273dfa  add    r15,0xfffffffffffffffd
+  0.00%   273dfe  mov    rcx,rdi
+  0.00%   273e01  mov    QWORD PTR [rsp+0x40],rdx
+  0.00%   273e06  jmp    273e20 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x6c0>
+  0.00%   273e08  nop    DWORD PTR [rax+rax*1+0x0]
+  0.15%   273e10  mov    rbx,QWORD PTR [rsp+0x30]
+  0.60%   273e15  mov    rcx,QWORD PTR [rsp+0x60]
+  0.00%   273e1a  nop    WORD PTR [rax+rax*1+0x0]
+  0.60%   273e20  dec    r12d
+  0.00%   273e23  je     273e50 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x6f0>
+  0.11%   273e25  movzx  edi,WORD PTR [rbx+rdi*2]
+  0.56%   273e29  test   rdi,rdi
+  0.00%   273e2c  je     273e50 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x6f0>
+  0.26%   273e2e  cmp    DWORD PTR [r15+rdi*1],eax
+        ...
+  0.18%   273e39  mov    bl,0x1
+  0.00%   273e3b  test   bl,0x1
+  0.00%   273e3e  jne    273d29 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x5c9>
+  0.00%   273e44  jmp    273e10 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x6b0>
+  0.00%   273e46  cs nop WORD PTR [rax+rax*1+0x0]
+  0.30%   273e50  mov    rdx,QWORD PTR [rsp+0x40]
+  0.84%   273e55  mov    r12d,DWORD PTR [rsp+0x2c]
+  0.28%   273e5a  imul   r15d,r12d,0x1e35a7bd
+  0.63%   273e61  and    r12d,0xffffff
+  0.06%   273e68  imul   r12d,r12d,0x1e35a7bd
+  0.05%   273e6f  shr    r12d,0x13
+        ...
+  0.00%   273e8a  jb     273ea2 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x742>
+  0.29%   273e8c  cmp    rdx,0x3
+  0.00%   273e90  ja     273fb0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x850>
+  0.31%   273e96  cmp    rax,0x1000
+  0.00%   273e9c  jbe    273fb0 <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x850>
+  0.21%   273ea2  mov    rax,QWORD PTR [rsp+0x38]
+  0.65%   273ea7  movzx  eax,BYTE PTR [rax+r14*1]
+  0.10%   273eac  mov    rcx,QWORD PTR [rsp+0x80]
+  0.01%   273eb4  inc    DWORD PTR [rcx+rax*4]
+  0.40%   273eb7  test   r8,r8
+  0.00%   273eba  je     273ecf <_RINvNtCs1DOzvPKoZM3_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x76f>
+  0.00%   273ebc  mov    ecx,eax
+        ...
+  0.01%   273fec  or     rdi,rsi
+  0.07%   273fef  shl    rax,0x29
+  0.06%   273ff3  or     rax,rdi
+  0.05%   273ff6  mov    ecx,ecx
+  0.17%   273ff8  movzx  esi,BYTE PTR [rdx+0x20a950]
+  0.06%   273fff  mov    rdi,QWORD PTR [rsp+0x80]
+  0.49%   274007  inc    DWORD PTR [rdi+rsi*4+0x404]
+  0.63%   27400e  mov    rsi,QWORD PTR [rsp+0xd8]
+  0.11%   274016  inc    DWORD PTR [rsi+rcx*4]
+  0.31%   274019  shl    rcx,0x38
+        ...
+  0.03%   274080  mov    QWORD PTR [rsp+0x50],rax
+  0.04%   274085  lea    rax,[r10+r14*1]
+  0.02%   274089  lea    rcx,[rbx+r14*2]
+  0.05%   27408d  mov    esi,0x1
+  0.02%   274092  data16 data16 data16 data16 cs nop WORD PTR [rax+rax*1+0x0]
+  0.25%   2740a0  lea    edi,[r14+rsi*1]
+  0.44%   2740a4  mov    WORD PTR [rbp+r12*2+0x0],di
+  0.75%   2740aa  movzx  r10d,WORD PTR [r13+r15*2+0x0]
+  0.48%   2740b0  mov    WORD PTR [rcx+rsi*2],r10w
+  0.28%   2740b5  mov    WORD PTR [r13+r15*2+0x0],di
+  0.31%   2740bb  mov    edi,DWORD PTR [rax+rsi*1]
+  0.21%   2740be  imul   r15d,edi,0x1e35a7bd
+  0.18%   2740c5  and    edi,0xffffff
+  0.33%   2740cb  imul   r12d,edi,0x1e35a7bd
+  0.35%   2740d2  shr    r12d,0x13
+  0.26%   2740d6  shr    r15d,0x12
+  0.21%   2740da  inc    rsi

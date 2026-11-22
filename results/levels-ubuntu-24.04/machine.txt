@@ -1,5 +1,5 @@
 x86_64
-Model name:                              Intel(R) Xeon(R) 6975P-C
+Model name:                              INTEL(R) XEON(R) PLATINUM 8573C
 L1d cache:                               96 KiB (2 instances)
 L2 cache:                                4 MiB (2 instances)
-L3 cache:                                480 MiB (1 instance)
+L3 cache:                                260 MiB (1 instance)

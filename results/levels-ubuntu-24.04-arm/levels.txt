@@ -5,52 +5,40 @@ machine: aarch64, 4 CPUs, Neoverse-N2
 rustc 1.100.0 (0ef1bc386 2026-11-09)
 
 now/before, as shares of libdeflate's time (run 1):
-capture.bin       L1 0.84/0.85  L2 0.78/0.78  L3 0.78/0.78  L5 0.74/0.76  L7 0.74/0.76  L9 0.75/0.76
-rtb_single.bin    L1 0.85/0.88  L2 0.84/0.82  L3 0.84/0.81  L5 0.83/0.81  L7 0.84/0.82  L9 0.84/0.82
-rtb_5k.bin        L1 0.86/0.89  L2 0.83/0.81  L3 0.83/0.81  L5 0.82/0.80  L7 0.83/0.81  L9 0.83/0.81
-rtb_x3.bin        L1 0.88/0.91  L2 0.91/0.90  L3 0.91/0.90  L5 0.87/0.87  L7 0.90/0.89  L9 0.90/0.88
-rtb_x6.bin        L1 0.85/0.88  L2 0.93/0.91  L3 0.93/0.91  L5 0.90/0.89  L7 0.95/0.93  L9 0.96/0.94
-req_x12.bin       L1 0.82/1.90  L2 0.99/1.58  L3 0.99/1.55  L5 0.97/1.51  L7 0.98/1.56  L9 0.94/1.53
-req_x24.bin       L1 0.82/1.90  L2 1.01/1.58  L3 1.01/1.55  L5 0.96/1.48  L7 0.95/1.51  L9 0.96/1.54
-req_x100.bin      L1 0.81/2.12  L2 1.04/1.71  L3 1.03/1.66  L5 1.03/1.62  L7 1.04/1.67  L9 1.01/1.66
-text_200k.bin     L1 1.00/2.10  L2 1.01/1.70  L3 1.00/1.61  L5 1.00/1.66  L7 0.97/1.76  L9 0.93/1.85
-code_200k.bin     L1 0.82/1.81  L2 1.03/1.54  L3 1.02/1.50  L5 1.02/1.55  L7 1.00/1.63  L9 0.97/1.69
-mixed_210k.bin    L1 0.86/1.96  L2 1.03/1.63  L3 1.02/1.57  L5 1.00/1.57  L7 0.99/1.64  L9 0.97/1.68
+capture.bin       L1 0.86/0.86  L2 0.79/0.79  L3 0.79/0.79  L5 0.75/0.77  L7 0.75/0.77  L9 0.75/0.77
+rtb_single.bin    L1 0.86/0.90  L2 0.85/0.83  L3 0.85/0.82  L5 0.84/0.82  L7 0.85/0.83  L9 0.85/0.83
+rtb_5k.bin        L1 0.86/0.90  L2 0.84/0.82  L3 0.84/0.82  L5 0.83/0.81  L7 0.83/0.82  L9 0.84/0.82
+rtb_x3.bin        L1 0.89/0.92  L2 0.92/0.91  L3 0.92/0.91  L5 0.89/0.88  L7 0.90/0.89  L9 0.91/0.89
+rtb_x6.bin        L1 0.85/0.89  L2 0.94/0.92  L3 0.94/0.92  L5 0.91/0.90  L7 0.95/0.93  L9 0.97/0.94
+req_x12.bin       L1 0.82/1.91  L2 0.99/1.58  L3 0.99/1.55  L5 0.97/1.51  L7 0.96/1.55  L9 0.96/1.56
+req_x24.bin       L1 0.82/1.91  L2 1.02/1.59  L3 1.01/1.55  L5 0.99/1.52  L7 0.98/1.56  L9 0.99/1.60
+req_x100.bin      L1 0.82/2.11  L2 1.04/1.71  L3 1.03/1.66  L5 1.01/1.62  L7 1.00/1.67  L9 0.99/1.68
+text_200k.bin     L1 1.01/2.10  L2 1.01/1.70  L3 1.00/1.61  L5 1.01/1.66  L7 0.98/1.76  L9 0.94/1.86
+code_200k.bin     L1 0.83/1.81  L2 1.03/1.55  L3 1.02/1.50  L5 1.03/1.56  L7 1.01/1.63  L9 0.97/1.70
+mixed_210k.bin    L1 0.86/1.96  L2 1.03/1.62  L3 1.02/1.57  L5 1.01/1.58  L7 1.00/1.65  L9 0.98/1.69
 
 now/before, as shares of libdeflate's time (run 2):
-capture.bin       L1 0.84/0.85  L2 0.78/0.78  L3 0.78/0.78  L5 0.74/0.76  L7 0.75/0.76  L9 0.75/0.76
-rtb_single.bin    L1 0.86/0.89  L2 0.84/0.81  L3 0.83/0.81  L5 0.83/0.81  L7 0.84/0.82  L9 0.84/0.82
-rtb_5k.bin        L1 0.86/0.90  L2 0.83/0.81  L3 0.83/0.81  L5 0.82/0.80  L7 0.83/0.81  L9 0.83/0.81
-rtb_x3.bin        L1 0.88/0.91  L2 0.91/0.90  L3 0.91/0.90  L5 0.87/0.87  L7 0.90/0.89  L9 0.90/0.88
-rtb_x6.bin        L1 0.85/0.88  L2 0.93/0.91  L3 0.93/0.91  L5 0.90/0.89  L7 0.94/0.92  L9 0.95/0.93
-req_x12.bin       L1 0.81/1.90  L2 1.00/1.58  L3 0.99/1.55  L5 0.96/1.51  L7 0.97/1.55  L9 0.98/1.57
-req_x24.bin       L1 0.82/1.91  L2 1.02/1.59  L3 1.01/1.55  L5 0.99/1.52  L7 1.02/1.58  L9 0.98/1.57
-req_x100.bin      L1 0.81/2.12  L2 1.03/1.71  L3 1.03/1.66  L5 0.98/1.56  L7 0.97/1.59  L9 0.95/1.60
-text_200k.bin     L1 1.00/2.10  L2 1.00/1.69  L3 0.99/1.60  L5 0.97/1.57  L7 0.94/1.66  L9 0.93/1.81
-code_200k.bin     L1 0.82/1.82  L2 1.02/1.54  L3 1.01/1.49  L5 1.00/1.47  L7 0.98/1.54  L9 0.97/1.65
-mixed_210k.bin    L1 0.85/1.96  L2 1.03/1.63  L3 1.02/1.58  L5 1.02/1.59  L7 1.01/1.66  L9 0.99/1.70
+capture.bin       L1 0.85/0.86  L2 0.79/0.79  L3 0.79/0.79  L5 0.75/0.77  L7 0.75/0.77  L9 0.75/0.77
+rtb_single.bin    L1 0.86/0.89  L2 0.84/0.82  L3 0.84/0.81  L5 0.84/0.82  L7 0.84/0.82  L9 0.85/0.82
+rtb_5k.bin        L1 0.86/0.90  L2 0.84/0.82  L3 0.84/0.81  L5 0.82/0.80  L7 0.83/0.81  L9 0.83/0.81
+rtb_x3.bin        L1 0.88/0.91  L2 0.91/0.91  L3 0.91/0.90  L5 0.88/0.88  L7 0.90/0.89  L9 0.91/0.89
+rtb_x6.bin        L1 0.85/0.89  L2 0.93/0.91  L3 0.93/0.92  L5 0.91/0.90  L7 0.95/0.94  L9 0.97/0.94
+req_x12.bin       L1 0.82/1.90  L2 0.99/1.58  L3 0.99/1.55  L5 0.97/1.51  L7 0.97/1.55  L9 0.95/1.54
+req_x24.bin       L1 0.82/1.91  L2 1.02/1.59  L3 1.02/1.55  L5 1.00/1.53  L7 1.01/1.57  L9 0.99/1.60
+req_x100.bin      L1 0.81/2.12  L2 1.04/1.71  L3 1.03/1.66  L5 1.02/1.63  L7 1.01/1.67  L9 1.00/1.69
+text_200k.bin     L1 1.01/2.11  L2 1.01/1.70  L3 1.00/1.61  L5 1.00/1.66  L7 0.97/1.76  L9 0.93/1.85
+code_200k.bin     L1 0.82/1.81  L2 1.03/1.54  L3 1.02/1.50  L5 1.03/1.56  L7 1.00/1.63  L9 0.97/1.70
+mixed_210k.bin    L1 0.86/1.96  L2 1.03/1.63  L3 1.02/1.58  L5 1.02/1.59  L7 1.00/1.65  L9 0.99/1.70
 
 instructions executed (libdeflate, before, now):
-rtb_single.bin L1  78087316  65960532  64202919
-rtb_single.bin L2  131248674  88221426  83040287
-rtb_single.bin L5  154897500  99529291  91648932
-rtb_single.bin L9  162972538  104762436  97554092
-rtb_x6.bin L1  50244214  42795263  40110067
-rtb_x6.bin L2  88537592  68591518  64165882
-rtb_x6.bin L5  106590509  76508359  68144946
-rtb_x6.bin L9  119019595  84716349  75617410
-req_x24.bin L1  45134953  117896581  37581863
-req_x24.bin L2  80677308  158156998  73067234
-req_x24.bin L5  99531728  173224322  84967801
-req_x24.bin L9  122836024  204460771  99735957
-text_200k.bin L1  38624793  119321832  35789335
-text_200k.bin L2  64023849  145906210  62135890
-text_200k.bin L5  90515827  174596612  85555018
-text_200k.bin L9  208998064  333529039  155555854
-code_200k.bin L1  48457743  133556796  43336812
-code_200k.bin L2  80655368  170469735  82446916
-code_200k.bin L5  107892759  199964527  105962732
-code_200k.bin L9  178037522  294641228  148676332
+rtb_single.bin L1  78087329  65960545  64202919
+rtb_single.bin L2  131248687  88221439  83040287
+rtb_single.bin L5  154897513  99529304  91648932
+rtb_single.bin L9  162972551  104762449  97554092
+rtb_x6.bin L1  50244227  42795276  40110067
+rtb_x6.bin L2  88537605  68591531  64165882
+rtb_x6.bin L5  106590522  76508372  68144946
+rtb_x6.bin L9  119019608  84716362  75617410
 
 now, level 2, rtb_single.bin:
 26,577,473 (32.01%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::greedy::<12, false>'2 [/home/runner/w
@@ -157,158 +145,373 @@ _RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_: 34,899,138 instructions 
      440,108   429554  b.ne	429524 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x
              ...
 
-now, level 5, rtb_single.bin:
-31,767,222 (34.66%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::lazy::<12, false, false>'2 [/home/run
-11,848,868 (12.93%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/write.rs:fastgzip::write::write_block'2 [/home/runner/work/Th
-11,659,681 (12.72%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::lazy::<13, false, false>'2 [/home/run
- 4,107,141 ( 4.48%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ptr/mod.rs:<fastgzip::levels::Levels>::deflate'2
- 2,980,538 ( 3.25%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/huff.rs:fastgzip::huff::make_lens'2 [/home/runner/work/TheOpt
- 2,832,657 ( 3.09%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/slice/specialize.rs:fastgzip::huff::make_lens
-grep: write error: Broken pipe
-_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_EB4_: 41,189,936 instructions run
-             ...
-     463,197   420290  mov	x8, x21
-     463,197   420294  strh	w8, [x22, x25, lsl #1]
-     463,197   420298  add	x10, x30, x21
-     463,197   42029c  ldrh	w9, [x19, x26, lsl #1]
-     463,197   4202a0  strh	w8, [x19, x26, lsl #1]
-     463,197   4202a4  strh	w9, [x27, x21, lsl #1]
-     463,197   4202a8  add	x21, x21, #0x1
-     463,197   4202ac  ldr	w9, [x10]
-     463,197   4202b0  ldurb	w10, [x10, #-1]
-     463,197   4202b4  cmp	x21, x20
-     463,197   4202b8  and	w11, w9, #0xffffff
-     463,197   4202bc  mul	w9, w9, w2
-     463,197   4202c0  ldr	w12, [x24, x10, lsl #2]
-     463,197   4202c4  mul	w11, w11, w2
-     463,197   4202c8  lsr	w26, w9, #18
-     463,197   4202cc  add	w9, w12, #0x1
-     463,197   4202d0  str	w9, [x24, x10, lsl #2]
-     463,197   4202d4  lsr	w25, w11, #19
-     463,197   4202d8  b.cs	4202e8 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_EB4_+
-     463,015   4202dc  ldrh	w9, [x22, x25, lsl #1]
-     463,015   4202e0  cbz	w9, 420290 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_EB
-             ...
-     175,263   420bc4  subs	w23, w23, #0x1
-     175,263   420bc8  b.eq	420bec <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_EB4_+
-     168,214   420bcc  ldrh	w16, [x27, x16, lsl #1]
-     168,214   420bd0  cbz	x16, 420bec <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_E
-             ...
-     295,476   4212f4  strh	w11, [x22, x25, lsl #1]
-     295,476   4212f8  subs	x9, x9, #0x1
-     295,476   4212fc  ldrh	w10, [x19, x26, lsl #1]
-     295,476   421300  strh	w10, [x27, x11, lsl #1]
-     295,476   421304  strh	w11, [x19, x26, lsl #1]
-     295,476   421308  ldr	w10, [x30, x11]
-     295,476   42130c  add	x11, x11, #0x1
-     295,476   421310  and	w12, w10, #0xffffff
-     295,476   421314  mul	w10, w10, w2
-     295,476   421318  mul	w12, w12, w2
-     295,476   42131c  lsr	w26, w10, #18
-     295,476   421320  lsr	w25, w12, #19
-     295,476   421324  b.ne	4212f4 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_EB4_+
-             ...
-
-now, level 2, text_200k.bin:
-37,027,420 (59.59%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::greedy::<15, true>'2 [/home/runner/wo
- 5,006,261 ( 8.06%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/write.rs:fastgzip::write::write_block'2 [/home/runner/work/Th
- 3,736,107 ( 6.01%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ptr/mod.rs:fastgzip::fast::greedy::<15, true>'2
- 3,430,233 ( 5.52%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/levels.rs:fastgzip::fast::greedy::<15, true>'2
- 2,863,465 ( 4.61%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/num/uint_macros.rs:fastgzip::fast::greedy::<15, true>'2
- 1,894,800 ( 3.05%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/write.rs:fastgzip::fast::greedy::<15, true>'2
-grep: write error: Broken pipe
-_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmf_Kb1_EB4_: 51,752,240 instructions run
-             ...
-     399,961   42b3c4  subs	w7, w7, #0x1
-     399,961   42b3c8  b.eq	42b3f8 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmf_Kb1_EB4_+0x
-     354,385   42b3cc  ldur	x17, [x29, #-40]
-     354,385   42b3d0  and	x13, x13, #0x7fff
-     354,385   42b3d4  ldrh	w13, [x17, x13, lsl #1]
-     354,385   42b3d8  cmp	x9, x13
-     354,385   42b3dc  b.cs	42b3f8 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmf_Kb1_EB4_+0x
-     307,898   42b3e0  ldr	w17, [x5, x13]
-     307,898   42b3e4  cmp	w17, w18
-     307,898   42b3e8  b.ne	42b3c4 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmf_Kb1_EB4_+0x
-             ...
-     988,743   42b654  strh	w9, [x27, x28, lsl #1]
-     988,743   42b658  and	x12, x9, #0x7fff
-     988,743   42b65c  subs	x11, x11, #0x1
-     988,743   42b660  ldrh	w13, [x20, x25, lsl #1]
-     988,743   42b664  strh	w13, [x18, x12, lsl #1]
-     988,743   42b668  add	x12, x6, x9
-     988,743   42b66c  strh	w9, [x20, x25, lsl #1]
-     988,743   42b670  add	x9, x9, #0x1
-     988,743   42b674  ldur	w12, [x12, #1]
-     988,743   42b678  and	w13, w12, #0xffffff
-     988,743   42b67c  mul	w12, w12, w2
-     988,743   42b680  mul	w13, w13, w2
-     988,743   42b684  lsr	w25, w12, #16
-     988,743   42b688  lsr	w28, w13, #17
-     988,743   42b68c  b.ne	42b654 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmf_Kb1_EB4_+0x
-             ...
-
 where the time goes (share of samples by function):
-old level 2: 23.0 us a payload, 6003 samples (570739490)
-   62.1%  fastgzip::fast::greedy
-   14.4%  fastgzip::write::write_block
-    8.3%  fastgzip::huff::make_lens
+old level 2: 23.1 us a payload, 20006 samples (1885618712)
+   62.3%  fastgzip::fast::greedy
+   14.0%  fastgzip::write::write_block
+    8.6%  fastgzip::huff::make_lens
     4.1%  <fastgzip::codes::Codes>::build_own
-    3.5%  <fastgzip::levels::Levels>::deflate
-    3.5%  <fastgzip::codes::Codes>::write_header
-    2.4%  ??
-fg level 2: 23.6 us a payload, 6002 samples (555926404)
-   62.0%  fastgzip::fast::greedy
-   15.0%  fastgzip::write::write_block
-    8.7%  fastgzip::huff::make_lens
-    4.2%  <fastgzip::codes::Codes>::build_own
-    3.6%  <fastgzip::codes::Codes>::write_header
-    3.2%  <fastgzip::levels::Levels>::deflate
-    1.9%  ??
-old level 2: 22.9 us a payload, 6002 samples (570739490)
-   61.7%  fastgzip::fast::greedy
-   14.9%  fastgzip::write::write_block
-    8.7%  fastgzip::huff::make_lens
-    4.4%  <fastgzip::codes::Codes>::build_own
-    3.5%  <fastgzip::codes::Codes>::write_header
-    3.3%  <fastgzip::levels::Levels>::deflate
-    1.9%  ??
-fg level 2: 23.7 us a payload, 5999 samples (551569614)
-   62.4%  fastgzip::fast::greedy
-   14.3%  fastgzip::write::write_block
-    8.1%  fastgzip::huff::make_lens
+    3.6%  <fastgzip::levels::Levels>::deflate
+    3.1%  <fastgzip::codes::Codes>::write_header
+    2.2%  ??
+fg level 2: 23.9 us a payload, 20000 samples (1826366368)
+   62.2%  fastgzip::fast::greedy
+   14.2%  fastgzip::write::write_block
+    8.0%  fastgzip::huff::make_lens
+    4.1%  <fastgzip::levels::Levels>::deflate
     3.8%  <fastgzip::codes::Codes>::build_own
-    3.7%  <fastgzip::levels::Levels>::deflate
-    3.3%  <fastgzip::codes::Codes>::write_header
-    2.6%  ??
-old level 5: 26.2 us a payload, 6000 samples (489977457)
-   66.9%  fastgzip::fast::lazy
-   12.6%  fastgzip::write::write_block
-    6.6%  fastgzip::huff::make_lens
-    4.0%  <fastgzip::codes::Codes>::build_own
-    3.5%  <fastgzip::levels::Levels>::deflate
-    3.1%  <fastgzip::codes::Codes>::write_header
-    1.8%  ??
-fg level 5: 26.6 us a payload, 6006 samples (483136585)
-   67.4%  fastgzip::fast::lazy
-   12.2%  fastgzip::write::write_block
-    7.2%  fastgzip::huff::make_lens
-    3.8%  <fastgzip::levels::Levels>::deflate
-    3.3%  <fastgzip::codes::Codes>::build_own
-    2.7%  <fastgzip::codes::Codes>::write_header
-    1.8%  ??
-old level 5: 26.3 us a payload, 6007 samples (489977457)
-   66.9%  fastgzip::fast::lazy
-   12.1%  fastgzip::write::write_block
-    7.2%  fastgzip::huff::make_lens
-    4.0%  <fastgzip::levels::Levels>::deflate
-    3.5%  <fastgzip::codes::Codes>::build_own
-    3.1%  <fastgzip::codes::Codes>::write_header
-    1.8%  ??
-fg level 5: 26.6 us a payload, 6009 samples (483991694)
-   65.7%  fastgzip::fast::lazy
-   12.5%  fastgzip::write::write_block
-    7.8%  fastgzip::huff::make_lens
-    3.8%  <fastgzip::levels::Levels>::deflate
-    3.6%  <fastgzip::codes::Codes>::build_own
     3.4%  <fastgzip::codes::Codes>::write_header
-    1.8%  ??
+    2.0%  ??
+
+6greedyKmc_EB4_: 44.8% of 20006 samples
+        ...
+  0.00%   424c34  stp	x8, x9, [x29, #-24]
+  0.00%   424c38  stp	x7, x5, [x29, #-40]
+  0.00%   424c3c  b	424c4c <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x80>
+  0.27%   424c40  add	x20, x20, #0x1
+  0.27%   424c44  cmp	x20, x23
+  0.00%   424c48  b.cs	425198 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x5cc>  // b.hs,
+  0.47%   424c4c  sub	x11, x23, x20
+  0.12%   424c50  cmp	x11, #0x102
+  0.16%   424c54  csel	x10, x11, x2, cc	// cc = lo, ul, last
+        ...
+  0.00%   424c64  b.cs	424c7c <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0xb0>  // b.hs, 
+  0.00%   424c68  mov	x9, xzr
+  0.00%   424c6c  sub	x8, x1, #0x1
+  0.00%   424c70  cmp	x8, x1
+  0.00%   424c74  b.cs	424e90 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x2c4>  // b.hs,
+  0.00%   424c78  b	424ea0 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x2d4>
+  0.46%   424c7c  ldrh	w17, [x26, x21, lsl #1]
+  4.19%   424c80  ldrh	w16, [x25, x22, lsl #1]
+  0.82%   424c84  add	x14, x24, x20
+  1.21%   424c88  strh	w20, [x25, x22, lsl #1]
+  0.53%   424c8c  cmp	x7, #0x4
+  0.30%   424c90  strh	w20, [x26, x21, lsl #1]
+  0.56%   424c94  strh	w17, [x28, x20, lsl #1]
+  0.55%   424c98  ldur	w9, [x14, #1]
+  0.51%   424c9c  ldr	w15, [x14]
+  0.50%   424ca0  b.cs	424cc8 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0xfc>  // b.hs, 
+  0.27%   424ca4  mov	x13, x20
+  0.13%   424ca8  sub	x8, x1, #0x1
+        ...
+  0.00%   424ce4  cbz	w17, 424e70 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x2a4>
+  0.18%   424ce8  add	x18, x24, #0x4
+  0.00%   424cec  add	x18, x18, x20
+  0.00%   424cf0  add	x2, x14, x8
+  0.00%   424cf4  sub	w5, w16, #0x1
+  0.01%   424cf8  ldur	w2, [x2, #-3]
+  0.40%   424cfc  add	x6, x24, x17
+  0.12%   424d00  add	x16, x6, x8
+  0.01%   424d04  ldur	w16, [x16, #-3]
+        ...
+  0.00%   424e04  add	x2, x2, #0x4
+  0.00%   424e08  ldp	x7, x5, [x29, #-40]
+  0.01%   424e0c  cmp	x2, x8
+  0.00%   424e10  b.ls	424d78 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x1ac>  // b.pla
+  0.04%   424e14  b	424dd0 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x204>
+  0.00%   424e18  ldur	x5, [x29, #-32]
+  0.42%   424e1c  b	424e6c <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x2a0>
+  2.95%   424e20  ldr	w8, [x24, x16]
+  0.05%   424e24  eor	w8, w8, w15
+  1.54%   424e28  tst	w8, #0xffffff
+  0.00%   424e2c  mov	w8, #0x3                   	// #3
+  0.07%   424e30  csel	x18, x16, x20, eq	// eq = none
+  0.04%   424e34  csel	x8, x8, x7, eq	// eq = none
+  0.02%   424e38  cbz	w17, 424e68 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x29c>
+  0.19%   424e3c  ldur	w13, [x29, #-4]
+  1.33%   424e40  sub	w2, w13, #0x1
+  0.00%   424e44  mov	x13, x17
+  0.13%   424e48  ldr	w16, [x24, x13]
+  0.01%   424e4c  cmp	w16, w15
+  0.27%   424e50  mov	w16, w2
+  0.00%   424e54  b.eq	4250d4 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x508>  // b.non
+  0.03%   424e58  ldrh	w13, [x28, x13, lsl #1]
+  0.49%   424e5c  cbz	x13, 424e68 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x29c>
+  0.00%   424e60  sub	w2, w16, #0x1
+  0.01%   424e64  cbnz	w16, 424e48 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x27c>
+  0.51%   424e68  mov	x13, x18
+  0.01%   424e6c  mov	w2, #0x102                 	// #258
+  0.54%   424e70  and	w10, w9, #0xffffff
+  0.02%   424e74  mul	w9, w9, w19
+  0.43%   424e78  mul	w10, w10, w19
+  0.15%   424e7c  lsr	w21, w9, #18
+  0.23%   424e80  sub	x9, x20, x13
+  0.13%   424e84  lsr	w22, w10, #19
+  0.32%   424e88  cmp	x8, x1
+  0.00%   424e8c  b.cc	424ea0 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x2d4>  // b.lo,
+  0.57%   424e90  cmp	x8, #0x3
+  0.00%   424e94  b.hi	424ee8 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x31c>  // b.pmo
+  0.46%   424e98  cmp	x9, #0x1, lsl #12
+  0.00%   424e9c  b.ls	424ee8 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x31c>  // b.pla
+  1.07%   424ea0  ldrb	w8, [x24, x20]
+  1.05%   424ea4  ldr	w9, [x5, x8, lsl #2]
+  0.07%   424ea8  add	w9, w9, #0x1
+  3.20%   424eac  str	w9, [x5, x8, lsl #2]
+  0.25%   424eb0  cbz	x4, 424c40 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x74>
+  0.00%   424eb4  ubfx	w9, w8, #6, #2
+        ...
+  0.00%   424f0c  sub	w10, w10, w11, lsl #1
+  0.03%   424f10  add	w10, w10, #0x3e
+  0.00%   424f14  adrp	x12, 495000 <_RNvNtCsfPDEuAInDOD_8fastgzip5codes5FIXED+0x930>
+  0.02%   424f18  add	x12, x12, #0x518
+  0.02%   424f1c  sub	x13, x20, x30
+  0.05%   424f20  ldrb	w12, [x12, x8]
+  0.56%   424f24  mov	w14, #0x1e                  	// #30
+  0.39%   424f28  orr	x13, x13, x8, lsl #16
+  0.03%   424f2c  subs	w11, w14, w11
+  0.01%   424f30  mov	w15, #0xffffffff            	// #-1
+  0.03%   424f34  add	x30, x8, x20
+  0.04%   424f38  add	x12, x5, x12, lsl #2
+  0.01%   424f3c  csel	w11, wzr, w11, cc	// cc = lo, ul, last
+  0.03%   424f40  lsl	w15, w15, w11
+  0.00%   424f44  orr	x11, x13, x11, lsl #56
+  0.03%   424f48  ldr	w14, [x12, #1028]
+  0.82%   424f4c  bic	w9, w9, w15
+  0.46%   424f50  add	w13, w14, #0x1
+  0.01%   424f54  orr	x9, x11, x9, lsl #32
+  0.06%   424f58  str	w13, [x12, #1028]
+        ...
+  0.03%   42507c  ccmp	x10, x11, #0x2, cc	// cc = lo, ul, last
+  0.04%   425080  b.hi	4250c4 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x4f8>  // b.pmo
+  0.06%   425084  add	x10, x24, #0x2
+  0.00%   425088  sub	x8, x8, #0x1
+  0.02%   42508c  add	x10, x10, x20
+  0.19%   425090  strh	w9, [x25, x22, lsl #1]
+  2.59%   425094  subs	x8, x8, #0x1
+  0.19%   425098  ldrh	w11, [x26, x21, lsl #1]
+  1.71%   42509c  strh	w11, [x28, x9, lsl #1]
+  0.55%   4250a0  strh	w9, [x26, x21, lsl #1]
+  0.69%   4250a4  add	x9, x9, #0x1
+  0.25%   4250a8  ldr	w11, [x10], #1
+  0.49%   4250ac  and	w12, w11, #0xffffff
+  0.08%   4250b0  mul	w11, w11, w19
+  0.15%   4250b4  mul	w12, w12, w19
+        ...
+  0.15%   4250bc  lsr	w22, w12, #19
+  0.21%   4250c0  b.ne	425090 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x4c4>  // b.any
+  0.04%   4250c4  mov	x20, x30
+  0.10%   4250c8  cmp	x30, x23
+  0.00%   4250cc  b.cc	424c4c <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x80>  // b.lo, 
+  0.00%   4250d0  b	425198 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x5cc>
+  0.44%   4250d4  cmp	x11, #0xc
+  0.00%   4250d8  b.cs	4250ec <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x520>  // b.hs,
+  0.00%   4250dc  mov	w8, #0x4                   	// #4
+        ...
+  0.00%   4250e8  b	425170 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x5a4>
+  0.12%   4250ec  add	x18, x24, #0x4
+  0.00%   4250f0  mov	x8, xzr
+  0.04%   4250f4  add	x17, x18, x13
+  0.01%   4250f8  add	x18, x18, x20
+  0.11%   4250fc  ldr	x2, [x17, x8]
+  0.37%   425100  ldr	x5, [x18, x8]
+  0.17%   425104  cmp	x2, x5
+  0.00%   425108  b.ne	425158 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x58c>  // b.any
+        ...
+  0.01%   425164  clz	x17, x17
+  0.01%   425168  add	x8, x8, x17, lsr #3
+  0.02%   42516c  add	x8, x8, #0x4
+  0.01%   425170  mov	w2, #0x102                 	// #258
+  0.03%   425174  cmp	x8, x12
+  0.00%   425178  b.cs	424e70 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x2a4>  // b.hs,
+  0.78%   42517c  ldrh	w17, [x28, x13, lsl #1]
+  0.02%   425180  cbz	x17, 424e70 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x2a4>
+  0.01%   425184  cbnz	w16, 424ce8 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x11c>
+
+6greedyKmc_Kb0_: 45.4% of 20000 samples
+        ...
+  0.00%   448010  add	x8, x6, #0x1
+  0.00%   448014  stp	x8, x9, [x29, #-96]
+  0.00%   448018  b	448024 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x120>
+  0.07%   44801c  cmp	x19, x20
+  0.06%   448020  csel	x20, x20, x5, cc	// cc = lo, ul, last
+  0.04%   448024  ldrh	w14, [x27, x26, lsl #1]
+  0.96%   448028  cmp	x19, x20
+  0.00%   44802c  b.cs	448304 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x400>  // b
+  0.07%   448030  cbnz	w14, 448304 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x400>
+  0.11%   448034  mov	w28, #0xa7bd                	// #42941
+  0.19%   448038  ldur	x24, [x29, #-24]
+  0.01%   44803c  cmp	x1, #0x4
+  0.37%   448040  movk	w28, #0x1e35, lsl #16
+  0.00%   448044  cbz	x4, 448310 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x40c>
+  0.00%   448048  b.ls	4480fc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x1f8>  // b
+        ...
+  0.00%   4482f0  ldr	x7, [sp, #104]
+  0.00%   4482f4  ldp	x3, x0, [sp, #32]
+  0.00%   4482f8  tbnz	w8, #0, 4489cc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0xac
+  0.00%   4482fc  ldr	w8, [x4, #80]
+  0.00%   448300  b	448200 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x2fc>
+  0.10%   448304  mov	w28, #0xa7bd                	// #42941
+  0.50%   448308  ldur	x24, [x29, #-24]
+  1.07%   44830c  b	4484e4 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x5e0>
+  0.04%   448310  b.ls	4483cc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x4c8>  // b
+  0.00%   448314  strh	w19, [x27, x26, lsl #1]
+        ...
+  0.00%   4483b4  ldur	x8, [x29, #-40]
+  0.00%   4483b8  cmp	x20, x8
+  0.00%   4483bc  b.cs	4489d8 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0xad4>  // b
+  0.00%   4483c0  mov	x28, x2
+  0.00%   4483c4  mov	x2, xzr
+  0.00%   4483c8  b	4484d0 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x5cc>
+  0.78%   4483cc  mov	x22, x19
+  0.25%   4483d0  strh	w22, [x27, x26, lsl #1]
+  0.54%   4483d4  add	x9, x18, x19
+  0.20%   4483d8  ldrh	w8, [x23, x25, lsl #1]
+  1.27%   4483dc  strh	w22, [x23, x25, lsl #1]
+  0.43%   4483e0  strh	w8, [x24, x19, lsl #1]
+  0.44%   4483e4  add	x19, x19, #0x1
+  0.20%   4483e8  ldr	w8, [x9]
+  0.46%   4483ec  ldurb	w9, [x9, #-1]
+  0.21%   4483f0  cmp	x19, x20
+  0.06%   4483f4  and	w10, w8, #0xffffff
+  0.21%   4483f8  mul	w8, w8, w28
+  0.21%   4483fc  ldr	w11, [x21, x9, lsl #2]
+  1.30%   448400  mul	w10, w10, w28
+  0.17%   448404  lsr	w25, w8, #18
+  0.04%   448408  add	w8, w11, #0x1
+  0.21%   44840c  str	w8, [x21, x9, lsl #2]
+  0.27%   448410  lsr	w26, w10, #19
+  0.00%   448414  b.cs	448424 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x520>  // b
+  0.20%   448418  ldrh	w14, [x27, x26, lsl #1]
+  3.27%   44841c  cbz	w14, 4483cc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x4c8>
+  0.04%   448420  b	4484bc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x5b8>
+  0.00%   448424  ldur	x8, [x29, #-40]
+        ...
+  0.00%   4484a4  cmp	w9, #0x200
+  0.00%   4484a8  b.cs	448988 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0xa84>  // b
+  0.00%   4484ac  mov	x20, x24
+  0.00%   4484b0  b	4484cc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x5c8>
+  0.00%   4484b4  mov	x19, x8
+  0.00%   4484b8  b	4484e8 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x5e4>
+  2.28%   4484bc  add	x19, x22, #0x1
+  0.06%   4484c0  b	4484e8 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x5e4>
+  0.00%   4484c4  mov	x20, x24
+        ...
+  0.00%   4484d8  mov	x20, x2
+  0.00%   4484dc  mov	x2, x28
+  0.00%   4484e0  mov	w28, #0xa7bd                	// #42941
+  0.03%   4484e4  movk	w28, #0x1e35, lsl #16
+  0.33%   4484e8  ldur	x8, [x29, #-40]
+  0.00%   4484ec  sub	x9, x8, x19
+  1.37%   4484f0  mov	w8, #0x102                 	// #258
+  0.01%   4484f4  cmp	x9, #0x102
+  0.07%   4484f8  csel	x10, x9, x8, cc	// cc = lo, ul, last
+  0.08%   4484fc  ldur	x8, [x29, #-48]
+  0.41%   448500  cmp	x8, x10
+  0.00%   448504  csel	x11, x8, x10, cc	// cc = lo, ul, last
+  0.14%   448508  cmp	x9, #0x5
+  0.00%   44850c  b.cs	448524 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x620>  // b
+  0.01%   448510  mov	x8, xzr
+  0.00%   448514  sub	x15, x1, #0x1
+  0.00%   448518  cmp	x15, x1
+  0.00%   44851c  b.cs	44872c <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x828>  // b
+  0.00%   448520  b	44873c <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x838>
+  0.74%   448524  ldrh	w5, [x23, x25, lsl #1]
+  0.33%   448528  strh	w19, [x27, x26, lsl #1]
+  0.18%   44852c  add	x12, x2, x19
+        ...
+  0.21%   4485b4  mov	x26, x2
+  0.03%   4485b8  mov	x6, x15
+  0.01%   4485bc  csel	x16, xzr, x16, cc	// cc = lo, ul, last
+  0.04%   4485c0  add	x18, x2, x16
+  0.04%   4485c4  ldr	w16, [x12, x16]
+  0.01%   4485c8  mov	x2, x14
+  1.91%   4485cc  ldr	w17, [x18, x5]
+  0.03%   4485d0  mov	x14, x5
+  0.40%   4485d4  ldr	w5, [sp, #60]
+  0.04%   4485d8  cmp	w17, w16
+  0.04%   4485dc  ldr	x17, [sp, #96]
+  0.07%   4485e0  cset	w7, eq	// eq = none
+  0.00%   4485e4  add	x17, x17, x19
+  0.02%   4485e8  tbz	w7, #0, 4486c8 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7c4
+  0.52%   4485ec  add	x7, x26, x14
+  0.04%   4485f0  ldr	w15, [x7]
+  0.14%   4485f4  cmp	w15, w13
+        ...
+  0.00%   44860c  b.cc	448650 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x74c>  // b
+  0.00%   448610  b	448670 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x76c>
+  0.07%   448614  ldr	x22, [sp, #96]
+  0.00%   448618  mov	x15, xzr
+  0.06%   44861c  add	x22, x22, x14
+  0.14%   448620  ldr	x24, [x22, x15]
+  0.41%   448624  ldr	x25, [x17, x15]
+  0.12%   448628  cmp	x24, x25
+  0.00%   44862c  b.ne	448684 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x780>  // b
+        ...
+  0.01%   448690  add	x15, x15, x7, lsr #3
+  0.03%   448694  add	x15, x15, #0x4
+  0.02%   448698  ldr	x7, [sp, #104]
+  0.07%   44869c  ldur	x24, [x29, #-24]
+  0.03%   4486a0  cmp	x15, x6
+  0.00%   4486a4  b.ls	4486cc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7c8>  // b
+  0.73%   4486a8  cmp	x15, x11
+  0.00%   4486ac  b.cs	4486fc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7f8>  // b
+  0.14%   4486b0  sub	x18, x15, #0x3
+  0.00%   4486b4  mov	x2, x14
+  0.03%   4486b8  mov	x6, x15
+  0.03%   4486bc  ldr	w16, [x12, x18]
+  0.46%   4486c0  add	x18, x26, x18
+  0.01%   4486c4  b	4486cc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7c8>
+  0.04%   4486c8  ldr	x7, [sp, #104]
+  0.20%   4486cc  subs	w5, w5, #0x1
+  0.56%   4486d0  b.eq	4486f4 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7f0>  // b
+  0.09%   4486d4  ldrh	w14, [x24, x14, lsl #1]
+  0.17%   4486d8  cbz	x14, 4486f4 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7f0>
+  0.04%   4486dc  ldr	w15, [x18, x14]
+  0.82%   4486e0  cmp	w15, w16
+  0.00%   4486e4  b.ne	4486cc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7c8>  // b
+  0.01%   4486e8  mov	w7, #0x1                   	// #1
+  0.01%   4486ec  tbnz	w7, #0, 4485ec <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x6e
+  0.00%   4486f0  b	4486c8 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x7c4>
+  0.04%   4486f4  mov	x14, x2
+  0.12%   4486f8  mov	x15, x6
+  0.04%   4486fc  ldp	x6, x18, [sp, #64]
+  0.71%   448700  mov	x2, x26
+  0.05%   448704  ldur	x17, [x29, #-96]
+  0.21%   448708  and	w9, w8, #0xffffff
+  0.03%   44870c  mul	w8, w8, w28
+  0.20%   448710  ldur	x5, [x29, #-72]
+  0.03%   448714  mul	w9, w9, w28
+  0.69%   448718  lsr	w25, w8, #18
+  0.04%   44871c  sub	x8, x19, x14
+  0.07%   448720  lsr	w26, w9, #19
+  0.10%   448724  cmp	x15, x1
+  0.00%   448728  b.cc	44873c <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x838>  // b
+  0.14%   44872c  cmp	x15, #0x3
+  0.00%   448730  b.hi	448820 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x91c>  // b
+  0.41%   448734  cmp	x8, #0x1, lsl #12
+  0.01%   448738  b.ls	448820 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x91c>  // b
+  0.30%   44873c  ldrb	w8, [x2, x19]
+  0.54%   448740  ldr	w9, [x21, x8, lsl #2]
+  0.34%   448744  add	w9, w9, #0x1
+  0.35%   448748  str	w9, [x21, x8, lsl #2]
+  0.04%   44874c  cbz	x4, 448774 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x870>
+  0.00%   448750  ubfx	w9, w8, #6, #2
+        ...
+  0.01%   448844  orr	w9, w10, w9, lsl #1
+  0.03%   448848  eor	w9, w9, #0x3e
+  0.01%   44884c  adrp	x10, 496000 <_RNvNtCsgflMcMFjHPm_8fastgzip5codes5FIXED+0x2f8>
+  0.04%   448850  add	x10, x10, #0xf08
+  0.06%   448854  ldur	x12, [x29, #-88]
+  0.21%   448858  ldrb	w10, [x10, x15]
+  0.35%   44885c  sub	x12, x19, x12
+  0.18%   448860  add	x10, x21, x10, lsl #2
+  0.00%   448864  orr	x12, x12, x15, lsl #32
+  0.04%   448868  ldr	w11, [x10, #1028]
+  0.33%   44886c  orr	x8, x12, x8, lsl #41
+  1.03%   448870  ldr	x12, [sp, #88]
+  0.00%   448874  add	w11, w11, #0x1
+  0.06%   448878  str	w11, [x10, #1028]
+        ...
+  0.09%   4488e0  add	x8, x19, #0x1
+  0.06%   4488e4  mov	x19, x9
+  0.06%   4488e8  cmp	x8, x9
+  0.00%   4488ec  b.cs	448778 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_EB4_+0x874>  // b
+  0.07%   4488f0  sub	x9, x15, #0x1
+  0.28%   4488f4  strh	w8, [x27, x26, lsl #1]
+  1.67%   4488f8  subs	x9, x9, #0x1
+  0.16%   4488fc  ldrh	w10, [x23, x25, lsl #1]
+  1.43%   448900  strh	w10, [x24, x8, lsl #1]
+  0.54%   448904  strh	w8, [x23, x25, lsl #1]
+  0.59%   448908  ldr	w10, [x18, x8]
+  0.12%   44890c  add	x8, x8, #0x1
+  0.14%   448910  and	w11, w10, #0xffffff
