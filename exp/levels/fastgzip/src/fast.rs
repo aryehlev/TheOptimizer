@@ -24,39 +24,11 @@ unsafe fn rd64(p: *const u8, i: usize, n: usize) -> u64 {
     u64::from_le(ptr::read_unaligned(p.add(i) as *const u64))
 }
 
-/// Asks for the cache line of a table entry that is about to be read and
-/// written.  The hash of the next position is known a step before its entry
-/// is needed; when the tables are larger than the first-level cache, that
-/// step is what it takes to have the entry there in time.  libdeflate does
-/// the same.
-#[inline(always)]
-unsafe fn fetch<T>(entry: *const T) {
-    // SAFETY: a prefetch is a hint.  It reads nothing and does not fault.
-    #[cfg(all(target_arch = "x86_64", not(miri)))]
-    core::arch::x86_64::_mm_prefetch::<{ core::arch::x86_64::_MM_HINT_T0 }>(entry.cast());
-    #[cfg(all(target_arch = "aarch64", not(miri)))]
-    core::arch::asm!(
-        "prfm pstl1keep, [{entry}]",
-        entry = in(reg) entry,
-        options(nostack, readonly, preserves_flags)
-    );
-    #[cfg(any(miri, not(any(target_arch = "x86_64", target_arch = "aarch64"))))]
-    let _ = entry;
-}
-
 /// libdeflate's hash: the top `bits` bits of a product.
 #[inline(always)]
 fn lz_hash(seq: u32, bits: u32) -> usize {
     (seq.wrapping_mul(0x1E35_A7BD) >> (32 - bits)) as usize
 }
-
-/// Entries are fetched ahead in tables of at least `1 << FETCH_FROM`
-/// entries (see `fetch`): those that do not fit in the first-level cache
-/// with the rest of what a search touches.
-const FETCH_FROM: u32 = match option_env!("FASTGZIP_FETCH_FROM") {
-    Some(s) => s.as_bytes()[0] as u32 - b'A' as u32,
-    None => 15,
-};
 
 /// How many bytes are equal at `a` and at `b`: at least `len`, which are
 /// known to be, and at most `max`.  `a` < `b`, and `max` bytes can be read
@@ -144,9 +116,6 @@ unsafe fn literals<const ORDER: u32>(
         let bucket = *tab.add(h);
         *tab.add(h) = bucket << 16 | pos as u32;
         h = lz_hash((w >> 8) as u32, ORDER);
-        if ORDER >= FETCH_FROM {
-            fetch(tab.add(h));
-        }
         let x1 = rd64(ip, (bucket & 0xFFFF) as usize, n) ^ w;
         let x2 = rd64(ip, (bucket >> 16) as usize, n) ^ w;
         if (x1 as u32 == 0) | (x2 as u32 == 0) {
@@ -362,10 +331,6 @@ unsafe fn hc_longest<const LG: u32>(
         lz_hash(next_seq & 0xFF_FFFF, Orders::<LG>::O3),
         lz_hash(next_seq, Orders::<LG>::O4),
     );
-    if Orders::<LG>::O4 >= FETCH_FROM {
-        fetch(c.h3.add(nh.0));
-        fetch(c.h4.add(nh.1));
-    }
     let mut best = p;
     macro_rules! advance {
         ($out:lifetime) => {
@@ -448,10 +413,6 @@ unsafe fn hc_skip<const LG: u32>(c: Chains, nh: &mut (usize, usize), from: usize
         h3 = lz_hash(s & 0xFF_FFFF, Orders::<LG>::O3);
         h4 = lz_hash(s, Orders::<LG>::O4);
         q += 1;
-    }
-    if Orders::<LG>::O4 >= FETCH_FROM {
-        fetch(c.h3.add(h3));
-        fetch(c.h4.add(h4));
     }
     *nh = (h3, h4);
 }

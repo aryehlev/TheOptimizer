@@ -43,7 +43,8 @@ const NONE: i16 = i16::MIN;
 /// A block covers at most 65535 bytes: the literals before a match are
 /// counted in 16 bits, and a stored block cannot be longer.  A block is ended
 /// this long before that, because the step that crosses the line still
-/// finishes (see `Levels::block_end`).
+/// finishes, and at the lazy levels a step can be a row of literals, each
+/// given up for a better match after it, and then that match.
 const SOFT_MAX_BLOCK: usize = 65535 - 1024;
 /// No block is shorter than this, except the last (as in libdeflate).
 const MIN_BLOCK: usize = 5000;
