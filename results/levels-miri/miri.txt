@@ -4,23 +4,23 @@ Preparing a sysroot for Miri (target: x86_64-unknown-linux-gnu)... done
     Updating crates.io index
      Locking 9 packages to highest compatible versions
  Downloading crates ...
-  Downloaded crc32fast v1.5.5
+  Downloaded flate2 v1.1.11
   Downloaded cfg-if v1.0.5
   Downloaded pin-project-lite v0.2.18
   Downloaded simd-adler32 v0.3.10
-  Downloaded flate2 v1.1.11
+  Downloaded crc32fast v1.5.5
   Downloaded zlib-rs v0.6.8
   Downloaded tokio v1.54.1
    Compiling crc32fast v1.5.5
    Compiling cfg-if v1.0.5
-   Compiling adler2 v2.0.1
    Compiling simd-adler32 v0.3.10
+   Compiling adler2 v2.0.1
    Compiling pin-project-lite v0.2.18
    Compiling tokio v1.54.1
    Compiling miniz_oxide v0.9.1
    Compiling fastgzip v0.2.0 (/home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip)
    Compiling flate2 v1.1.11
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.22s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.10s
      Running unittests src/lib.rs (target/miri/x86_64-unknown-linux-gnu/debug/build/fastgzip/9a9d0320cc14350e/out/fastgzip-9a9d0320cc14350e)
 
 running 6 tests
@@ -35,8 +35,9 @@ test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 
      Running tests/levels.rs (target/miri/x86_64-unknown-linux-gnu/debug/build/fastgzip/db526e82fd59ac9c/out/levels-db526e82fd59ac9c)
 
-running 11 tests
+running 12 tests
 test block_edges ... ignored
+test both_writers_agree ... ignored
 test empty_and_tiny ... ignored
 test every_path_once ... ok
 test every_shape ... ignored
@@ -48,7 +49,7 @@ test large_payloads ... ignored
 test levels ... ok
 test output_does_not_depend_on_what_came_before ... ignored
 
-test result: ok. 3 passed; 0 failed; 8 ignored; 0 measured; 0 filtered out; finished in 516.96s
+test result: ok. 3 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; finished in 329.92s
 
      Running tests/roundtrip.rs (target/miri/x86_64-unknown-linux-gnu/debug/build/fastgzip/ddf13ca0c4ccf658/out/roundtrip-ddf13ca0c4ccf658)
 
@@ -72,5 +73,5 @@ running 2 tests
 test src/lib.rs - (line 12) ... ok
 test src/lib.rs - (line 4) ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.79s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.67s
 
