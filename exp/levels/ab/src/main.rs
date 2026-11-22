@@ -26,6 +26,18 @@ fn main() {
             off += 4 + n;
         }
         print!("{:<16}", path.rsplit('/').next().unwrap());
+        if std::env::var("SAME").is_ok() {
+            // No timing: in how many payloads does the output differ from
+            // the copy measured before?
+            for &level in &levels {
+                let mut new = fastgzip::Gzip::with_level(level as u8);
+                let mut old = before::Gzip::with_level(level as u8);
+                let differ = recs.iter().filter(|r| new.compress(r).to_vec() != old.compress(r)).count();
+                print!("  L{level} {differ}/{}", recs.len());
+            }
+            println!();
+            continue;
+        }
         for &level in &levels {
             let mut new = fastgzip::Gzip::with_level(level as u8);
             let mut old = before::Gzip::with_level(level as u8);

@@ -5,9 +5,9 @@
 #
 #   fastgzip/   level 0 is the encoder as published; levels 1 to 9 search a
 #               payload the way libdeflate does at that level, and a payload
-#               above 32 KiB for matches of three bytes only where they pay
-#   before/     the same as it was last measured, when it searched every
-#               payload exactly as libdeflate does
+#               above 8 KiB for matches of three bytes only where they pay
+#   before/     the same as it was last measured, when it searched only a
+#               payload above 32 KiB that way
 #   cmp/        the comparison: every level on every set, both encoders, the
 #               best of ROUNDS passes; it also checks that every output
 #               decodes, that the fast and the plain form of each search
@@ -15,7 +15,6 @@
 #               published encoder writes
 #   ab/         fastgzip/, before/ and libdeflate, their passes interleaved;
 #               also reads back what fastgzip/ writes
-#   prof/       where the time goes: one encoder at one level, sampled
 #
 #   PAYLOADS, ROUNDS, BIG_ROUNDS  less work, for trying the script out
 #   EXP=1       only the timings against the encoder as it was, without the
@@ -118,28 +117,25 @@ python3 -I "$HERE/tools/midsets.py" $W/rtb_single.bin $W/mid $W/big/text.src "$(
 rm $W/big/text.src
 
 CPU=$(( $(nproc) - 1 ))
+S="$W/rtb_cut500.bin $W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin"
+M="$W/mid/json_9k.bin $W/rtb_x3.bin $W/mid/json_16k.bin $W/rtb_x6.bin $W/mid/json_30k.bin $W/mid/text_9k.bin $W/mid/text_12k.bin $W/mid/text_24k.bin $W/mid/code_9k.bin $W/mid/code_12k.bin $W/mid/code_24k.bin"
+B="$W/big/req_x12.bin $W/big/req_x24.bin $W/big/req_x100.bin $W/big/text_200k.bin $W/big/code_200k.bin $W/big/mixed_210k.bin"
 if [ -n "$EXP" ]; then
   # Only the levels as they are now and as they were, each as a share of
   # libdeflate's time (now/before), passes interleaved; twice.
-  S="$W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin"
-  B="$W/big/req_x12.bin $W/big/req_x24.bin $W/big/req_x100.bin $W/big/text_200k.bin $W/big/code_200k.bin $W/big/mixed_210k.bin"
   cd $HERE/ab
   cargo build --release > /dev/null 2>&1
-  M="$W/mid/json_9k.bin $W/rtb_x3.bin $W/mid/json_16k.bin $W/rtb_x6.bin $W/mid/json_30k.bin $W/mid/text_12k.bin $W/mid/text_24k.bin $W/mid/code_12k.bin $W/mid/code_24k.bin"
   for pass in 1 2; do
     echo
     echo "== now/before as shares of libdeflate's time, and the size next to libdeflate's (run $pass)"
-    echo "payloads of 9 to 30 KB, one link a position:"
+    echo "payloads of 9 to 30 KB:"
     LEVELS=2,3,4,5,6,7,9 taskset -c $CPU ./target/release/ab $ROUNDS $M
-    echo "the same, four links a position from level 4 on:"
-    FG_MIDHOPS=1 LEVELS=4,5,6,7,9 taskset -c $CPU ./target/release/ab $ROUNDS $M
-    echo "smaller payloads through the same search (tables of full size):"
-    FG_BIG_FROM=2048 LEVELS=2,5,9 taskset -c $CPU ./target/release/ab $ROUNDS $W/rtb_single.bin $W/rtb_5k.bin
+    echo "smaller ones:"
+    LEVELS=2,5,9 taskset -c $CPU ./target/release/ab $ROUNDS $S
   done
   echo
-  echo "payloads above 32 KiB and small ones (unchanged code):"
-  LEVELS=2,5,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $W/big/req_x24.bin $W/big/text_200k.bin
-  LEVELS=1,2,5,9 taskset -c $CPU ./target/release/ab $ROUNDS $W/rtb_single.bin
+  echo "payloads above 32 KiB:"
+  LEVELS=2,5,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
   exit 0
 fi
 
@@ -148,12 +144,15 @@ fi
 # looks like.
 cd $HERE/cmp
 cargo build --release > /dev/null 2>&1
-SETS="$W/rtb_cut500.bin $W/mixed_exchange.bin $W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin"
-BIG="$W/big/req_x12.bin $W/big/req_x24.bin $W/big/req_x100.bin $W/big/text_200k.bin $W/big/code_200k.bin $W/big/mixed_210k.bin"
+SETS="$W/rtb_cut500.bin $W/mixed_exchange.bin $W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin"
+BIG=$B
 for pass in 1 2; do
   echo
   echo "every level, the best of $ROUNDS passes (run $pass):"
   taskset -c $CPU ./target/release/cmp $ROUNDS $SETS
+  echo
+  echo "payloads of 9 to 30 KB, every level, the best of $ROUNDS passes (run $pass):"
+  taskset -c $CPU ./target/release/cmp $ROUNDS $M
   echo
   echo "payloads above 32 KiB, every level, the best of $BIG_ROUNDS passes (run $pass):"
   taskset -c $CPU ./target/release/cmp $BIG_ROUNDS $BIG
@@ -167,20 +166,13 @@ echo
 echo "now/before as shares of libdeflate's time, and the size next to libdeflate's; the best of $ROUNDS passes:"
 taskset -c $CPU ./target/release/ab $ROUNDS $SETS
 echo
+echo "payloads of 9 to 30 KB, now/before, the best of $ROUNDS passes:"
+taskset -c $CPU ./target/release/ab $ROUNDS $M
+echo
 echo "payloads above 32 KiB, now/before, the best of $BIG_ROUNDS passes:"
 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $BIG
-
-# Where the time goes above 32 KiB: both encoders, by function, at a level
-# of each kind of search.
-cd $HERE/prof
-cargo build --release > /dev/null 2>&1
+# What has changed is the search of payloads of more than 8192 and up to
+# 32768 bytes at levels 2 to 9.  Nothing else may be written differently.
 echo
-echo "where the time goes (share of samples by function):"
-for set in req_x24 text_200k; do
-  for level in 1 2 5 9; do
-    for enc in ld fg; do
-      taskset -c $CPU ./target/release/prof $enc $level 3 $W/big/$set.bin $W/prof.out 2>&1 | sed "s/^/$set: /"
-      python3 -I "$HERE/tools/where.py" target/release/prof $W/prof.out 0 | sed -n '2,7p'
-    done
-  done
-done
+echo "payloads whose output is not what it was before, of all:"
+SAME=1 LEVELS=0-9 ./target/release/ab 1 $SETS $M $BIG

@@ -49,8 +49,10 @@ jobs:
         with:
           name: levels-miri
           path: out/
-  publish:
-    needs: [levels, miri]
+  # The timings are published when they are there; what Miri says comes
+  # when it is done, by the same steps.
+  publish-miri:
+    needs: [miri]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -58,7 +60,25 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: results
-          pattern: levels-*
+          pattern: levels-miri
+      - name: Commit the results to this branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results
+          git commit -m "Results: levels 1 to 9 under Miri [skip ci]" || exit 0
+          git pull --rebase
+          git push
+  publish:
+    needs: [levels]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: results
+          pattern: levels-ubuntu-*
       - name: Commit the results to this branch
         run: |
           git config user.name "github-actions[bot]"
