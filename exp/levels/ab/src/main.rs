@@ -31,7 +31,15 @@ fn main() {
             let mut old = before::Gzip::with_level(level as u8);
             let mut ld = gzlocal::Gzip::new(level as i32);
             let (mut tn, mut to, mut tl) = (f64::MAX, f64::MAX, f64::MAX);
-            let (mut sn, mut so) = (0usize, 0usize);
+            let (mut sn, mut so, mut sl) = (0usize, 0usize, 0usize);
+            // What the working copy writes must read back.
+            for r in &recs {
+                use std::io::Read;
+                let out = new.compress(r).to_vec();
+                let mut back = Vec::new();
+                flate2::read::GzDecoder::new(&out[..]).read_to_end(&mut back).unwrap();
+                assert!(back == **r, "level {level}: does not read back");
+            }
             for _ in 0..rounds {
                 let t = Instant::now();
                 sn = recs.iter().map(|r| new.compress(r).len()).sum();
@@ -40,11 +48,11 @@ fn main() {
                 so = recs.iter().map(|r| old.compress(r).len()).sum();
                 to = to.min(t.elapsed().as_secs_f64());
                 let t = Instant::now();
-                let _s: usize = recs.iter().map(|r| ld.compress(r).len()).sum();
+                sl = recs.iter().map(|r| ld.compress(r).len()).sum();
                 tl = tl.min(t.elapsed().as_secs_f64());
             }
-            let _ = (sn, so);
-            print!("  L{level} {:.2}/{:.2}", tn / tl, to / tl);
+            let _ = so;
+            print!("  L{level} {:.2}/{:.2} {:+.2}%", tn / tl, to / tl, 100.0 * (sn as f64 / sl as f64 - 1.0));
         }
         println!();
     }

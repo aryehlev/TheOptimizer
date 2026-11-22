@@ -37,7 +37,7 @@ unsafe fn rd32(p: *const u8, i: usize, n: usize) -> u32 {
 /// The four bytes at `base + i`, where `base` itself may lie one byte before
 /// what it points into.
 #[inline(always)]
-unsafe fn at32(base: *const u8, i: usize) -> u32 {
+pub(crate) unsafe fn at32(base: *const u8, i: usize) -> u32 {
     u32::from_le(ptr::read_unaligned(base.wrapping_add(i) as *const u32))
 }
 
@@ -66,7 +66,7 @@ unsafe fn rd64(p: *const u8, i: usize, n: usize) -> u64 {
 /// near.  Changes nothing but when it gets there.
 #[inline(always)]
 #[allow(unused_variables)]
-unsafe fn fetch<T>(p: *const T) {
+pub(crate) unsafe fn fetch<T>(p: *const T) {
     #[cfg(all(target_arch = "x86_64", not(miri)))]
     core::arch::x86_64::_mm_prefetch::<{ core::arch::x86_64::_MM_HINT_T0 }>(p.cast());
     #[cfg(all(target_arch = "aarch64", not(miri)))]
@@ -75,7 +75,7 @@ unsafe fn fetch<T>(p: *const T) {
 
 /// libdeflate's hash: the top `bits` bits of a product.
 #[inline(always)]
-fn lz_hash(seq: u32, bits: u32) -> usize {
+pub(crate) fn lz_hash(seq: u32, bits: u32) -> usize {
     (seq.wrapping_mul(0x1E35_A7BD) >> (32 - bits)) as usize
 }
 
@@ -159,7 +159,7 @@ macro_rules! matched {
 /// match can no longer reach become 0.
 #[cold]
 #[inline(never)]
-unsafe fn rebase(tables: &[(*mut u16, usize)]) {
+pub(crate) unsafe fn rebase(tables: &[(*mut u16, usize)]) {
     for &(t, len) in tables {
         for e in core::slice::from_raw_parts_mut(t, len) {
             *e = e.saturating_sub(WINDOW as u16);
@@ -513,12 +513,12 @@ unsafe fn slide_chains(c: Chains, off: usize, hops: bool) -> usize {
 
 /// Four bytes as they lie at `base + i`, for comparing with four others.
 #[inline(always)]
-unsafe fn raw_at32(base: *const u8, i: usize) -> u32 {
+pub(crate) unsafe fn raw_at32(base: *const u8, i: usize) -> u32 {
     ptr::read_unaligned(base.wrapping_add(i) as *const u32)
 }
 
 #[inline(always)]
-unsafe fn at64(base: *const u8, i: usize) -> u64 {
+pub(crate) unsafe fn at64(base: *const u8, i: usize) -> u64 {
     u64::from_le(ptr::read_unaligned(base.wrapping_add(i) as *const u64))
 }
 
@@ -526,8 +526,8 @@ unsafe fn at64(base: *const u8, i: usize) -> u64 {
 /// the entries `a` and `b`, at least `len` and at most `max`.  `a` < `b`,
 /// and `end` is the entry after the payload's last.
 #[inline(always)]
-unsafe fn extend_at(ent: *const u8, end: usize, a: usize, b: usize, mut len: usize, max: usize) -> usize {
-    debug_assert!(1 <= a && a < b && b + max <= end && len <= max);
+pub(crate) unsafe fn extend_at(ent: *const u8, end: usize, a: usize, b: usize, mut len: usize, max: usize) -> usize {
+    debug_assert!(a < b && b + max <= end && len <= max);
     let _ = end;
     while len + 8 <= max {
         let d = at64(ent, a + len) ^ at64(ent, b + len);

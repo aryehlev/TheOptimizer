@@ -123,9 +123,9 @@ if [ -n "$EXP" ]; then
   cargo build --release > /dev/null 2>&1
   for pass in 1 2; do
     echo
-    echo "now/before, as shares of libdeflate's time (run $pass):"
-    LEVELS=1,2,3,5,7,9 taskset -c $CPU ./target/release/ab $ROUNDS $S
-    LEVELS=1,2,3,5,7,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
+    echo "now/before as shares of libdeflate's time, and the size next to libdeflate's (run $pass):"
+    LEVELS=1,2,5 taskset -c $CPU ./target/release/ab $ROUNDS $W/rtb_single.bin $W/rtb_x6.bin
+    LEVELS=1,2,3,4,5,7 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
   done
   exit 0
 fi

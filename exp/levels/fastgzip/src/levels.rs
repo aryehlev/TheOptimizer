@@ -53,7 +53,7 @@ pub(crate) const MAX_SEQS: usize = 50_000;
 /// No block is shorter than this, except the last.
 const MIN_BLOCK: usize = 5000;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum Parse {
     /// Two candidates per hash value, the longer one wins (level 1).
     Fastest,
@@ -742,6 +742,9 @@ pub(crate) struct Levels {
     pub(crate) asks: Option<bool>,
     pub(crate) stats: Stats,
     t: Box<Tables>,
+    /// EXPERIMENT: rows for payloads of more than 32768 bytes: words per row,
+    /// how to parse, nice length.
+    rows: Option<(usize, Parse, usize)>,
     /// The chains of levels 5 to 9 in a payload of more than 32768 bytes
     /// (`fast::Chains::links`): 256 KiB, allocated when the first such
     /// payload comes.
@@ -770,10 +773,30 @@ impl Levels {
             Box::from_raw(p)
         }
         let (t, own): (Box<Tables>, Box<Codes>) = unsafe { (zeroed(), zeroed()) };
+        let mut rows = match level {
+            2 => Some((1, Parse::Greedy, 258)),
+            3 => Some((1, Parse::Lazy, 258)),
+            4 => Some((2, Parse::Lazy, 258)),
+            _ => None,
+        };
+        if let Ok(v) = std::env::var("FG_ROWS") {
+            let f: Vec<&str> = v.split(',').collect();
+            rows = if f.len() < 3 || parse == Parse::Fastest {
+                None
+            } else {
+                let p = match f[1] {
+                    "g" => Parse::Greedy,
+                    "l" => Parse::Lazy,
+                    _ => Parse::Lazy2,
+                };
+                Some((f[0].parse().unwrap(), p, f[2].parse().unwrap()))
+            };
+        }
         Levels {
             parse,
             depth,
             nice,
+            rows,
             fast: true,
             asks: None,
             stats: Stats::default(),
@@ -894,6 +917,34 @@ impl Levels {
                     fastest::<15, true>(inp, tab, sink, &mut st, soft_end)
                 } else {
                     by_size!(order; O => fastest::<O, false>(inp, tab, sink, &mut st, soft_end); 9 10 11 12 13 14 15)
+                };
+                if finish!(begin, st.pos, n_seqs, bitpos) {
+                    return Some(bitpos);
+                }
+            }
+        }
+
+        if let (true, Some((w, parse, nice))) = (big, self.rows) {
+            use crate::rows::{search as rows_search, Rows, ROW_WORDS};
+            let tab = (&mut *self.t as *mut Tables).cast::<u64>();
+            core::ptr::write_bytes(tab, 0, ROW_WORDS);
+            let depth = 4 * w as u32;
+            let c = Rows { ip: inp.as_ptr(), n, tab, depth, nice };
+            loop {
+                let begin = st.pos;
+                let soft_end = Self::soft_end(n, begin, SOFT_MAX_BLOCK);
+                let splitting = n - begin >= 2 * MIN_BLOCK;
+                self.split = Split::new();
+                let split: *mut Split = &mut self.split;
+                let min_len = first_min_len(&inp[begin..soft_end], depth).max(4);
+                let sink = sink!();
+                let n_seqs = match (parse, w) {
+                    (Parse::Greedy, 1) => rows_search::<1, 0>(c, min_len, sink, &mut st, split, splitting, soft_end),
+                    (Parse::Greedy, _) => rows_search::<2, 0>(c, min_len, sink, &mut st, split, splitting, soft_end),
+                    (Parse::Lazy, 1) => rows_search::<1, 1>(c, min_len, sink, &mut st, split, splitting, soft_end),
+                    (Parse::Lazy, _) => rows_search::<2, 1>(c, min_len, sink, &mut st, split, splitting, soft_end),
+                    (_, 1) => rows_search::<1, 2>(c, min_len, sink, &mut st, split, splitting, soft_end),
+                    (_, _) => rows_search::<2, 2>(c, min_len, sink, &mut st, split, splitting, soft_end),
                 };
                 if finish!(begin, st.pos, n_seqs, bitpos) {
                     return Some(bitpos);

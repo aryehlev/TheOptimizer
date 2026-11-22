@@ -7,9 +7,10 @@ edition = "2021"
 # unmodified libdeflate master
 gzlocal = { path = "../../../gzlocal", features = ["stock"] }
 fastgzip = { path = "../fastgzip" }
-# the levels as they were measured before large payloads got searches of
-# their own
+# the levels as they were last measured
 before = { package = "fastgzip", path = "../before" }
+# reads back what the working copy writes
+flate2 = "1"
 
 [profile.release]
 debug = 1

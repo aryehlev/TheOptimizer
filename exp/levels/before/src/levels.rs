@@ -11,15 +11,15 @@
 //!
 //! What differs:
 //!
-//!   - The tables are sized to the payload (see `fast_order`).  libdeflate
-//!     clears 128 KiB per call at level 1 and 192 KiB at the levels above.
-//!   - A block covers at most 65535 bytes.  libdeflate's reach 300000.
+//!   - For a payload of up to 32768 bytes the tables are sized to the
+//!     payload (see `fast_order`).  libdeflate clears 128 KiB per call at
+//!     level 1 and 192 KiB at the levels above.
 //!   - The block is written by this crate's encoder (`write.rs`).
 //!
 //! Every search is here in a plain form, which is the statement of what it
-//! finds and takes payloads of any size.  `fast.rs` has each of them again
-//! for payloads of up to 32768 bytes, and those are what runs for the
-//! payloads this crate is made for.
+//! finds: libdeflate's search line by line.  `fast.rs` has each of them
+//! again, and those are what runs; the plain ones are what they are tested
+//! against, and take the payloads of fewer than eight bytes.
 //!
 //! Consecutive payloads do not share their codes here, as they do at level
 //! 0.  Shared codes have to describe every symbol any of the payloads uses
@@ -41,18 +41,17 @@ const WINDOW: usize = 32768;
 /// An entry that holds no position: further back than any match reaches.
 const NONE: i16 = i16::MIN;
 
-/// A block covers at most 65535 bytes: the literals before a match are
-/// counted in 16 bits, and a stored block cannot be longer.  A block is ended
-/// this long before that, because the step that crosses the line still
-/// finishes, and at the lazy levels a step can be a row of literals, each
-/// given up for a better match after it, and then that match.
-const SOFT_MAX_BLOCK: usize = 65535 - 1024;
-/// No block is shorter than this, except the last (as in libdeflate).
+/// Where a block ends, as in libdeflate.  Level 1 ends one after this many
+/// bytes or this many matches; the levels above after this many bytes or
+/// matches, or earlier where what the block holds changes (see `Split`).
+/// These are soft: the step that crosses the line still finishes, and a rest
+/// of the payload that is shorter than `MIN_BLOCK` is taken along.
+const FAST_SOFT_MAX_BLOCK: usize = 65535;
+pub(crate) const FAST_MAX_SEQS: usize = 8192;
+const SOFT_MAX_BLOCK: usize = 300_000;
+pub(crate) const MAX_SEQS: usize = 50_000;
+/// No block is shorter than this, except the last.
 const MIN_BLOCK: usize = 5000;
-/// Level 1 ends a block after this many matches (as in libdeflate).
-const FAST_MAX_SEQS: usize = 8192;
-/// The most matches a block can have: three bytes each.
-const MAX_BLOCK_SEQS: usize = 65535 / 3 + 1;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Parse {
@@ -135,9 +134,9 @@ fn extend(inp: &[u8], a: usize, b: usize, start: usize, max: usize) -> usize {
 /// What block splitting looks at: how often each kind of symbol occurred in
 /// the block so far, and since the last look.  libdeflate's heuristic.
 pub(crate) struct Split {
-    new_obs: [u32; 10],
+    pub(crate) new_obs: [u32; 10],
     obs: [u32; 10],
-    num_new: u32,
+    pub(crate) num_new: u32,
     num: u32,
 }
 
@@ -146,10 +145,25 @@ impl Split {
         Split { new_obs: [0; 10], obs: [0; 10], num_new: 0, num: 0 }
     }
 
+    /// The kind of symbol a literal is: one of eight.
+    #[inline(always)]
+    pub(crate) fn kind(b: u8) -> usize {
+        (((b >> 5) & 6) | (b & 1)) as usize
+    }
+
     #[inline(always)]
     pub(crate) fn literal(&mut self, b: u8) {
-        self.new_obs[(((b >> 5) & 6) | (b & 1)) as usize] += 1;
+        self.new_obs[Self::kind(b)] += 1;
         self.num_new += 1;
+    }
+
+    /// The first length of the block at which `ends_at` can be true, if the
+    /// block's bytes up to there are `more` literals and the payload has
+    /// `remaining` bytes from here on; `None` if it cannot be any more.
+    #[inline(always)]
+    pub(crate) fn may_end_at(&self, block_len: usize, remaining: usize) -> Option<usize> {
+        let at = (block_len + 512usize.saturating_sub(self.num_new as usize).max(1)).max(MIN_BLOCK);
+        (remaining >= MIN_BLOCK && at - block_len <= remaining - MIN_BLOCK).then_some(at)
     }
 
     #[inline(always)]
@@ -284,7 +298,7 @@ impl Search<'_> {
     #[inline(always)]
     fn matched(&mut self, pos: usize, len: usize, dist: usize) {
         debug_assert!((MIN_MATCH..=MAX_MATCH).contains(&len) && (1..=WINDOW).contains(&dist));
-        debug_assert!(pos >= self.run_start && pos - self.run_start <= 0xFFFF);
+        debug_assert!(pos >= self.run_start);
         let (t, slot) = token(pos - self.run_start, len, dist);
         self.f_ll[FIRST_LEN + LEN_SLOT[len] as usize] += 1;
         self.f_off[slot & (NUM_OFF - 1)] += 1;
@@ -300,6 +314,9 @@ impl Search<'_> {
     #[inline(always)]
     fn goes_on(&mut self, begin: usize, pos: usize, soft_end: usize) -> bool {
         if pos >= soft_end {
+            return false;
+        }
+        if self.n_seqs >= MAX_SEQS {
             return false;
         }
         !(self.splitting && self.split.ends_at(pos - begin, self.inp.len() - pos))
@@ -720,8 +737,15 @@ pub(crate) struct Levels {
     nice: usize,
     /// Use the searches of `fast.rs` where they apply.
     pub(crate) fast: bool,
+    /// The form of `write::write_block` to use, if not the one that `asking`
+    /// would choose; for tests.
+    pub(crate) asks: Option<bool>,
     pub(crate) stats: Stats,
     t: Box<Tables>,
+    /// The chains of levels 5 to 9 in a payload of more than 32768 bytes
+    /// (`fast::Chains::links`): 256 KiB, allocated when the first such
+    /// payload comes.
+    links: Vec<u64>,
     seqs: Vec<Token>,
     f_ll: [u32; NUM_LL],
     f_off: [u32; NUM_OFF],
@@ -751,8 +775,10 @@ impl Levels {
             depth,
             nice,
             fast: true,
+            asks: None,
             stats: Stats::default(),
             t,
+            links: Vec::new(),
             seqs: Vec::new(),
             f_ll: [0; NUM_LL],
             f_off: [0; NUM_OFF],
@@ -773,12 +799,14 @@ impl Levels {
     /// `room(inp.len()) - 18` bytes.  Returns the number of bits written.
     pub(crate) unsafe fn deflate(&mut self, inp: &[u8], out: *mut u8, cap: usize) -> usize {
         let n = inp.len();
-        let need = (n.min(0xFFFF) / 3 + 2).min(MAX_BLOCK_SEQS + 1);
+        // Room for the matches of a block: one more than the number at which
+        // a block is ended.
+        let need = (n / 3 + 2).min(if self.parse == Parse::Fastest { FAST_MAX_SEQS } else { MAX_SEQS } + 1);
         if self.seqs.len() < need {
             self.seqs.resize(need, 0);
         }
         let lg = ceil_log2(n).clamp(8, 15);
-        if self.fast && n <= WINDOW {
+        if self.fast {
             if let Some(bits) = self.deflate_fast(inp, lg, out, cap) {
                 return bits;
             }
@@ -786,10 +814,25 @@ impl Levels {
         self.deflate_plain(inp, lg, out, cap)
     }
 
-    /// `deflate` with the searches of `fast.rs`, if they take the payload.
+    /// Where the block that begins at `begin` ends at the latest: after
+    /// `soft_max` bytes, or with the payload if what would be left after
+    /// those is too short for a block.
+    fn soft_end(n: usize, begin: usize, soft_max: usize) -> usize {
+        if n - begin < soft_max + MIN_BLOCK {
+            n
+        } else {
+            begin + soft_max
+        }
+    }
+
+    /// `deflate` with the searches of `fast.rs`, which take every payload of
+    /// eight bytes or more.
     unsafe fn deflate_fast(&mut self, inp: &[u8], lg: u32, out: *mut u8, cap: usize) -> Option<usize> {
-        use crate::fast::{chains_take, fastest, fastest_takes, greedy, lazy, Chains, Resume, Sink};
+        use crate::fast::*;
         let n = inp.len();
+        // A payload of more than 32768 bytes is searched through a window
+        // that moves, in tables of libdeflate's size.
+        let big = n > WINDOW;
         // Where a search counts and writes down what it finds, with the
         // counts at zero.  Made anew for every block: these are pointers
         // into `self`, and they are not used again once `self` has been.
@@ -818,43 +861,73 @@ impl Levels {
                 }
             };
         }
+        // Writes the block that a search just found, and says whether it
+        // was the payload's last.
+        macro_rules! finish {
+            ($begin:expr, $end:expr, $n_seqs:expr, $bitpos:ident) => {{
+                let last = $end == n;
+                self.f_ll[EOB] = 1;
+                let (block, tokens) = (&inp[$begin..$end], &self.seqs[..$n_seqs]);
+                $bitpos = finish_block(
+                    &mut self.own, &mut self.stats, &self.f_ll, &self.f_off, block, tokens, out, cap, $bitpos, last,
+                    self.asks.unwrap_or(asking(n)),
+                );
+                last
+            }};
+        }
+        if n < 8 {
+            return None; // they read eight bytes at a time
+        }
+        let mut st = Resume::default();
+        let mut bitpos = 0;
 
         if self.parse == Parse::Fastest {
             let tab = self.t.h4.as_mut_ptr().cast::<u32>();
-            let n_seqs = by_size!(fast_order(lg); O => {
-                if !fastest_takes::<O>(inp) {
-                    return None;
+            let order = if big { 15 } else { fast_order(lg) };
+            // Zeroed as bytes: there is no faster way.
+            core::ptr::write_bytes(tab, 0, 1 << order);
+            loop {
+                let begin = st.pos;
+                let soft_end = Self::soft_end(n, begin, FAST_SOFT_MAX_BLOCK);
+                let sink = sink!();
+                let n_seqs = if big {
+                    fastest::<15, true>(inp, tab, sink, &mut st, soft_end)
+                } else {
+                    by_size!(order; O => fastest::<O, false>(inp, tab, sink, &mut st, soft_end); 9 10 11 12 13 14 15)
+                };
+                if finish!(begin, st.pos, n_seqs, bitpos) {
+                    return Some(bitpos);
                 }
-                // Zeroed as bytes: there is no faster way.
-                core::ptr::write_bytes(tab, 0, 1 << O);
-                fastest::<O>(inp, tab, sink!())
-            }; 9 10 11 12 13 14 15);
-            self.f_ll[EOB] = 1;
-            let tokens = &self.seqs[..n_seqs];
-            return Some(finish_block(
-                &mut self.own, &mut self.stats, &self.f_ll, &self.f_off, inp, tokens, out, cap, 0, true,
-            ));
+            }
         }
 
+        // Where the chains get long, four steps of them at a time (see
+        // `fast::hc_longest`).
+        let hops = self.parse != Parse::Greedy && big;
+        if hops && self.links.is_empty() {
+            self.links = vec![0; WINDOW];
+        }
         let c = Chains {
             ip: inp.as_ptr(),
             n,
             h3: self.t.h3.as_mut_ptr().cast(),
             h4: self.t.h4.as_mut_ptr().cast(),
             next: self.t.next.as_mut_ptr().cast(),
+            links: self.links.as_mut_ptr(),
             depth: self.depth,
             nice: self.nice,
         };
-        if !by_size!(lg; LG => chains_take::<LG>(inp); 8 9 10 11 12 13 14 15) {
-            return None;
+        if hops {
+            // The link of "none" leads nowhere.  No other link is read
+            // before it is written.
+            *c.links = 0;
         }
         let (o3, o4) = chain_orders(lg);
         core::ptr::write_bytes(c.h3, 0, 1 << o3);
         core::ptr::write_bytes(c.h4, 0, 1 << o4);
-        let mut st = Resume::default();
-        let mut bitpos = 0;
         loop {
             let begin = st.pos;
+            let soft_end = Self::soft_end(n, begin, SOFT_MAX_BLOCK);
             // A block can only be ended early if both parts are long enough.
             let split: *mut Split = if n - begin >= 2 * MIN_BLOCK {
                 self.split = Split::new();
@@ -862,20 +935,25 @@ impl Levels {
             } else {
                 core::ptr::null_mut()
             };
-            let min_len = first_min_len(&inp[begin..], self.depth);
+            let min_len = first_min_len(&inp[begin..soft_end], self.depth);
             let sink = sink!();
-            let n_seqs = by_size!(lg; LG => match self.parse {
-                Parse::Greedy => greedy::<LG>(c, min_len, sink, &mut st, split),
-                Parse::Lazy => lazy::<LG>(c, min_len, false, sink, &mut st, split),
-                _ => lazy::<LG>(c, min_len, true, sink, &mut st, split),
-            }; 8 9 10 11 12 13 14 15);
-            let last = st.pos == n;
-            self.f_ll[EOB] = 1;
-            let (block, tokens) = (&inp[begin..st.pos], &self.seqs[..n_seqs]);
-            bitpos = finish_block(
-                &mut self.own, &mut self.stats, &self.f_ll, &self.f_off, block, tokens, out, cap, bitpos, last,
-            );
-            if last {
+            let parse = self.parse;
+            macro_rules! search {
+                ($LG:ident, $BIG:literal) => {
+                    match parse {
+                        Parse::Greedy => greedy::<$LG, $BIG>(c, min_len, sink, &mut st, split, soft_end),
+                        Parse::Lazy => lazy::<$LG, $BIG, $BIG>(c, min_len, false, sink, &mut st, split, soft_end),
+                        _ => lazy::<$LG, $BIG, $BIG>(c, min_len, true, sink, &mut st, split, soft_end),
+                    }
+                };
+            }
+            let n_seqs = if big {
+                const LG: u32 = 15;
+                search!(LG, true)
+            } else {
+                by_size!(lg; LG => search!(LG, false); 8 9 10 11 12 13 14 15)
+            };
+            if finish!(begin, st.pos, n_seqs, bitpos) {
                 return Some(bitpos);
             }
         }
@@ -920,8 +998,9 @@ impl Levels {
         let mut begin = 0;
         loop {
             let rem = n - begin;
-            let soft_end =
-                if rem <= 0xFFFF { n } else { begin + SOFT_MAX_BLOCK.min(rem - MIN_BLOCK) };
+            let soft_max =
+                if self.parse == Parse::Fastest { FAST_SOFT_MAX_BLOCK } else { SOFT_MAX_BLOCK };
+            let soft_end = Self::soft_end(n, begin, soft_max);
             *s.f_ll = [0; NUM_LL];
             *s.f_off = [0; NUM_OFF];
             s.n_seqs = 0;
@@ -940,12 +1019,13 @@ impl Levels {
                     Parse::Lazy2 => s.lazy(begin, soft_end, true),
                 }
             };
-            debug_assert!((end > begin || n == 0) && end - begin <= 0xFFFF);
+            debug_assert!(end > begin || n == 0);
             let last = end == n;
             s.f_ll[EOB] = 1;
             let (block, tokens) = (&inp[begin..end], &s.seqs[..s.n_seqs]);
             bitpos = finish_block(
                 &mut self.own, &mut self.stats, s.f_ll, s.f_off, block, tokens, out, cap, bitpos, last,
+                self.asks.unwrap_or(asking(n)),
             );
             if last {
                 return bitpos;
@@ -953,6 +1033,16 @@ impl Levels {
             begin = end;
         }
     }
+}
+
+/// Which form of `write::write_block` writes the blocks of a payload of `n`
+/// bytes.  On arm64 (measured on Neoverse N2) the form that asks nothing is
+/// up to 1% quicker for payloads of a few kilobytes, whose matches mostly
+/// have a few literals before them, and no slower for those of up to 32 KiB.
+/// On x86-64 the compiler makes branches of that form's masks, and asking
+/// once instead is 1 to 3% quicker.
+fn asking(n: usize) -> bool {
+    n > WINDOW || !cfg!(target_arch = "aarch64")
 }
 
 /// Writes one block at bit `bitpos` of `out` with whichever is smallest:
@@ -970,6 +1060,7 @@ unsafe fn finish_block(
     cap: usize,
     bitpos: usize,
     last: bool,
+    asking: bool,
 ) -> usize {
     // What the fixed codes would take, and the extra bits that any codes
     // take.
@@ -986,8 +1077,12 @@ unsafe fn finish_block(
         fixed_bits += f * 5;
     }
     fixed_bits += extra;
+    // Stored: three bits, padding to the byte boundary and four bytes for
+    // the first 65535 bytes, five bytes for every 65535 more.
     let used = (bitpos & 7) as u32;
-    let stored_bits = 3 + ((8 - (used + 3) % 8) % 8) + 32 + 8 * block.len() as u32;
+    let pieces = block.len().div_ceil(0xFFFF).max(1) as u32;
+    let stored_bits =
+        3 + ((8 - (used + 3) % 8) % 8) + 32 + 40 * (pieces - 1) + 8 * block.len() as u32;
 
     own.build_own(f_ll, f_off);
     let mut own_bits = own.hdr_bits + extra;
@@ -1009,7 +1104,11 @@ unsafe fn finish_block(
         stats.own_codes += 1;
         own
     };
-    let end = write_block(c, block.as_ptr(), block.len(), tokens, out, cap, bitpos, last);
+    let end = if asking {
+        write_block::<true>(c, block.as_ptr(), block.len(), tokens, out, cap, bitpos, last)
+    } else {
+        write_block::<false>(c, block.as_ptr(), block.len(), tokens, out, cap, bitpos, last)
+    };
     debug_assert_eq!(end - bitpos, own_bits.min(fixed_bits) as usize);
     end
 }

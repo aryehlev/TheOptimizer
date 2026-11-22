@@ -30,8 +30,8 @@ fn main() {
     let mut left = 0;
     for i in 0..count {
         if left == 0 {
-            phase = rng.below(6);
-            left = 1 + rng.below(400);
+            phase = rng.below(7);
+            left = 1 + rng.below(if phase == 6 { 12 } else { 400 });
         }
         left -= 1;
         let data = match phase {
@@ -54,6 +54,20 @@ fn main() {
                 d
             }
             4 => any_payload(&mut rng, 9000),
+            6 => {
+                // long ones: requests one after another, to 30 KB and
+                // beyond, some to several hundred
+                let most = if rng.below(4) == 0 { 400_000 } else { 80_000 };
+                let size = 30_000 + rng.below(most);
+                let mut d = Vec::with_capacity(size + 7000);
+                while d.len() < size {
+                    let kind = rng.below(4);
+                    let part = 300 + rng.below(6000);
+                    d.extend_from_slice(&request(&mut rng, part, kind));
+                }
+                d.truncate(size);
+                d
+            }
             _ => {
                 let max = if rng.below(8) == 0 { 200_000 } else { 20_000 };
                 any_payload(&mut rng, max)

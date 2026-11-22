@@ -42,6 +42,7 @@ mod enc;
 mod fast;
 mod huff;
 mod levels;
+mod rows;
 mod tables;
 mod write;
 

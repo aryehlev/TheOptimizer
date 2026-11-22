@@ -69,8 +69,9 @@ fn every_shape() {
     }
 }
 
-/// Each search has a plain form and a fast one for payloads of up to 32 KiB.
-/// They must find the same matches: the output is the same byte for byte.
+/// Each search has a plain form, which follows libdeflate line by line, and
+/// the fast one that is used.  They must find the same matches: the output
+/// is the same byte for byte.  Here for payloads of up to 32 KiB.
 #[test]
 #[cfg_attr(miri, ignore)]
 fn fast_and_plain_searches_agree() {
@@ -104,6 +105,84 @@ fn fast_and_plain_searches_agree() {
             data.extend(requests(&mut rng, 9000));
             both(&data);
         }
+    }
+}
+
+/// Four bytes that libdeflate's hash takes to 0, whatever the table size.
+/// libdeflate enters the first position of a payload under hash 0, so a
+/// payload that begins with these is one in which that position can be
+/// found again.
+fn hashed_to_zero() -> [u8; 4] {
+    (1u32..).find(|v| v.wrapping_mul(0x1E35_A7BD) >> 16 == 0).unwrap().to_le_bytes()
+}
+
+/// The same above 32 KiB, where the tables are searched through a window
+/// that moves and a payload is more than one block.
+#[test]
+#[cfg_attr(miri, ignore)]
+fn fast_and_plain_searches_agree_on_large_payloads() {
+    for level in 1..=9 {
+        let mut rng = Rng(250 + level as u64);
+        let mut fast = Gzip::with_level(level);
+        let mut plain = Gzip::with_level(level);
+        plain.__plain_search(true);
+        let mut both = |data: &[u8]| {
+            let a = fast.compress(data).to_vec();
+            assert!(a == plain.compress(data), "level {level}, {} bytes", data.len());
+        };
+        // Lengths around every place where a window ends or the tables are
+        // counted anew, with requests, and with matches as long as they get
+        // across those places.
+        for n in [
+            32_769usize, 32_773, 40_000, 65_530, 65_535, 65_536, 65_537, 65_541, 70_535, 98_300, 98_304,
+            98_310, 131_071, 131_072, 131_080,
+        ] {
+            both(&requests(&mut rng, n));
+            both(&vec![b'z'; n]);
+            both(&vec![0u8; n]);
+            let unit: Vec<u8> = (0..700).map(|_| b'a' + rng.below(26) as u8).collect();
+            let mut data = unit.repeat(n / 700 + 1);
+            data.truncate(n);
+            both(&data);
+        }
+        // Other lengths, and a change in what the payload holds, where a
+        // block is worth ending.
+        for _ in 0..5 {
+            let n = 33_000 + rng.below(250_000);
+            let mut data = requests(&mut rng, n);
+            both(&data);
+            let from = n / 3;
+            for b in &mut data[from..from + n / 4] {
+                *b = rng.u32() as u8;
+            }
+            both(&data);
+        }
+        // The first position found again: at once, late in the first
+        // window, and not before the second.
+        let zero = hashed_to_zero();
+        for at in [4usize, 9, 3000, 32_000, 32_764, 32_765, 32_770, 40_000] {
+            let mut data = requests(&mut rng, 70_000);
+            data[..4].copy_from_slice(&zero);
+            for k in [at, at + 9, at + 400] {
+                data[k..k + 4].copy_from_slice(&zero);
+                data[k + 4..k + 12].copy_from_slice(&[b'#'; 8]);
+            }
+            data[4..12].copy_from_slice(&[b'#'; 8]);
+            both(&data);
+            both(&data[..(at + 500).max(600)]);
+        }
+        // Matches so short and so many that a block ends because the room
+        // for them is used up: words of four letters out of 64, a byte of
+        // anything between them.
+        let words: Vec<[u8; 4]> = (0..64).map(|_| rng.u32().to_le_bytes()).collect();
+        let mut data = Vec::with_capacity(400_000);
+        while data.len() < 400_000 {
+            data.extend_from_slice(&words[rng.below(64)]);
+            data.push(rng.u32() as u8);
+        }
+        both(&data);
+        // And more than one block of the greatest length.
+        both(&requests(&mut rng, 650_000));
     }
 }
 
@@ -196,8 +275,53 @@ fn block_edges() {
     }
 }
 
-/// Small enough for Miri: every level, each of its searches, each kind of
-/// block.
+/// What a payload of more than 32 KiB takes that a smaller one does not: the
+/// window of level 1 moving, the tables counted anew, chains walked four
+/// steps at a time.  Mostly long runs, so that it is little work: small
+/// enough for Miri.
+#[test]
+fn large_paths_once() {
+    let mut rng = Rng(800);
+    let mut data = request(&mut rng, 900, 0);
+    data.resize(32_600, b'z');
+    data.extend_from_slice(&request(&mut rng, 500, 1)); // across the end of the first window
+    data.resize(65_300, b'y');
+    data.extend_from_within(300..700); // and of the second, where entries are counted anew
+    data.extend((0..200).map(|_| rng.u32() as u8));
+    data.resize(66_400, b'x');
+    for level in [1u8, 3, 9] {
+        let mut gz = Gzip::with_level(level);
+        check(&mut gz, &data);
+        assert!(gz.stats().own_codes >= 1);
+    }
+}
+
+/// Both ways of writing a block give the same bytes.
+#[test]
+#[cfg_attr(miri, ignore)]
+fn both_writers_agree() {
+    let mut rng = Rng(900);
+    let mut payloads: Vec<Vec<u8>> = Vec::new();
+    for i in 0..40 {
+        payloads.push(any_payload(&mut rng, i));
+    }
+    for n in [0usize, 1, 9, 300, 2000, 5000, 20_000, 40_000, 70_000] {
+        payloads.push(requests(&mut rng, n));
+        payloads.push((0..n).map(|i| b"ab,c"[(i * i / 7) % 4]).collect()); // matches without literals between
+    }
+    for level in [1u8, 2, 5, 9] {
+        let (mut a, mut b) = (Gzip::with_level(level), Gzip::with_level(level));
+        a.__writer_asks(true);
+        b.__writer_asks(false);
+        for p in &payloads {
+            check(&mut a, p);
+            assert!(a.compress(p) == b.compress(p), "level {level}, {} bytes", p.len());
+        }
+    }
+}
+
+/// Small enough for Miri: every level, each of its searches, each way of
+/// writing, each kind of block.
 #[test]
 fn every_path_once() {
     let mut rng = Rng(700);
@@ -205,6 +329,7 @@ fn every_path_once() {
         let mut gz = Gzip::with_level(level);
         for plain in [false, true] {
             gz.__plain_search(plain);
+            gz.__writer_asks(plain);
             check(&mut gz, &request(&mut rng, 1300, 0)); // codes of its own
             let noise: Vec<u8> = (0..600).map(|_| rng.u32() as u8).collect();
             check(&mut gz, &noise); // stored
