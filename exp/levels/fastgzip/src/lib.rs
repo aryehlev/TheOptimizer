@@ -31,9 +31,10 @@
 //! That is level 0, the level this crate is for.  [`Gzip::with_level`] also
 //! has levels 1 to 9.  They search a payload the way libdeflate does at the
 //! same level and give it codes of its own, so their output is as large as
-//! libdeflate's, depends on nothing but the payload, and takes about as long
-//! to make: at those levels the time goes into the search, which sharing
-//! codes does nothing for.
+//! libdeflate's and depends on nothing but the payload.  It takes less time
+//! to make than libdeflate's, but several times as long as level 0's: at
+//! those levels the time goes into the search, which sharing codes does
+//! nothing for.
 
 #![warn(missing_docs)]
 
@@ -125,7 +126,7 @@ struct State {
 /// 80 KiB at level 0.  At levels 1 to 9 it is 256 KiB of tables, of which
 /// only what the payloads need is ever touched: 56 KiB for payloads of up to
 /// 4 KiB (32 KiB at level 1), twice that for up to 8 KiB, and so on.  A
-/// payload of more than 32 KiB uses the tables in full, and at levels 5 to 9
+/// payload of more than 32 KiB uses the tables in full, and at levels 4 to 9
 /// another 256 KiB that is allocated when the first such payload comes.
 /// These levels also keep the matches of a block, 8 bytes for every three
 /// bytes of payload up to 400 KiB (64 KiB at level 1).  A `Gzip` is `Send`,
@@ -175,11 +176,13 @@ impl Gzip {
     /// Level 0 is [`Gzip::new`]: the fastest by far, with output a few
     /// percent larger than libdeflate's at level 1.  Levels 1 to 9 search
     /// each payload the way libdeflate does at the same level and give it
-    /// codes of its own: their output is the size of libdeflate's at that
-    /// level (within 0.1%, and the same for payloads of more than 32 KiB) and
-    /// depends on nothing but the payload.  They take less time than
-    /// libdeflate on payloads of up to 32 KiB and about as much above; the
-    /// README has the figures.
+    /// codes of its own, so their output depends on nothing but the payload.
+    /// For a payload of up to 32 KiB it is the size of libdeflate's at that
+    /// level, within 0.1%.  For a longer one at levels 2 to 9 it is that
+    /// size within a fraction of a percent or smaller: matches of three
+    /// bytes are looked for only in data where they pay, which is also what
+    /// saves the most time.  These levels take less time than libdeflate;
+    /// the README has the figures.
     ///
     /// # Panics
     ///
@@ -269,9 +272,9 @@ impl Gzip {
     }
 
     /// Levels 1 to 9 have two implementations of each search that find the
-    /// same matches: a plain one, which follows libdeflate's line by line,
-    /// and the fast one that is used.  This chooses the plain one for every
-    /// payload, for tests to compare.
+    /// same matches: a plain one, which is libdeflate's line by line but for
+    /// what `levels.rs` lists, and the fast one that is used.  This chooses
+    /// the plain one for every payload, for tests to compare.
     #[doc(hidden)]
     pub fn __plain_search(&mut self, plain: bool) {
         if let Kind::Level(_, lv) = &mut self.kind {

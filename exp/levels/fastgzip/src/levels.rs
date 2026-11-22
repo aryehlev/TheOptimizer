@@ -5,21 +5,33 @@
 //! lib/hc_matchfinder.h; MIT licence, Eric Biggers): which candidates are
 //! looked at and in which order, when a match is taken and when the next
 //! position is tried first, the shortest match worth taking, where a block
-//! ends, and which kind of block it becomes.  With tables of libdeflate's
-//! size the matches are the same ones, and the output has the same size to
-//! within a few bytes.
+//! ends, and which kind of block it becomes.
 //!
-//! What differs:
+//! For a payload of up to 32768 bytes, and for any payload at level 1, the
+//! matches are libdeflate's, and the output has the same size to within a
+//! few bytes.  What differs:
 //!
-//!   - For a payload of up to 32768 bytes the tables are sized to the
-//!     payload (see `fast_order`).  libdeflate clears 128 KiB per call at
-//!     level 1 and 192 KiB at the levels above.
+//!   - The tables are sized to the payload (see `fast_order`).  libdeflate
+//!     clears 128 KiB per call at level 1 and 192 KiB at the levels above.
 //!   - The block is written by this crate's encoder (`write.rs`).
 //!
+//! A payload of more than 32768 bytes is searched at levels 2 to 9 with
+//! three more differences, of which the first is what makes it quick
+//! (`big.rs` has what was measured):
+//!
+//!   - A block is searched for matches of three bytes only if its first
+//!     4 KiB hold many different bytes (`first_look`).  The table of
+//!     three-byte hashes is otherwise left alone.
+//!   - The payload's last seven bytes are not searched.
+//!   - Every block begins with the hashes of its first position worked out
+//!     anew; libdeflate enters a payload's first position under hash 0.
+//!
 //! Every search is here in a plain form, which is the statement of what it
-//! finds: libdeflate's search line by line.  `fast.rs` has each of them
-//! again, and those are what runs; the plain ones are what they are tested
-//! against, and take the payloads of fewer than eight bytes.
+//! finds: libdeflate's search line by line, with those three differences
+//! where they apply (`Search::big`, `Search::with3`).  `fast.rs` and
+//! `big.rs` have each of them again, and those are what runs; the plain ones
+//! are what they are tested against, and take the payloads of fewer than
+//! eight bytes.
 //!
 //! Consecutive payloads do not share their codes here, as they do at level
 //! 0.  Shared codes have to describe every symbol any of the payloads uses
@@ -211,8 +223,8 @@ impl Split {
         }
         seen[8] = f_ll[FIRST_LEN..FIRST_LEN + 6].iter().sum();
         seen[9] = f_ll[FIRST_LEN + 6..FIRST_LEN + NUM_LEN].iter().sum();
-        for i in 0..10 {
-            self.new_obs[i] = seen[i] - self.obs[i];
+        for ((new, &seen), &old) in self.new_obs.iter_mut().zip(&seen).zip(&self.obs) {
+            *new = seen - old;
         }
         self.num_new = num_now - self.num;
         debug_assert_eq!(self.new_obs.iter().sum::<u32>(), self.num_new);
@@ -271,16 +283,32 @@ fn choose_min_len(used: u32, depth: u32) -> usize {
     min_len
 }
 
-/// `choose_min_len` for a block, from its first 4 KiB.
-pub(crate) fn first_min_len(block: &[u8], depth: u32) -> usize {
+/// A block of a payload of more than 32768 bytes is searched for matches of
+/// three bytes only if its first 4 KiB hold at least this many different
+/// bytes.  Machine code holds 200 and more, and with such matches comes out
+/// 1.5 to 2% smaller; text and JSON hold fewer than 100, and come out the
+/// same (text) or 1% larger (JSON) with them, at a seventh to a quarter more
+/// time.
+const BINARY: u32 = 160;
+
+/// `choose_min_len` for a block, from its first 4 KiB; and whether the block
+/// is searched for matches of three bytes if the payload is longer than
+/// 32768 bytes.
+pub(crate) fn first_look(block: &[u8], depth: u32) -> (usize, bool) {
     if block.len() < 512 {
-        return MIN_MATCH;
+        return (MIN_MATCH, false);
     }
     let mut used = [0u8; 256];
     for &b in &block[..block.len().min(4096)] {
         used[b as usize] = 1;
     }
-    choose_min_len(used.iter().map(|&u| u as u32).sum(), depth)
+    let used: u32 = used.iter().map(|&u| u as u32).sum();
+    (choose_min_len(used, depth), used >= BINARY)
+}
+
+/// `choose_min_len` for a block, from its first 4 KiB.
+pub(crate) fn first_min_len(block: &[u8], depth: u32) -> usize {
+    first_look(block, depth).0
 }
 
 /// `choose_min_len` again, from the literals the block has used so far.
@@ -314,6 +342,14 @@ struct Search<'a> {
     /// The block may be ended early, so `split` is kept.
     splitting: bool,
     split: &'a mut Split,
+    /// A payload of more than 32768 bytes at levels 2 to 9: its last seven
+    /// bytes are not searched, and each of its blocks begins with the
+    /// hashes of its first position worked out anew.
+    big: bool,
+    /// The block at hand is searched for matches of three bytes: any block
+    /// of a shorter payload, and those of a longer one that `first_look`
+    /// says.
+    with3: bool,
 }
 
 impl Search<'_> {
@@ -505,13 +541,15 @@ impl Search<'_> {
             cur_pos = 0;
         }
         let cutoff = cur_pos as i32 - WINDOW as i32;
-        if max_len < 5 {
+        if max_len < if self.big { 8 } else { 5 } {
             return (best_len, 0); // four bytes cannot be read at pos + 1
         }
         let (h3, h4) = (self.nh3 & 0x7FFF, self.nh4 & 0xFFFF);
-        let node3 = self.t.h3[h3] as i32;
+        let node3 = if self.with3 { self.t.h3[h3] as i32 } else { NONE as i32 };
         let mut node4 = self.t.h4[h4] as i32;
-        self.t.h3[h3] = cur_pos as i16;
+        if self.with3 {
+            self.t.h3[h3] = cur_pos as i16;
+        }
         self.t.h4[h4] = cur_pos as i16;
         self.t.next[cur_pos & (WINDOW - 1)] = node4 as i16;
         let next_seq = le32(inp, pos + 1);
@@ -531,14 +569,16 @@ impl Search<'_> {
         'out: {
             let seq4 = le32(inp, pos);
             if best_len < 4 {
-                if node3 <= cutoff {
-                    break 'out;
-                }
-                if best_len < 3 {
-                    let m = self.at(node3);
-                    if (le32(inp, m) ^ seq4) & 0xFF_FFFF == 0 {
-                        best_len = 3;
-                        best = m;
+                if self.with3 {
+                    if node3 <= cutoff {
+                        break 'out;
+                    }
+                    if best_len < 3 {
+                        let m = self.at(node3);
+                        if (le32(inp, m) ^ seq4) & 0xFF_FFFF == 0 {
+                            best_len = 3;
+                            best = m;
+                        }
                     }
                 }
                 if node4 <= cutoff {
@@ -589,14 +629,32 @@ impl Search<'_> {
         (best_len, pos - best)
     }
 
+    /// What a block of levels 2 to 9 begins with: the shortest match worth
+    /// taking in it.
+    fn begin_block(&mut self, begin: usize, soft_end: usize) -> usize {
+        let inp = self.inp;
+        let (min_len, binary) = first_look(&inp[begin..soft_end], self.depth);
+        if !self.big {
+            return min_len;
+        }
+        self.with3 = binary;
+        if inp.len() - begin >= 8 {
+            let seq = le32(inp, begin);
+            self.nh3 = lz_hash(seq & 0xFF_FFFF, self.o3);
+            self.nh4 = lz_hash(seq, self.o4);
+        }
+        min_len.max(if binary { MIN_MATCH } else { 4 })
+    }
+
     /// libdeflate's `hc_matchfinder_skip_bytes`: enters `count` positions
     /// from `pos` on, without searching.
     #[inline(always)]
     fn hc_skip(&mut self, pos: usize, count: usize) {
         let inp = self.inp;
-        if count + 5 > inp.len() - pos {
+        if count + if self.big { 8 } else { 5 } > inp.len() - pos {
             return;
         }
+        let with3 = self.with3;
         let mut cur_pos = pos - self.base;
         let (mut h3, mut h4) = (self.nh3, self.nh4);
         let (o3, o4) = (self.o3, self.o4);
@@ -606,7 +664,9 @@ impl Search<'_> {
                 cur_pos = 0;
             }
             let t = &mut *self.t;
-            t.h3[h3 & 0x7FFF] = cur_pos as i16;
+            if with3 {
+                t.h3[h3 & 0x7FFF] = cur_pos as i16;
+            }
             t.next[cur_pos & (WINDOW - 1)] = t.h4[h4 & 0xFFFF];
             t.h4[h4 & 0xFFFF] = cur_pos as i16;
             let seq = u32::from_le_bytes(w.try_into().unwrap());
@@ -625,7 +685,7 @@ impl Search<'_> {
         let mut pos = begin;
         let mut max_len = MAX_MATCH;
         let mut nice_len = self.nice.min(max_len);
-        let min_len = first_min_len(&self.inp[begin..soft_end], self.depth);
+        let min_len = self.begin_block(begin, soft_end);
         loop {
             if n - pos < MAX_MATCH {
                 max_len = n - pos;
@@ -655,7 +715,8 @@ impl Search<'_> {
         let mut pos = begin;
         let mut max_len = MAX_MATCH;
         let mut nice_len = self.nice.min(max_len);
-        let mut min_len = first_min_len(&self.inp[begin..soft_end], self.depth);
+        let mut min_len = self.begin_block(begin, soft_end);
+        let shortest = if self.with3 { MIN_MATCH } else { 4 };
         let mut next_recalc = pos + (n - pos).min(10000);
         // Is a match of `nl` bytes at distance `no` better than one of `cl`
         // at `co` by more than `by`?  A byte counts for four, and so does a
@@ -668,7 +729,7 @@ impl Search<'_> {
         loop {
             'step: {
                 if pos >= next_recalc {
-                    min_len = later_min_len(self.f_ll, self.depth);
+                    min_len = later_min_len(self.f_ll, self.depth).max(shortest);
                     next_recalc += (n - next_recalc).min(pos - begin);
                 }
                 if n - pos < MAX_MATCH {
@@ -779,12 +840,9 @@ pub(crate) struct Levels {
     pub(crate) asks: Option<bool>,
     pub(crate) stats: Stats,
     t: Box<Tables>,
-    /// EXPERIMENT: rows for payloads of more than 32768 bytes: words per row,
-    /// how to parse, nice length.
-    rows: Option<(usize, Parse, usize)>,
-    /// The chains of levels 5 to 9 in a payload of more than 32768 bytes
-    /// (`fast::Chains::links`): 256 KiB, allocated when the first such
-    /// payload comes.
+    /// The chains of levels 4 to 9 in a payload of more than 32768 bytes
+    /// (`big::Chain::links`): 256 KiB, allocated when the first such payload
+    /// comes.
     links: Vec<u64>,
     seqs: Vec<Token>,
     f_ll: [u32; NUM_LL],
@@ -810,33 +868,10 @@ impl Levels {
             Box::from_raw(p)
         }
         let (t, own): (Box<Tables>, Box<Codes>) = unsafe { (zeroed(), zeroed()) };
-        let mut rows = match level {
-            2 => Some((1, Parse::Greedy, 258)),
-            3 => Some((1, Parse::Lazy, 258)),
-            4 => Some((1, Parse::Lazy, 258)),
-            5..=9 => Some((2, parse, nice)),
-            _ => None,
-        };
-        if let Ok(v) = std::env::var("FG_ROWS") {
-            let f: Vec<&str> = v.split(',').collect();
-            rows = if f.len() < 3 || parse == Parse::Fastest {
-                None
-            } else {
-                let p = match f[1] {
-                    "g" => Parse::Greedy,
-                    "l" => Parse::Lazy,
-                    "2" => Parse::Lazy2,
-                    _ => parse,
-                };
-                let nc: usize = f[2].parse().unwrap();
-                Some((f[0].parse().unwrap(), p, if nc % 1000 == 0 { nc + nice } else { nc }))
-            };
-        }
         Levels {
             parse,
             depth,
             nice,
-            rows,
             fast: true,
             asks: None,
             stats: Stats::default(),
@@ -893,8 +928,8 @@ impl Levels {
     unsafe fn deflate_fast(&mut self, inp: &[u8], lg: u32, out: *mut u8, cap: usize) -> Option<usize> {
         use crate::fast::*;
         let n = inp.len();
-        // A payload of more than 32768 bytes is searched through a window
-        // that moves, in tables of libdeflate's size.
+        // A payload of more than 32768 bytes is searched in tables of
+        // libdeflate's size, which forget what is out of reach.
         let big = n > WINDOW;
         // Where a search counts and writes down what it finds, with the
         // counts at zero.  Made anew for every block: these are pointers
@@ -964,90 +999,24 @@ impl Levels {
             }
         }
 
-        if let (true, Some((w, parse, nice))) = (big, self.rows) {
-            use crate::big::{search as big_search, Chain, Rows4, ROW_WORDS};
-            let tab = (&mut *self.t as *mut Tables).cast::<u64>();
-            // w: 1 rows of four; 0 chains; 2 chains that hold four links.  nice >= 1000: with matches of three.
-            let with3 = nice >= 1000;
-            let nice = nice % 1000;
-            let hops = w == 2;
-            if hops && self.links.is_empty() {
-                self.links = vec![0; WINDOW];
-            }
-            let chain_depth = self.depth;
-            let h3 = self.t.h3.as_mut_ptr().cast::<u16>();
-            let h4 = self.t.h4.as_mut_ptr().cast::<u16>();
-            let next = self.t.next.as_mut_ptr().cast::<u16>();
-            let links = self.links.as_mut_ptr();
-            if w == 1 {
-                core::ptr::write_bytes(tab, 0, ROW_WORDS);
-            } else {
-                core::ptr::write_bytes(h3, 0, 1 << 15);
-                core::ptr::write_bytes(h4, 0, 1 << 16);
-                if hops {
-                    *links = 0;
-                }
-            }
-            let depth = if w == 1 { 4 } else { chain_depth };
-            loop {
-                let begin = st.pos;
-                let soft_end = Self::soft_end(n, begin, SOFT_MAX_BLOCK);
-                let splitting = n - begin >= 2 * MIN_BLOCK;
-                self.split = Split::new();
-                let split: *mut Split = &mut self.split;
-                let shortest = if with3 && w != 1 { 3 } else { 4 };
-                let min_len = first_min_len(&inp[begin..soft_end], depth).max(shortest);
-                let sink = sink!();
-                let ip = inp.as_ptr();
-                macro_rules! run {
-                    ($f:expr) => {
-                        match parse {
-                            Parse::Greedy => big_search::<_, 0>($f, ip, n, min_len, sink, &mut st, split, splitting, soft_end),
-                            Parse::Lazy => big_search::<_, 1>($f, ip, n, min_len, sink, &mut st, split, splitting, soft_end),
-                            _ => big_search::<_, 2>($f, ip, n, min_len, sink, &mut st, split, splitting, soft_end),
-                        }
-                    };
-                }
-                let n_seqs = match (w, with3) {
-                    (1, _) => run!(Rows4 { tab }),
-                    (0, false) => run!(Chain::<false, false> { h3, h4, next, links, depth, nice }),
-                    (0, true) => run!(Chain::<true, false> { h3, h4, next, links, depth, nice }),
-                    (_, false) => run!(Chain::<false, true> { h3, h4, next, links, depth, nice }),
-                    (_, true) => run!(Chain::<true, true> { h3, h4, next, links, depth, nice }),
-                };
-                if finish!(begin, st.pos, n_seqs, bitpos) {
-                    return Some(bitpos);
-                }
-            }
+        if big {
+            return Some(self.deflate_big(inp, out, cap));
         }
 
-        // Where the chains get long, four steps of them at a time (see
-        // `fast::hc_longest`).
-        let hops = self.parse != Parse::Greedy && big;
-        if hops && self.links.is_empty() {
-            self.links = vec![0; WINDOW];
-        }
         let c = Chains {
             ip: inp.as_ptr(),
             n,
             h3: self.t.h3.as_mut_ptr().cast(),
             h4: self.t.h4.as_mut_ptr().cast(),
             next: self.t.next.as_mut_ptr().cast(),
-            links: self.links.as_mut_ptr(),
             depth: self.depth,
             nice: self.nice,
         };
-        if hops {
-            // The link of "none" leads nowhere.  No other link is read
-            // before it is written.
-            *c.links = 0;
-        }
         let (o3, o4) = chain_orders(lg);
         core::ptr::write_bytes(c.h3, 0, 1 << o3);
         core::ptr::write_bytes(c.h4, 0, 1 << o4);
         loop {
             let begin = st.pos;
-            let soft_end = Self::soft_end(n, begin, SOFT_MAX_BLOCK);
             // A block can only be ended early if both parts are long enough.
             let split: *mut Split = if n - begin >= 2 * MIN_BLOCK {
                 self.split = Split::new();
@@ -1055,26 +1024,98 @@ impl Levels {
             } else {
                 core::ptr::null_mut()
             };
-            let min_len = first_min_len(&inp[begin..soft_end], self.depth);
+            let min_len = first_min_len(&inp[begin..], self.depth);
             let sink = sink!();
             let parse = self.parse;
-            macro_rules! search {
-                ($LG:ident, $BIG:literal) => {
-                    match parse {
-                        Parse::Greedy => greedy::<$LG, $BIG>(c, min_len, sink, &mut st, split, soft_end),
-                        Parse::Lazy => lazy::<$LG, $BIG, $BIG>(c, min_len, false, sink, &mut st, split, soft_end),
-                        _ => lazy::<$LG, $BIG, $BIG>(c, min_len, true, sink, &mut st, split, soft_end),
-                    }
-                };
-            }
-            let n_seqs = if big {
-                const LG: u32 = 15;
-                search!(LG, true)
-            } else {
-                by_size!(lg; LG => search!(LG, false); 8 9 10 11 12 13 14 15)
-            };
+            let n_seqs = by_size!(lg; LG => match parse {
+                Parse::Greedy => greedy::<LG>(c, min_len, sink, &mut st, split),
+                Parse::Lazy => lazy::<LG>(c, min_len, false, sink, &mut st, split),
+                _ => lazy::<LG>(c, min_len, true, sink, &mut st, split),
+            }; 8 9 10 11 12 13 14 15);
             if finish!(begin, st.pos, n_seqs, bitpos) {
                 return Some(bitpos);
+            }
+        }
+    }
+
+    /// `deflate` for a payload of more than 32768 bytes at levels 2 to 9:
+    /// the search of `big.rs`, block by block.
+    unsafe fn deflate_big(&mut self, inp: &[u8], out: *mut u8, cap: usize) -> usize {
+        use crate::big::Chain;
+        use crate::fast::{Resume, Sink};
+        let n = inp.len();
+        let ip = inp.as_ptr();
+        let (depth, nice, parse) = (self.depth, self.nice, self.parse);
+        // Where chains are followed far, a position holds its next four:
+        // measured, that is the quicker from 16 candidates on.
+        let hops = depth >= 16;
+        if hops && self.links.is_empty() {
+            self.links = vec![0; WINDOW];
+        }
+        let h3 = self.t.h3.as_mut_ptr().cast::<u16>();
+        let h4 = self.t.h4.as_mut_ptr().cast::<u16>();
+        let next = self.t.next.as_mut_ptr().cast::<u16>();
+        let links = self.links.as_mut_ptr();
+        core::ptr::write_bytes(h3, 0, 1 << 15);
+        core::ptr::write_bytes(h4, 0, 1 << 16);
+        if hops {
+            // The link of "none" leads nowhere.  No other link is read
+            // before it is written.
+            *links = 0;
+        }
+        let mut st = Resume::default();
+        let mut bitpos = 0;
+        loop {
+            let begin = st.pos;
+            let soft_end = Self::soft_end(n, begin, SOFT_MAX_BLOCK);
+            // A block can only be ended early if both parts are long enough.
+            let splitting = n - begin >= 2 * MIN_BLOCK;
+            self.split = Split::new();
+            let split: *mut Split = &mut self.split;
+            let (min_len, binary) = first_look(&inp[begin..soft_end], depth);
+            self.f_ll = [0; NUM_LL];
+            self.f_off = [0; NUM_OFF];
+            let sink = Sink {
+                f_ll: self.f_ll.as_mut_ptr(),
+                f_off: self.f_off.as_mut_ptr(),
+                seqs: self.seqs.as_mut_ptr(),
+                max_seqs: self.seqs.len(),
+            };
+            // Each search exists once for every way it is used, what
+            // differs being constants in it.
+            macro_rules! run {
+                ($PARSE:literal, $H3:literal, $HOPS:literal) => {
+                    Chain::<$H3, $HOPS> { h3, h4, next, links, depth, nice }.search::<$PARSE>(
+                        ip,
+                        n,
+                        min_len.max(Chain::<$H3, $HOPS>::SHORTEST),
+                        sink,
+                        &mut st,
+                        split,
+                        splitting,
+                        soft_end,
+                    )
+                };
+            }
+            let n_seqs = match (parse, binary, hops) {
+                (Parse::Greedy, false, false) => run!(0, false, false),
+                (Parse::Greedy, true, false) => run!(0, true, false),
+                (Parse::Greedy, false, true) => run!(0, false, true),
+                (Parse::Greedy, true, true) => run!(0, true, true),
+                (Parse::Lazy, false, _) => run!(1, false, true),
+                (Parse::Lazy, true, _) => run!(1, true, true),
+                (_, false, _) => run!(2, false, true),
+                (_, true, _) => run!(2, true, true),
+            };
+            let end = st.pos;
+            let last = end == n;
+            self.f_ll[EOB] = 1;
+            bitpos = finish_block(
+                &mut self.own, &mut self.stats, &self.f_ll, &self.f_off, &inp[begin..end], &self.seqs[..n_seqs],
+                out, cap, bitpos, last, self.asks.unwrap_or(asking(n)),
+            );
+            if last {
+                return bitpos;
             }
         }
     }
@@ -1113,6 +1154,8 @@ impl Levels {
             f_off: &mut self.f_off,
             splitting: false,
             split: &mut self.split,
+            big: n > WINDOW && self.parse != Parse::Fastest,
+            with3: true,
         };
         let mut bitpos = 0;
         let mut begin = 0;
