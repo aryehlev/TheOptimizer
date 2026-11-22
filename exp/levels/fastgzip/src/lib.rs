@@ -123,8 +123,12 @@ struct State {
 /// per call once the buffer has grown to fit.  The working memory is about
 /// 80 KiB at level 0.  At levels 1 to 9 it is 256 KiB of tables, of which
 /// only what the payloads need is ever touched: 56 KiB for payloads of up to
-/// 4 KiB (32 KiB at level 1), twice that for up to 8 KiB, and so on.  It is
-/// `Send`, so it can live in a `thread_local!`, in a pool, or in a task.
+/// 4 KiB (32 KiB at level 1), twice that for up to 8 KiB, and so on.  A
+/// payload of more than 32 KiB uses the tables in full, and at levels 5 to 9
+/// another 256 KiB that is allocated when the first such payload comes.
+/// These levels also keep the matches of a block, 8 bytes for every three
+/// bytes of payload up to 400 KiB (64 KiB at level 1).  A `Gzip` is `Send`,
+/// so it can live in a `thread_local!`, in a pool, or in a task.
 pub struct Gzip {
     kind: Kind,
     out: Vec<u8>,
@@ -171,9 +175,10 @@ impl Gzip {
     /// percent larger than libdeflate's at level 1.  Levels 1 to 9 search
     /// each payload the way libdeflate does at the same level and give it
     /// codes of its own: their output is the size of libdeflate's at that
-    /// level (within 0.1%) and depends on nothing but the payload.  They are
-    /// made for payloads of up to 32 KiB; larger ones are compressed
-    /// correctly, but more slowly than libdeflate does it.
+    /// level (within 0.1%, and the same for payloads of more than 32 KiB) and
+    /// depends on nothing but the payload.  They take less time than
+    /// libdeflate on payloads of up to 32 KiB and about as much above; the
+    /// README has the figures.
     ///
     /// # Panics
     ///

@@ -286,7 +286,7 @@ fn large_paths_once() {
     data.resize(32_600, b'z');
     data.extend_from_slice(&request(&mut rng, 500, 1)); // across the end of the first window
     data.resize(65_300, b'y');
-    data.extend_from_slice(&data[300..700].to_vec()); // and of the second, where entries are counted anew
+    data.extend_from_within(300..700); // and of the second, where entries are counted anew
     data.extend((0..200).map(|_| rng.u32() as u8));
     data.resize(66_400, b'x');
     for level in [1u8, 3, 9] {

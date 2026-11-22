@@ -12,7 +12,7 @@
 //!   64 KiB, and one pass less than libdeflate makes in a longer one;
 //! * the steps that find nothing, which in a payload that does not repeat
 //!   itself much are most steps, are loops of their own with nothing else
-//!   in them (`literals`, `chain_literals`).
+//!   in them (`literals`, `chain_literals!`).
 //!
 //! `BIG` marks a search of a payload of more than 32768 bytes: matches reach
 //! no further back than that, so the tables must forget, and the payload is
@@ -567,9 +567,8 @@ struct Run {
     nh: (usize, usize),
     /// How many matches the block has so far.
     n_seqs: usize,
-    /// The longest match libdeflate allows at `pos`, and the length it
-    /// calls good enough there (see `chain_limits!`).
-    max_len: usize,
+    /// The length that was good enough for the search last made (see
+    /// `chain_limits!`).
     nice_len: usize,
 }
 
@@ -592,28 +591,20 @@ macro_rules! chain_run {
             recalc: usize::MAX,
             nh: $st.nh,
             n_seqs: 0,
-            max_len: MAX_MATCH,
-            nice_len: $c.nice.min(MAX_MATCH),
+            nice_len: 0,
         }
     }};
 }
 /// The longest match libdeflate allows at `s.pos` and the length it calls
 /// good enough there: its settings, cut down where the payload ends
-/// sooner.  A search only moves on, so what has been cut down stays so, and
-/// until the end is near there is nothing to work out.
+/// sooner.  (Worked out at every step.  Keeping them from step to step, to
+/// cut them down only near the end, measured no quicker: two more things
+/// for a search to hold on to.)
 macro_rules! chain_limits {
     ($c:ident, $s:ident) => {{
-        if cfg!(feature = "carried") {
-            let left = $s.end - $s.pos;
-            if left < $s.max_len {
-                $s.max_len = left;
-                $s.nice_len = $s.nice_len.min(left);
-            }
-        } else {
-            $s.max_len = ($s.end - $s.pos).min(MAX_MATCH);
-            $s.nice_len = $c.nice.min($s.max_len);
-        }
-        ($s.max_len, $s.nice_len)
+        let max_len = ($s.end - $s.pos).min(MAX_MATCH);
+        $s.nice_len = $c.nice.min(max_len);
+        (max_len, $s.nice_len)
     }};
 }
 
@@ -653,7 +644,7 @@ unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool>(
     }
     // The entries above `lim` stand for positions within reach of `p`.
     let lim = if BIG { p.saturating_sub(WINDOW) } else { 0 };
-    debug_assert!(1 <= p && p < 2 * WINDOW && p + max_len <= end);
+    debug_assert!((1..2 * WINDOW).contains(&p) && p + max_len <= end);
     debug_assert!(nh.0 < 1 << Orders::<LG>::O3 && nh.1 < 1 << Orders::<LG>::O4);
     debug_assert!(node3 == *c.h3.add(nh.0) as usize);
     let node4 = *c.h4.add(nh.1) as usize;
@@ -819,7 +810,7 @@ unsafe fn hc_enter<const LG: u32, const BIG: bool, const HOPS: bool>(
     let mut q = from;
     let stop = from + count;
     while q < stop {
-        debug_assert!(1 <= q && q < 2 * WINDOW);
+        debug_assert!((1..2 * WINDOW).contains(&q));
         *c.h3.add(h3) = q as u16;
         let head = *c.h4.add(h4);
         if HOPS {
@@ -922,6 +913,11 @@ macro_rules! chain_none {
 /// it: `hc_longest` up to that point, and what its caller does with the
 /// answer.  `s.stop` is where there may be something else to do first; it
 /// is never too far on, and is put right when it has been reached.
+///
+/// The loop is part of the search, not a function as level 1 has it: a
+/// search that calls a function from its steps keeps its state where a call
+/// leaves it alone, and with as much state as these searches have, every
+/// step paid for that.
 macro_rules! chain_literals {
     ($LG:ident, $BIG:ident, $HOPS:ident, $c:ident, $s:ident, $sink:ident, $st:ident, $split:ident,
      $splitting:ident, $min_len:ident) => {{
@@ -932,7 +928,7 @@ macro_rules! chain_literals {
             // is reached.
             let found = loop {
                 let p = $s.pos;
-                debug_assert!(1 <= p && p < 2 * WINDOW && p + 5 <= $s.end);
+                debug_assert!((1..2 * WINDOW).contains(&p) && p + 5 <= $s.end);
                 *$c.h3.add($s.nh.0) = p as u16;
                 let head = *$c.h4.add($s.nh.1);
                 *$c.h4.add($s.nh.1) = p as u16;

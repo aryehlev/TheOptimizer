@@ -16,8 +16,8 @@
 #   prof/       where the time goes: one encoder at one level, sampled
 #
 #   PAYLOADS, ROUNDS, BIG_ROUNDS  less work, for trying the script out
-#   EXP=1       only the comparison of the forms some parts can take (see
-#               the end of this script)
+#   EXP=1       only the timings against the encoder as it was, without the
+#               tests (for trying a change out)
 set -e
 PAYLOADS=${PAYLOADS:-20000}   # per stress run
 ROUNDS=${ROUNDS:-40}          # passes over each set
@@ -115,42 +115,18 @@ rm $W/big/text.src
 
 CPU=$(( $(nproc) - 1 ))
 if [ -n "$EXP" ]; then
-  # The levels as they are now and as they were, each as a share of
-  # libdeflate's time (now/before), passes interleaved; with the limits of
-  # a match worked out at every step, and carried from step to step.
+  # Only the levels as they are now and as they were, each as a share of
+  # libdeflate's time (now/before), passes interleaved; twice.
   S="$W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin"
   B="$W/big/req_x12.bin $W/big/req_x24.bin $W/big/req_x100.bin $W/big/text_200k.bin $W/big/code_200k.bin $W/big/mixed_210k.bin"
   cd $HERE/ab
-  for form in "" carried "" carried; do
-    cargo build --release ${form:+--features $form} > /dev/null 2>&1
+  cargo build --release > /dev/null 2>&1
+  for pass in 1 2; do
     echo
-    echo "now/before, as shares of libdeflate's time (limits: ${form:-at every step}):"
+    echo "now/before, as shares of libdeflate's time (run $pass):"
     LEVELS=1,2,3,5,7,9 taskset -c $CPU ./target/release/ab $ROUNDS $S
     LEVELS=1,2,3,5,7,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
   done
-
-  # What each executes, counted: libdeflate, the encoder as it was and as
-  # it is.
-  if ! command -v valgrind > /dev/null; then
-    (sudo apt-get update -qq && sudo apt-get install -y -qq valgrind) > /dev/null 2>&1 || true
-  fi
-  if command -v valgrind > /dev/null; then
-    cd $HERE/one
-    refs() {  # refs <ld|before|now> <level> <set>
-      valgrind --tool=callgrind --dump-instr=yes --callgrind-out-file=$W/cg.out \
-        ./target/release/one $1 $2 1 $3 2>&1 | sed -n 's/^.*I *refs: *//p' | tr -d ,
-    }
-    for form in "" carried; do
-      cargo build --release ${form:+--features $form} > /dev/null 2>&1
-      echo
-      echo "instructions executed (libdeflate, before, now; limits: ${form:-at every step}):"
-      for set in $W/rtb_single.bin $W/rtb_x6.bin $W/big/req_x24.bin $W/big/text_200k.bin; do
-        for level in 1 2 5 9; do
-          echo "$(basename $set) L$level  $(refs ld $level $set)  $(refs before $level $set)  $(refs now $level $set)"
-        done
-      done
-    done
-  fi
   exit 0
 fi
 
