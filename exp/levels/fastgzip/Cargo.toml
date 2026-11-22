@@ -13,6 +13,10 @@ categories = ["compression"]
 [dependencies]
 crc32fast = "1.5"
 
+[features]
+# For measurements: see `chain_limits!` in src/fast.rs.
+carried = []
+
 [dev-dependencies]
 flate2 = "1"
 tokio = { version = "1", features = ["rt-multi-thread"] }

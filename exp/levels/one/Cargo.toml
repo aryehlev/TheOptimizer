@@ -11,5 +11,8 @@ fastgzip = { path = "../fastgzip" }
 # their own
 before = { package = "fastgzip", path = "../before" }
 
+[features]
+carried = ["fastgzip/carried"]
+
 [profile.release]
 debug = 1

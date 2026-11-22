@@ -175,7 +175,6 @@ unsafe fn rebase(tables: &[(*mut u16, usize)]) {
 /// A step loads the bucket of its position and, without asking whether it
 /// holds anything, eight bytes at both of its entries (an entry of 0 reads
 /// what is there too).  One branch then tells a literal from the rest.
-/// Eight bytes can be read at every position before `end`.
 ///
 /// A function of its own so that this loop is all the compiler sees: inside
 /// the search it shared its registers with everything a match needs, and
@@ -193,14 +192,7 @@ unsafe fn literals<const ORDER: u32>(
     unsafe fn at(ent: *const u8, e: usize) -> u64 {
         u64::from_le(ptr::read_unaligned(ent.add(e) as *const u64))
     }
-    if e >= end {
-        return (e, h);
-    }
-    // The hash of the position after `e`.  Which step is the last is hard
-    // to predict, and what decides it is at the end of a load, a product
-    // and two more loads: so the first two are done one position early.
-    let mut ahead = lz_hash(at32(ent, e + 1), ORDER);
-    loop {
+    while e < end {
         let w = at(ent, e);
         debug_assert!(h < 1 << ORDER);
         let bucket = *tab.add(h);
@@ -210,13 +202,9 @@ unsafe fn literals<const ORDER: u32>(
             break;
         }
         *tab.add(h) = bucket << 16 | e as u32;
-        h = ahead;
-        ahead = lz_hash(at32(ent, e + 2), ORDER);
+        h = lz_hash((w >> 8) as u32, ORDER);
         *f_ll.add(w as u8 as usize) += 1;
         e += 1;
-        if e >= end {
-            break;
-        }
     }
     (e, h)
 }
@@ -579,6 +567,10 @@ struct Run {
     nh: (usize, usize),
     /// How many matches the block has so far.
     n_seqs: usize,
+    /// The longest match libdeflate allows at `pos`, and the length it
+    /// calls good enough there (see `chain_limits!`).
+    max_len: usize,
+    nice_len: usize,
 }
 
 macro_rules! chain_run {
@@ -593,12 +585,35 @@ macro_rules! chain_run {
             end: $c.n + 1 - off,
             begin: pos,
             run_start: pos,
-            soft_end: $soft_end + 1 - off,
+            // In a payload that is one block, the same value as `end`, and
+            // written so that the compiler sees it.
+            soft_end: if $BIG { $soft_end + 1 - off } else { $c.n + 1 },
             stop: 0,
             recalc: usize::MAX,
             nh: $st.nh,
             n_seqs: 0,
+            max_len: MAX_MATCH,
+            nice_len: $c.nice.min(MAX_MATCH),
         }
+    }};
+}
+/// The longest match libdeflate allows at `s.pos` and the length it calls
+/// good enough there: its settings, cut down where the payload ends
+/// sooner.  A search only moves on, so what has been cut down stays so, and
+/// until the end is near there is nothing to work out.
+macro_rules! chain_limits {
+    ($c:ident, $s:ident) => {{
+        if cfg!(feature = "carried") {
+            let left = $s.end - $s.pos;
+            if left < $s.max_len {
+                $s.max_len = left;
+                $s.nice_len = $s.nice_len.min(left);
+            }
+        } else {
+            $s.max_len = ($s.end - $s.pos).min(MAX_MATCH);
+            $s.nice_len = $c.nice.min($s.max_len);
+        }
+        ($s.max_len, $s.nice_len)
     }};
 }
 
@@ -867,14 +882,14 @@ macro_rules! chain_skip {
 }
 /// Up to where `chain_literals!` may go: nowhere if the search asks for
 /// matches longer than four bytes (see there); else the end of the block as
-/// far as it is known, the last position at which six bytes are left, the
+/// far as it is known, the last position at which five bytes are left, the
 /// first entry that does not fit in 16 bits, where a lazy search next
 /// counts the bytes in use, and where the block could be ended early.
 macro_rules! chain_stop {
     ($BIG:ident, $s:ident, $split:ident, $splitting:ident, $min_len:ident) => {{
         let mut stop = 0;
         if $min_len <= 4 {
-            stop = $s.soft_end.min($s.end - 5).min($s.recalc);
+            stop = $s.soft_end.min($s.end - 4).min($s.recalc);
             if $BIG {
                 stop = stop.min(2 * WINDOW);
             }
@@ -897,8 +912,7 @@ macro_rules! chain_none {
 /// The positions from `s.pos` on that have no candidate at all, as far as
 /// `s.stop` allows: they are literals.  Each is entered and counted.  The
 /// first of them is `s.pos` itself, which the caller has found to be one.
-/// Evaluates to whether the block goes on; `$node3` is then what the table
-/// of hashes of three bytes holds for the new `s.pos`.
+/// Evaluates to whether the block goes on.
 ///
 /// A search asks for the longest match longer than some length.  If that
 /// length is less than 4, the first thing it looks at is where the three
@@ -910,25 +924,15 @@ macro_rules! chain_none {
 /// is never too far on, and is put right when it has been reached.
 macro_rules! chain_literals {
     ($LG:ident, $BIG:ident, $HOPS:ident, $c:ident, $s:ident, $sink:ident, $st:ident, $split:ident,
-     $splitting:ident, $min_len:ident, $node3:ident) => {{
+     $splitting:ident, $min_len:ident) => {{
         let mut on = true;
         loop {
             let from = $s.pos;
-            // Whether a position is a literal is what this loop cannot
-            // predict, and what decides it comes at the end of a load, a
-            // product and another load.  So those are done a position
-            // early: the hashes of the position after `s.pos`, and what the
-            // table holds for them before `s.pos` is entered.  When the
-            // question is asked the answer is there, and a wrong guess is
-            // found out at once.
-            let seq = at32($s.ent, $s.pos + 1);
-            let mut after = (lz_hash(seq & 0xFF_FFFF, Orders::<$LG>::O3), lz_hash(seq, Orders::<$LG>::O4));
-            let mut held = *$c.h3.add(after.0) as usize;
             // Literals, until a position has a candidate (true) or `stop`
             // is reached.
             let found = loop {
                 let p = $s.pos;
-                debug_assert!(1 <= p && p < 2 * WINDOW && p + 6 <= $s.end);
+                debug_assert!(1 <= p && p < 2 * WINDOW && p + 5 <= $s.end);
                 *$c.h3.add($s.nh.0) = p as u16;
                 let head = *$c.h4.add($s.nh.1);
                 *$c.h4.add($s.nh.1) = p as u16;
@@ -937,24 +941,19 @@ macro_rules! chain_literals {
                 } else {
                     *$c.next.add(link_of::<$BIG>(p)) = head;
                 }
+                let seq = at32($s.ent, p + 1);
+                $s.nh = (lz_hash(seq & 0xFF_FFFF, Orders::<$LG>::O3), lz_hash(seq, Orders::<$LG>::O4));
                 let b = *$s.ent.wrapping_add(p);
                 *$sink.f_ll.add(b as usize) += 1;
                 if $splitting {
                     let kinds = ptr::addr_of_mut!((*$split).new_obs).cast::<u32>();
                     *kinds.add(crate::levels::Split::kind(b)) += 1;
                 }
-                // What the table holds for the next position now: what it
-                // held before `p` was entered, unless `p` went there.
-                $node3 = if after.0 == $s.nh.0 { p } else { held };
-                let seq = at32($s.ent, p + 2);
-                $s.nh = after;
-                after = (lz_hash(seq & 0xFF_FFFF, Orders::<$LG>::O3), lz_hash(seq, Orders::<$LG>::O4));
-                held = *$c.h3.add(after.0) as usize;
                 $s.pos = p + 1;
                 if $s.pos >= $s.stop {
                     break false;
                 }
-                if !chain_none!($BIG, $s, $node3) {
+                if !chain_none!($BIG, $s, *$c.h3.add($s.nh.0) as usize) {
                     break true;
                 }
             };
@@ -970,7 +969,7 @@ macro_rules! chain_literals {
                 break;
             }
             $s.stop = chain_stop!($BIG, $s, $split, $splitting, $min_len);
-            if $s.pos >= $s.stop || !chain_none!($BIG, $s, $node3) {
+            if $s.pos >= $s.stop || !chain_none!($BIG, $s, *$c.h3.add($s.nh.0) as usize) {
                 break;
             }
         }
@@ -1041,17 +1040,14 @@ pub(crate) unsafe fn greedy<const LG: u32, const BIG: bool>(
         if BIG && s.pos == 2 * WINDOW {
             chain_slide!(HOPS, c, s);
         }
-        let mut node3 = *c.h3.add(s.nh.0) as usize;
+        let node3 = *c.h3.add(s.nh.0) as usize;
         if s.pos < s.stop && chain_none!(BIG, s, node3) {
-            if !chain_literals!(LG, BIG, HOPS, c, s, sink, st, split, splitting, min_len, node3) {
+            if !chain_literals!(LG, BIG, HOPS, c, s, sink, st, split, splitting, min_len) {
                 break;
             }
-            if BIG && s.pos == 2 * WINDOW {
-                continue;
-            }
+            continue;
         }
-        let max_len = (s.end - s.pos).min(MAX_MATCH);
-        let nice_len = c.nice.min(max_len);
+        let (max_len, nice_len) = chain_limits!(c, s);
         let (len, dist) = hc_longest::<LG, BIG, HOPS>(
             c, s.ent, s.end, &mut s.nh, s.pos, node3, min_len - 1, max_len, nice_len, c.depth,
         );
@@ -1093,20 +1089,12 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool>(
         nl >= cl
             && 4 * (nl - cl) as i32 + (no.leading_zeros() as i32 - co.leading_zeros() as i32) > by
     };
-    // The longest match libdeflate allows at `p`, and the length it calls
-    // good enough there.
-    macro_rules! limits {
-        ($p:expr) => {{
-            let max_len = (s.end - $p).min(MAX_MATCH);
-            (max_len, c.nice.min(max_len))
-        }};
-    }
     // The longest match at `s.pos` that is longer than `$longer`, among
     // `$depth` candidates; `s.pos` moves on by one.
     macro_rules! search {
         ($node3:expr, $longer:expr, $depth:expr) => {{
             let node3: usize = $node3;
-            let (max_len, nice_len) = limits!(s.pos);
+            let (max_len, nice_len) = chain_limits!(c, s);
             let found = hc_longest::<LG, BIG, HOPS>(
                 c, s.ent, s.end, &mut s.nh, s.pos, node3, $longer, max_len, nice_len, $depth,
             );
@@ -1127,14 +1115,12 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool>(
         if BIG && s.pos == 2 * WINDOW {
             chain_slide!(HOPS, c, s);
         }
-        let mut node3 = *c.h3.add(s.nh.0) as usize;
+        let node3 = *c.h3.add(s.nh.0) as usize;
         if s.pos < s.stop && chain_none!(BIG, s, node3) {
-            if !chain_literals!(LG, BIG, HOPS, c, s, sink, st, split, splitting, min_len, node3) {
+            if !chain_literals!(LG, BIG, HOPS, c, s, sink, st, split, splitting, min_len) {
                 break;
             }
-            if BIG && s.pos == 2 * WINDOW {
-                continue;
-            }
+            continue;
         }
         'step: {
             if s.pos >= s.recalc {
@@ -1146,9 +1132,11 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool>(
                 chain_literal!(s, sink, split, splitting, s.pos - 1);
                 break 'step;
             }
-            // A match at pos - 1, found with the limits of that position.
+            // A match at pos - 1, and the length that was good enough
+            // there.
+            let mut cur_nice = s.nice_len;
             loop {
-                if cur_len >= limits!(s.pos - 1).1 {
+                if cur_len >= cur_nice {
                     chain_match!(s, sink, split, splitting, s.pos - 1, cur_len, cur_dist);
                     chain_skip!(LG, BIG, HOPS, c, s, cur_len - 1);
                     break 'step;
@@ -1157,8 +1145,7 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool>(
                 let (next_len, next_dist) = look_ahead!(cur_len - 1, c.depth >> 1);
                 if better(next_len, next_dist, cur_len, cur_dist, 2) {
                     chain_literal!(s, sink, split, splitting, s.pos - 2);
-                    cur_len = next_len;
-                    cur_dist = next_dist;
+                    (cur_len, cur_dist, cur_nice) = (next_len, next_dist, s.nice_len);
                     continue;
                 }
                 if two {
@@ -1167,8 +1154,7 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool>(
                     if better(next_len, next_dist, cur_len, cur_dist, 6) {
                         chain_literal!(s, sink, split, splitting, s.pos - 3);
                         chain_literal!(s, sink, split, splitting, s.pos - 2);
-                        cur_len = next_len;
-                        cur_dist = next_dist;
+                        (cur_len, cur_dist, cur_nice) = (next_len, next_dist, s.nice_len);
                         continue;
                     }
                     chain_match!(s, sink, split, splitting, s.pos - 3, cur_len, cur_dist);

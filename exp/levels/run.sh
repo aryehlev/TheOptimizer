@@ -116,64 +116,41 @@ rm $W/big/text.src
 CPU=$(( $(nproc) - 1 ))
 if [ -n "$EXP" ]; then
   # The levels as they are now and as they were, each as a share of
-  # libdeflate's time (now/before), passes interleaved; twice.
-  cd $HERE/ab
-  cargo build --release > /dev/null 2>&1
+  # libdeflate's time (now/before), passes interleaved; with the limits of
+  # a match worked out at every step, and carried from step to step.
   S="$W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin"
   B="$W/big/req_x12.bin $W/big/req_x24.bin $W/big/req_x100.bin $W/big/text_200k.bin $W/big/code_200k.bin $W/big/mixed_210k.bin"
-  for pass in 1 2; do
+  cd $HERE/ab
+  for form in "" carried "" carried; do
+    cargo build --release ${form:+--features $form} > /dev/null 2>&1
     echo
-    echo "now/before, as shares of libdeflate's time (run $pass):"
+    echo "now/before, as shares of libdeflate's time (limits: ${form:-at every step}):"
     LEVELS=1,2,3,5,7,9 taskset -c $CPU ./target/release/ab $ROUNDS $S
     LEVELS=1,2,3,5,7,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
   done
 
   # What each executes, counted: libdeflate, the encoder as it was and as
-  # it is, on the 3.7 KB requests and on two sets above 32 KiB; and the
-  # instructions that the searches for tables of 4 KiB ran most.
+  # it is.
   if ! command -v valgrind > /dev/null; then
     (sudo apt-get update -qq && sudo apt-get install -y -qq valgrind) > /dev/null 2>&1 || true
   fi
   if command -v valgrind > /dev/null; then
     cd $HERE/one
-    cargo build --release > /dev/null 2>&1
     refs() {  # refs <ld|before|now> <level> <set>
       valgrind --tool=callgrind --dump-instr=yes --callgrind-out-file=$W/cg.out \
         ./target/release/one $1 $2 1 $3 2>&1 | sed -n 's/^.*I *refs: *//p' | tr -d ,
     }
-    echo
-    echo "instructions executed (libdeflate, before, now):"
-    for set in $W/rtb_single.bin $W/rtb_x6.bin; do
-      for level in 1 2 5 9; do
-        echo "$(basename $set) L$level  $(refs ld $level $set)  $(refs before $level $set)  $(refs now $level $set)"
+    for form in "" carried; do
+      cargo build --release ${form:+--features $form} > /dev/null 2>&1
+      echo
+      echo "instructions executed (libdeflate, before, now; limits: ${form:-at every step}):"
+      for set in $W/rtb_single.bin $W/rtb_x6.bin $W/big/req_x24.bin $W/big/text_200k.bin; do
+        for level in 1 2 5 9; do
+          echo "$(basename $set) L$level  $(refs ld $level $set)  $(refs before $level $set)  $(refs now $level $set)"
+        done
       done
     done
-    hot() {  # hot <level> <set> <symbol>
-      echo
-      echo "now, level $1, $(basename $2):"
-      valgrind --tool=callgrind --dump-instr=yes --callgrind-out-file=$W/cg.out \
-        ./target/release/one now $1 1 $2 > /dev/null 2>&1
-      callgrind_annotate $W/cg.out 2> /dev/null | grep -E "fastgzip" | head -6 | cut -c1-150
-      python3 -I "$HERE/tools/hotasm.py" $W/cg.out target/release/one "$3" 0.4
-    }
-    hot 2 $W/rtb_single.bin 6greedyKmc_Kb0_
   fi
-
-  # Where the time goes on the 3.7 KB requests: the encoder as it was and
-  # as it is, by function, and in the greedy search for tables of 4 KiB by
-  # instruction.
-  cd $HERE/prof
-  cargo build --release > /dev/null 2>&1
-  echo
-  echo "where the time goes (share of samples by function):"
-  for enc in old fg; do
-    taskset -c $CPU ./target/release/prof $enc 2 20 $W/rtb_single.bin $W/prof_$enc.out 2>&1
-    python3 -I "$HERE/tools/where.py" target/release/prof $W/prof_$enc.out 0 | sed -n '2,8p'
-  done
-  echo
-  python3 -I "$HERE/tools/hottime.py" target/release/prof $W/prof_old.out 6greedyKmc_EB4_ 0.35 2> /dev/null
-  echo
-  python3 -I "$HERE/tools/hottime.py" target/release/prof $W/prof_fg.out 6greedyKmc_Kb0_ 0.35 2> /dev/null
   exit 0
 fi
 
