@@ -1,0 +1,84 @@
+Running `"rustup" "component" "add" "rust-src"` to install the `rust-src` component for the selected toolchain.
+info: downloading component rust-src
+Preparing a sysroot for Miri (target: x86_64-unknown-linux-gnu)... done
+    Updating crates.io index
+     Locking 9 packages to highest compatible versions
+ Downloading crates ...
+  Downloaded pin-project-lite v0.2.18
+  Downloaded crc32fast v1.5.5
+  Downloaded cfg-if v1.0.5
+  Downloaded simd-adler32 v0.3.10
+  Downloaded flate2 v1.1.11
+  Downloaded zlib-rs v0.6.8
+  Downloaded tokio v1.54.1
+   Compiling crc32fast v1.5.5
+   Compiling cfg-if v1.0.5
+   Compiling adler2 v2.0.1
+   Compiling simd-adler32 v0.3.10
+   Compiling pin-project-lite v0.2.18
+   Compiling tokio v1.54.1
+   Compiling miniz_oxide v0.9.1
+   Compiling fastgzip v0.2.0 (/home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip)
+   Compiling flate2 v1.1.11
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.99s
+     Running unittests src/lib.rs (target/miri/x86_64-unknown-linux-gnu/debug/build/fastgzip/9a9d0320cc14350e/out/fastgzip-9a9d0320cc14350e)
+
+running 6 tests
+test codes::tests::fixed_code ... ok
+test enc::tests::bits_between_blocks ... ok
+test enc::tests::offset_slots ... ok
+test huff::tests::complete_and_limited ... ok
+test huff::tests::optimal_without_a_limit ... ok
+test tests::size ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 674.04s
+
+     Running tests/levels.rs (target/miri/x86_64-unknown-linux-gnu/debug/build/fastgzip/db526e82fd59ac9c/out/levels-db526e82fd59ac9c)
+
+running 9 tests
+test block_edges ... ignored
+test empty_and_tiny ... ignored
+test every_path_once ... error: Undefined Behavior: attempting a read access using <186212> at alloc45040[0x24c], but that tag does not exist in the borrow stack for this location
+   --> src/fast.rs:223:13
+    |
+223 |             *f_ll.add(w as u8 as usize) += 1;
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this error occurs as part of an access at alloc45040[0x24c..0x250]
+    |
+    = help: this indicates a potential bug in the program: it performed an invalid operation, but the Stacked Borrows rules it violated are still experimental
+    = help: see https://github.com/rust-lang/unsafe-code-guidelines/blob/master/wip/stacked-borrows.md for further information
+help: <186212> was created by a SharedReadWrite retag at offsets [0x60..0x4e0]
+   --> src/levels.rs:792:19
+    |
+792 |             f_ll: self.f_ll.as_mut_ptr(),
+    |                   ^^^^^^^^^^^^^^^^^^^^^^
+help: <186212> was later invalidated at offsets [0x64..0x4e0] by a write access
+   --> src/levels.rs:819:17
+    |
+819 |                 self.f_ll = [0; NUM_LL];
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^
+    = note: this is on thread `every_path_once`
+    = note: stack backtrace:
+            0: fastgzip::fast::fastest::<12>
+                at src/fast.rs:223:13: 223:45
+            1: fastgzip::levels::Levels::deflate_fast
+                at src/levels.rs:821:17: 821:45
+            2: fastgzip::levels::Levels::deflate
+                at src/levels.rs:780:33: 780:69
+            3: fastgzip::Gzip::compress
+                at src/lib.rs:208:32: 208:74
+            4: check
+                at tests/levels.rs:11:15: 11:32
+            5: every_path_once
+                at tests/levels.rs:208:13: 208:56
+            6: every_path_once::{closure#0}
+                at tests/levels.rs:202:21: 202:21
+
+note: some details are omitted, run with `MIRIFLAGS=-Zmiri-backtrace=full` for a verbose backtrace
+
+error: aborting due to 1 previous error
+
+error: test failed, to rerun pass `--test levels`
+
+Caused by:
+  process didn't exit successfully: `/home/runner/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/bin/cargo-miri runner /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/target/miri/x86_64-unknown-linux-gnu/debug/build/fastgzip/db526e82fd59ac9c/out/levels-db526e82fd59ac9c` (exit status: 1)
+note: test exited abnormally; to see the full output pass --no-capture to the harness.

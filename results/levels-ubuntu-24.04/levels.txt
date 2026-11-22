@@ -1,0 +1,210 @@
+machine: x86_64, 4 CPUs, AMD EPYC 7763 64-Core Processor
+  L1d cache:                               64 KiB (2 instances)
+  L2 cache:                                1 MiB (2 instances)
+  L3 cache:                                32 MiB (1 instance)
+rustc 1.100.0 (0ef1bc386 2026-11-09)
+
+tests, debug build:    27 passed, 0 failed
+tests, checked build:  27 passed, 0 failed
+stress, checked build: ok: level 0, seed 10, 20000 payloads, 92591116 -> 31818127 bytes, Stats { one_pass: 21, two_pass: 2, own_codes: 630, fixed: 158, stored: 52, rebuilds: 19 }
+stress, checked build: ok: level 1, seed 11, 20000 payloads, 105255329 -> 35122218 bytes, Stats { one_pass: 0, two_pass: 0, own_codes: 1016, fixed: 144, stored: 42, rebuilds: 0 }
+stress, checked build: ok: level 2, seed 12, 20000 payloads, 102009921 -> 32746573 bytes, Stats { one_pass: 0, two_pass: 0, own_codes: 69, fixed: 37, stored: 15, rebuilds: 0 }
+stress, checked build: ok: level 3, seed 13, 20000 payloads, 113633326 -> 35859725 bytes, Stats { one_pass: 0, two_pass: 0, own_codes: 15275, fixed: 2848, stored: 684, rebuilds: 0 }
+stress, checked build: ok: level 4, seed 14, 20000 payloads, 114814059 -> 36100630 bytes, Stats { one_pass: 0, two_pass: 0, own_codes: 4235, fixed: 552, stored: 146, rebuilds: 0 }
+stress, checked build: ok: level 5, seed 15, 20000 payloads, 105626755 -> 32643771 bytes, Stats { one_pass: 0, two_pass: 0, own_codes: 6, fixed: 0, stored: 0, rebuilds: 0 }
+stress, checked build: ok: level 6, seed 16, 20000 payloads, 115010968 -> 35648298 bytes, Stats { one_pass: 0, two_pass: 0, own_codes: 7923, fixed: 1469, stored: 385, rebuilds: 0 }
+stress, checked build: ok: level 7, seed 17, 20000 payloads, 106844038 -> 32954283 bytes, Stats { one_pass: 0, two_pass: 0, own_codes: 261, fixed: 120, stored: 32, rebuilds: 0 }
+stress, checked build: ok: level 8, seed 18, 20000 payloads, 92002202 -> 27383623 bytes, Stats { one_pass: 0, two_pass: 0, own_codes: 1389, fixed: 146, stored: 36, rebuilds: 0 }
+stress, checked build: ok: level 9, seed 19, 20000 payloads, 124921889 -> 37718308 bytes, Stats { one_pass: 0, two_pass: 0, own_codes: 2636, fixed: 314, stored: 74, rebuilds: 0 }
+other decoders, level 1: 20000 outputs read back by 1.3 (105255329 -> 35122218 bytes)
+other decoders, level 1: 500 of them also by gzip 1.12
+other decoders, level 5: 20000 outputs read back by 1.3 (105626755 -> 32643771 bytes)
+other decoders, level 5: 500 of them also by gzip 1.12
+other decoders, level 9: 20000 outputs read back by 1.3 (124921889 -> 37718308 bytes)
+other decoders, level 9: 500 of them also by gzip 1.12
+
+every level, the best of 40 passes (run 1):
+rtb_cut500.bin: 400 payloads, 500 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:           1.70 us   151846 B
+      0      8.15 us   143350 B     1.69 us   151846 B   0.21x   +5.93%   (against libdeflate level 1)
+      1      8.21 us   143350 B     5.96 us   143401 B   0.73x   +0.04%
+      2     10.42 us   143203 B     7.68 us   143305 B   0.74x   +0.07%
+      3     10.45 us   143198 B     7.69 us   143298 B   0.74x   +0.07%
+      4     10.46 us   143197 B     7.70 us   143294 B   0.74x   +0.07%
+      5     11.26 us   141645 B     8.10 us   141704 B   0.72x   +0.04%
+      6     11.22 us   141645 B     8.10 us   141704 B   0.72x   +0.04%
+      7     11.21 us   141645 B     8.10 us   141704 B   0.72x   +0.04%
+      8     11.40 us   141598 B     8.23 us   141653 B   0.72x   +0.04%
+      9     11.43 us   141598 B     8.23 us   141653 B   0.72x   +0.04%
+mixed_exchange.bin: 70 payloads, 1453 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:           2.47 us    62128 B
+      0     11.54 us    59254 B     2.47 us    62128 B   0.21x   +4.85%   (against libdeflate level 1)
+      1     11.52 us    59254 B     9.70 us    59262 B   0.84x   +0.01%
+      2     16.98 us    59172 B    15.22 us    59172 B   0.90x   +0.00%
+      3     17.10 us    59163 B    15.28 us    59163 B   0.89x   +0.00%
+      4     17.10 us    59153 B    15.31 us    59153 B   0.90x   +0.00%
+      5     19.48 us    58875 B    16.16 us    58875 B   0.83x   +0.00%
+      6     19.52 us    58867 B    16.28 us    58867 B   0.83x   +0.00%
+      7     19.58 us    58860 B    16.33 us    58860 B   0.83x   +0.00%
+      8     20.27 us    58716 B    17.05 us    58716 B   0.84x   +0.00%
+      9     20.25 us    58716 B    17.01 us    58716 B   0.84x   +0.00%
+capture.bin: 1000 payloads, 1771 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:           3.37 us  1369722 B
+      0     12.31 us  1328974 B     3.38 us  1369722 B   0.27x   +3.07%   (against libdeflate level 1)
+      1     12.30 us  1328974 B    10.15 us  1329212 B   0.83x   +0.02%
+      2     18.58 us  1323619 B    17.38 us  1323678 B   0.94x   +0.00%
+      3     18.57 us  1323619 B    17.38 us  1323678 B   0.94x   +0.00%
+      4     18.60 us  1323619 B    17.38 us  1323678 B   0.93x   +0.00%
+      5     21.08 us  1320872 B    18.32 us  1321027 B   0.87x   +0.01%
+      6     21.02 us  1320872 B    18.30 us  1321027 B   0.87x   +0.01%
+      7     21.12 us  1320872 B    18.28 us  1321027 B   0.87x   +0.01%
+      8     21.67 us  1320631 B    18.47 us  1320803 B   0.85x   +0.01%
+      9     21.70 us  1320631 B    18.46 us  1320803 B   0.85x   +0.01%
+rtb_single.bin: 400 payloads, 3744 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:           7.32 us   888682 B
+      0     22.06 us   870103 B     7.35 us   888682 B   0.33x   +2.14%   (against libdeflate level 1)
+      1     22.09 us   870103 B    20.93 us   870500 B   0.95x   +0.05%
+      2     34.07 us   872082 B    36.26 us   871358 B   1.06x   -0.08%
+      3     34.54 us   870577 B    36.66 us   869802 B   1.06x   -0.09%
+      4     34.68 us   870197 B    36.78 us   869419 B   1.06x   -0.09%
+      5     41.40 us   855015 B    41.08 us   855109 B   0.99x   +0.01%
+      6     41.81 us   854935 B    41.67 us   855033 B   1.00x   +0.01%
+      7     41.91 us   854927 B    41.86 us   855025 B   1.00x   +0.01%
+      8     44.08 us   853877 B    43.95 us   853890 B   1.00x   +0.00%
+      9     44.01 us   853877 B    43.95 us   853890 B   1.00x   +0.00%
+rtb_5k.bin: 200 payloads, 5000 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:           9.71 us   531980 B
+      0     27.64 us   522144 B     9.75 us   531980 B   0.35x   +1.88%   (against libdeflate level 1)
+      1     27.67 us   522144 B    27.01 us   522466 B   0.98x   +0.06%
+      2     42.28 us   522342 B    47.37 us   522346 B   1.12x   +0.00%
+      3     42.93 us   520651 B    47.94 us   520664 B   1.12x   +0.00%
+      4     43.16 us   520117 B    48.44 us   520124 B   1.12x   +0.00%
+      5     51.39 us   509605 B    51.62 us   509613 B   1.00x   +0.00%
+      6     51.93 us   509387 B    52.53 us   509389 B   1.01x   +0.00%
+      7     52.06 us   509098 B    52.78 us   509087 B   1.01x   -0.00%
+      8     55.39 us   508233 B    55.43 us   508232 B   1.00x   -0.00%
+      9     55.38 us   508233 B    55.45 us   508232 B   1.00x   -0.00%
+rtb_x3.bin: 133 payloads, 11240 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:          20.51 us   678180 B
+      0     51.25 us   668785 B    20.66 us   678180 B   0.40x   +1.40%   (against libdeflate level 1)
+      1     51.24 us   668785 B    50.30 us   668785 B   0.98x   +0.00%
+      2     78.58 us   666847 B    83.62 us   666847 B   1.06x   +0.00%
+      3     80.08 us   661546 B    85.21 us   661546 B   1.06x   +0.00%
+      4     81.06 us   659945 B    86.08 us   659945 B   1.06x   +0.00%
+      5     95.97 us   645400 B    99.17 us   645400 B   1.03x   +0.00%
+      6     97.82 us   643433 B   102.31 us   643433 B   1.05x   +0.00%
+      7     98.57 us   642774 B   104.02 us   642774 B   1.06x   +0.00%
+      8    106.42 us   641086 B   109.53 us   641086 B   1.03x   +0.00%
+      9    106.32 us   641086 B   109.63 us   641086 B   1.03x   +0.00%
+rtb_x6.bin: 66 payloads, 22477 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:          39.18 us   598620 B
+      0     94.24 us   591784 B    39.45 us   598620 B   0.42x   +1.16%   (against libdeflate level 1)
+      1     94.21 us   591784 B    88.83 us   591784 B   0.94x   +0.00%
+      2    151.20 us   588647 B   161.94 us   588647 B   1.07x   +0.00%
+      3    155.99 us   580969 B   166.42 us   580969 B   1.07x   +0.00%
+      4    159.65 us   578085 B   169.74 us   578085 B   1.06x   +0.00%
+      5    187.57 us   564988 B   194.88 us   564988 B   1.04x   +0.00%
+      6    194.06 us   561318 B   206.27 us   561318 B   1.06x   +0.00%
+      7    198.24 us   559535 B   214.28 us   559535 B   1.08x   +0.00%
+      8    214.52 us   557458 B   228.66 us   557458 B   1.07x   +0.00%
+      9    214.90 us   557457 B   228.89 us   557457 B   1.07x   +0.00%
+
+every level, the best of 40 passes (run 2):
+rtb_cut500.bin: 400 payloads, 500 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:           1.71 us   151846 B
+      0      8.16 us   143350 B     1.69 us   151846 B   0.21x   +5.93%   (against libdeflate level 1)
+      1      8.15 us   143350 B     5.96 us   143401 B   0.73x   +0.04%
+      2     10.41 us   143203 B     7.60 us   143305 B   0.73x   +0.07%
+      3     10.43 us   143198 B     7.60 us   143298 B   0.73x   +0.07%
+      4     10.43 us   143197 B     7.64 us   143294 B   0.73x   +0.07%
+      5     11.21 us   141645 B     8.00 us   141704 B   0.71x   +0.04%
+      6     11.19 us   141645 B     8.00 us   141704 B   0.71x   +0.04%
+      7     11.18 us   141645 B     8.01 us   141704 B   0.72x   +0.04%
+      8     11.43 us   141598 B     8.14 us   141653 B   0.71x   +0.04%
+      9     11.39 us   141598 B     8.15 us   141653 B   0.72x   +0.04%
+mixed_exchange.bin: 70 payloads, 1453 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:           2.46 us    62128 B
+      0     11.49 us    59254 B     2.47 us    62128 B   0.21x   +4.85%   (against libdeflate level 1)
+      1     11.56 us    59254 B     9.66 us    59262 B   0.84x   +0.01%
+      2     17.28 us    59172 B    14.42 us    59172 B   0.83x   +0.00%
+      3     17.34 us    59163 B    14.49 us    59163 B   0.84x   +0.00%
+      4     17.42 us    59153 B    14.55 us    59153 B   0.84x   +0.00%
+      5     19.31 us    58875 B    15.67 us    58875 B   0.81x   +0.00%
+      6     19.30 us    58867 B    15.68 us    58867 B   0.81x   +0.00%
+      7     19.34 us    58860 B    15.78 us    58860 B   0.82x   +0.00%
+      8     20.61 us    58716 B    16.45 us    58716 B   0.80x   +0.00%
+      9     20.71 us    58716 B    16.45 us    58716 B   0.79x   +0.00%
+capture.bin: 1000 payloads, 1771 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:           3.31 us  1369722 B
+      0     12.28 us  1328974 B     3.33 us  1369722 B   0.27x   +3.07%   (against libdeflate level 1)
+      1     12.31 us  1328974 B    10.12 us  1329212 B   0.82x   +0.02%
+      2     18.71 us  1323619 B    17.15 us  1323678 B   0.92x   +0.00%
+      3     18.71 us  1323619 B    17.16 us  1323678 B   0.92x   +0.00%
+      4     18.72 us  1323619 B    17.15 us  1323678 B   0.92x   +0.00%
+      5     21.01 us  1320872 B    18.15 us  1321027 B   0.86x   +0.01%
+      6     21.00 us  1320872 B    18.13 us  1321027 B   0.86x   +0.01%
+      7     21.04 us  1320872 B    18.13 us  1321027 B   0.86x   +0.01%
+      8     21.85 us  1320631 B    18.30 us  1320803 B   0.84x   +0.01%
+      9     22.00 us  1320631 B    18.30 us  1320803 B   0.83x   +0.01%
+rtb_single.bin: 400 payloads, 3744 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:           7.34 us   888682 B
+      0     22.05 us   870103 B     7.35 us   888682 B   0.33x   +2.14%   (against libdeflate level 1)
+      1     22.07 us   870103 B    20.84 us   870500 B   0.94x   +0.05%
+      2     34.79 us   872082 B    35.92 us   871358 B   1.03x   -0.08%
+      3     35.28 us   870577 B    36.35 us   869802 B   1.03x   -0.09%
+      4     35.50 us   870197 B    36.49 us   869419 B   1.03x   -0.09%
+      5     40.63 us   855015 B    40.32 us   855109 B   0.99x   +0.01%
+      6     41.07 us   854935 B    40.90 us   855033 B   1.00x   +0.01%
+      7     41.15 us   854927 B    41.13 us   855025 B   1.00x   +0.01%
+      8     44.69 us   853877 B    43.25 us   853890 B   0.97x   +0.00%
+      9     44.67 us   853877 B    43.28 us   853890 B   0.97x   +0.00%
+rtb_5k.bin: 200 payloads, 5000 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:           9.71 us   531980 B
+      0     27.67 us   522144 B     9.72 us   531980 B   0.35x   +1.88%   (against libdeflate level 1)
+      1     27.65 us   522144 B    26.97 us   522466 B   0.98x   +0.06%
+      2     43.22 us   522342 B    47.80 us   522346 B   1.11x   +0.00%
+      3     43.74 us   520651 B    48.37 us   520664 B   1.11x   +0.00%
+      4     44.04 us   520117 B    48.63 us   520124 B   1.10x   +0.00%
+      5     50.73 us   509605 B    50.80 us   509613 B   1.00x   +0.00%
+      6     51.34 us   509387 B    51.67 us   509389 B   1.01x   +0.00%
+      7     51.44 us   509098 B    51.93 us   509087 B   1.01x   -0.00%
+      8     56.31 us   508233 B    54.59 us   508232 B   0.97x   -0.00%
+      9     56.29 us   508233 B    54.58 us   508232 B   0.97x   -0.00%
+rtb_x3.bin: 133 payloads, 11240 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:          20.53 us   678180 B
+      0     51.28 us   668785 B    20.61 us   678180 B   0.40x   +1.40%   (against libdeflate level 1)
+      1     51.27 us   668785 B    50.35 us   668785 B   0.98x   +0.00%
+      2     79.23 us   666847 B    83.34 us   666847 B   1.05x   +0.00%
+      3     81.08 us   661546 B    84.99 us   661546 B   1.05x   +0.00%
+      4     82.26 us   659945 B    85.89 us   659945 B   1.04x   +0.00%
+      5     95.06 us   645400 B    99.08 us   645400 B   1.04x   +0.00%
+      6     96.96 us   643433 B   102.23 us   643433 B   1.05x   +0.00%
+      7     97.57 us   642774 B   103.94 us   642774 B   1.07x   +0.00%
+      8    107.05 us   641086 B   109.03 us   641086 B   1.02x   +0.00%
+      9    106.96 us   641086 B   109.08 us   641086 B   1.02x   +0.00%
+rtb_x6.bin: 66 payloads, 22477 B on average
+  level   libdeflate           fastgzip             time    size
+      0   as published:          39.26 us   598620 B
+      0     94.27 us   591784 B    39.61 us   598620 B   0.42x   +1.16%   (against libdeflate level 1)
+      1     94.27 us   591784 B    88.98 us   591784 B   0.94x   +0.00%
+      2    152.90 us   588647 B   161.26 us   588647 B   1.05x   +0.00%
+      3    157.50 us   580969 B   165.76 us   580969 B   1.05x   +0.00%
+      4    161.13 us   578085 B   169.07 us   578085 B   1.05x   +0.00%
+      5    184.15 us   564988 B   193.14 us   564988 B   1.05x   +0.00%
+      6    190.23 us   561318 B   204.23 us   561318 B   1.07x   +0.00%
+      7    194.12 us   559535 B   211.58 us   559535 B   1.09x   +0.00%
+      8    215.39 us   557458 B   227.42 us   557458 B   1.06x   +0.00%
+      9    215.78 us   557457 B   227.90 us   557457 B   1.06x   +0.00%
