@@ -127,17 +127,40 @@ if [ -n "$EXP" ]; then
   cargo build --release > /dev/null 2>&1
   S="$W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin"
   B="$W/big/req_x24.bin $W/big/text_200k.bin $W/big/code_200k.bin"
-  for v in 7 6 5 4 3 2 15 14 7; do
+  for v in 7 6 4 7; do
     echo
     echo "VARIANT=$v"
     VARIANT=$v LEVELS=1,2,5,9 taskset -c $CPU ./target/release/ab $ROUNDS $S
-    VARIANT=$v LEVELS=1,2,5,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
   done
-  for h in 16 15 14 13 16; do
+
+  # What each executes, counted: the encoder as it was and as it is, at a
+  # level of each kind of chain search, on the 3.7 KB requests; and the
+  # instructions that the search for tables of 4 KiB ran most.
+  if ! command -v valgrind > /dev/null; then
+    (sudo apt-get update -qq && sudo apt-get install -y -qq valgrind) > /dev/null 2>&1 || true
+  fi
+  if command -v valgrind > /dev/null; then
+    cd $HERE/one
+    cargo build --release > /dev/null 2>&1
+    count() {  # count <now|before> <level> <symbol> [variant]
+      VARIANT=${4:-7} valgrind --tool=callgrind --dump-instr=yes --callgrind-out-file=$W/cg.out \
+        ./target/release/one $1 $2 2 $W/rtb_single.bin 2>&1 | grep -E "refs|level" | sed "s/^/$1 ${4:+variant $4 }/"
+      callgrind_annotate $W/cg.out 2> /dev/null | grep -E "fastgzip" | head -8 | cut -c1-150
+      python3 -I "$HERE/tools/hotasm.py" $W/cg.out target/release/one "$3" 0.45
+    }
     echo
-    echo "HOPS_FROM=$h"
-    VARIANT=6 HOPS_FROM=$h LEVELS=5-9 taskset -c $CPU ./target/release/ab $ROUNDS $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin
-  done
+    echo "instructions executed:"
+    count before 2 6greedyKmc
+    count now 2 6greedyKmc 4
+    count before 5 4lazyKmc
+    count now 5 4lazyKmc 4
+    for level in 1 9; do
+      for which in before now; do
+        valgrind --tool=callgrind --callgrind-out-file=$W/cg.out ./target/release/one $which $level 2 $W/rtb_single.bin 2>&1 \
+          | grep -E "refs" | sed "s/^/$which level $level: /"
+      done
+    done
+  fi
   exit 0
 fi
 

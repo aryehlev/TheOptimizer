@@ -1,0 +1,4 @@
+# Addresses in the binary are the addresses at run time, so that samples can
+# be looked up in it.
+[build]
+rustflags = ["-C", "relocation-model=static", "-C", "link-arg=-no-pie"]

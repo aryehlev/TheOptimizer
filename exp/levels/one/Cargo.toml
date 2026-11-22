@@ -1,0 +1,13 @@
+[package]
+name = "one"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+fastgzip = { path = "../fastgzip" }
+# the levels as they were measured before large payloads got searches of
+# their own
+before = { package = "fastgzip", path = "../before" }
+
+[profile.release]
+debug = 1
