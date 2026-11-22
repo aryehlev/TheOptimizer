@@ -10,11 +10,11 @@
 //!   table of three-byte hashes for every payload, enters every position in
 //!   it, and uses it whenever a block holds 80 or more different bytes.
 //!   Measured on payloads of 45 to 375 KB: in machine code such matches
-//!   make the output 1.5 to 2% smaller; in text they change it by less than
-//!   0.3%; in JSON they make it about 1% larger; and keeping the table takes
-//!   between a seventh and a quarter of the time.  Without the table, a
-//!   position whose four bytes were not seen within reach is a literal at
-//!   once, which is how most searches in such payloads end.
+//!   make the output 1.5 to 3% smaller; in text they change it by less than
+//!   0.3%, and looking for them takes a tenth of the time; in JSON they make
+//!   it about 1% larger and take a fifth.  Without the table, a position
+//!   whose four bytes were not seen within reach is a literal at once, which
+//!   is how most searches in such payloads end.
 //! * The payload's last seven bytes are not searched: a step reads eight
 //!   bytes.
 //! * The payload's first position is entered under its own hash, not under

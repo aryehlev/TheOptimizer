@@ -321,14 +321,25 @@ fn large_paths_once() {
     data.extend_from_within(300..700); // and of the second, where entries are counted anew
     data.extend((0..200).map(|_| rng.u32() as u8));
     data.resize(66_400, b'x');
-    // Each search above level 1 exists once without and once with matches
-    // of three bytes, which the second payload has throughout: every one of
-    // them is run here.
+    // Each search above level 1 exists without and with matches of three
+    // bytes, which the second payload has throughout, and with chains of
+    // either kind.  Every one of those is run here.  Under Miri, which
+    // takes minutes for each, every part of them is run once, and the last
+    // on a payload that ends before the tables are full.
     let mut other = binary(&mut rng, 66_400);
     other.extend_from_within(65_000..65_300);
-    for (level, with_three) in [(1u8, false), (3, false), (4, false), (5, false), (9, false), (2, true), (4, true), (6, true), (8, true)] {
+    let runs: &[(u8, bool, usize)] = if cfg!(miri) {
+        &[(1, false, 0), (3, false, 0), (9, false, 0), (6, true, 0), (2, true, 33_000)]
+    } else {
+        &[
+            (1, false, 0), (3, false, 0), (4, false, 0), (5, false, 0), (9, false, 0),
+            (2, true, 0), (4, true, 0), (6, true, 0), (8, true, 0), (2, true, 33_000),
+        ]
+    };
+    for &(level, with_three, cut) in runs {
         let mut gz = Gzip::with_level(level);
-        check(&mut gz, if with_three { &other } else { &data });
+        let payload = if with_three { &other } else { &data };
+        check(&mut gz, if cut == 0 { payload } else { &payload[..cut] });
         assert!(gz.stats().own_codes >= 1);
     }
 }

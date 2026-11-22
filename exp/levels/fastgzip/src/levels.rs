@@ -285,10 +285,10 @@ fn choose_min_len(used: u32, depth: u32) -> usize {
 
 /// A block of a payload of more than 32768 bytes is searched for matches of
 /// three bytes only if its first 4 KiB hold at least this many different
-/// bytes.  Machine code holds 200 and more, and with such matches comes out
-/// 1.5 to 2% smaller; text and JSON hold fewer than 100, and come out the
-/// same (text) or 1% larger (JSON) with them, at a seventh to a quarter more
-/// time.
+/// bytes.  Machine code mostly holds 200 and more, and with such matches
+/// comes out 1.5 to 3% smaller; text and JSON hold fewer than 100, and come
+/// out the same (text) or 1% larger (JSON) with them, in a tenth to a fifth
+/// more time.
 const BINARY: u32 = 160;
 
 /// `choose_min_len` for a block, from its first 4 KiB; and whether the block
