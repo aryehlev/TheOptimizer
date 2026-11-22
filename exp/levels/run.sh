@@ -143,7 +143,7 @@ if [ -n "$EXP" ]; then
     }
     echo
     echo "instructions executed (libdeflate, before, now):"
-    for set in $W/rtb_single.bin $W/rtb_x6.bin $W/big/req_x24.bin $W/big/text_200k.bin $W/big/code_200k.bin; do
+    for set in $W/rtb_single.bin $W/rtb_x6.bin; do
       for level in 1 2 5 9; do
         echo "$(basename $set) L$level  $(refs ld $level $set)  $(refs before $level $set)  $(refs now $level $set)"
       done
@@ -156,23 +156,24 @@ if [ -n "$EXP" ]; then
       callgrind_annotate $W/cg.out 2> /dev/null | grep -E "fastgzip" | head -6 | cut -c1-150
       python3 -I "$HERE/tools/hotasm.py" $W/cg.out target/release/one "$3" 0.4
     }
-    hot 2 $W/rtb_single.bin 6greedyKmc
-    hot 5 $W/rtb_single.bin 4lazyKmc
-    hot 2 $W/big/text_200k.bin 6greedyKmf
+    hot 2 $W/rtb_single.bin 6greedyKmc_Kb0_
   fi
 
   # Where the time goes on the 3.7 KB requests: the encoder as it was and
-  # as it is, by function.
+  # as it is, by function, and in the greedy search for tables of 4 KiB by
+  # instruction.
   cd $HERE/prof
   cargo build --release > /dev/null 2>&1
   echo
   echo "where the time goes (share of samples by function):"
-  for level in 2 5; do
-    for enc in old fg old fg; do
-      taskset -c $CPU ./target/release/prof $enc $level 6 $W/rtb_single.bin $W/prof.out 2>&1
-      python3 -I "$HERE/tools/where.py" target/release/prof $W/prof.out 0 | sed -n '2,8p'
-    done
+  for enc in old fg; do
+    taskset -c $CPU ./target/release/prof $enc 2 20 $W/rtb_single.bin $W/prof_$enc.out 2>&1
+    python3 -I "$HERE/tools/where.py" target/release/prof $W/prof_$enc.out 0 | sed -n '2,8p'
   done
+  echo
+  python3 -I "$HERE/tools/hottime.py" target/release/prof $W/prof_old.out 6greedyKmc_EB4_ 0.35 2> /dev/null
+  echo
+  python3 -I "$HERE/tools/hottime.py" target/release/prof $W/prof_fg.out 6greedyKmc_Kb0_ 0.35 2> /dev/null
   exit 0
 fi
 
