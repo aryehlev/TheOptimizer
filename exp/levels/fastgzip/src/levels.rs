@@ -788,12 +788,21 @@ impl Levels {
     unsafe fn deflate_fast(&mut self, inp: &[u8], lg: u32, out: *mut u8, cap: usize) -> Option<usize> {
         use crate::fast::{chains_take, fastest, fastest_takes, greedy, lazy, Chains, Resume, Sink};
         let n = inp.len();
-        let sink = Sink {
-            f_ll: self.f_ll.as_mut_ptr(),
-            f_off: self.f_off.as_mut_ptr(),
-            seqs: self.seqs.as_mut_ptr(),
-            max_seqs: self.seqs.len(),
-        };
+        // Where a search counts and writes down what it finds, with the
+        // counts at zero.  Made anew for every block: these are pointers
+        // into `self`, and they are not used again once `self` has been.
+        macro_rules! sink {
+            () => {{
+                self.f_ll = [0; NUM_LL];
+                self.f_off = [0; NUM_OFF];
+                Sink {
+                    f_ll: self.f_ll.as_mut_ptr(),
+                    f_off: self.f_off.as_mut_ptr(),
+                    seqs: self.seqs.as_mut_ptr(),
+                    max_seqs: self.seqs.len(),
+                }
+            }};
+        }
         // Each search exists once per table size, the size being a constant
         // in it.
         macro_rules! by_size {
@@ -816,9 +825,7 @@ impl Levels {
                 }
                 // Zeroed as bytes: there is no faster way.
                 core::ptr::write_bytes(tab, 0, 1 << O);
-                self.f_ll = [0; NUM_LL];
-                self.f_off = [0; NUM_OFF];
-                fastest::<O>(inp, tab, sink)
+                fastest::<O>(inp, tab, sink!())
             }; 9 10 11 12 13 14 15);
             self.f_ll[EOB] = 1;
             let tokens = &self.seqs[..n_seqs];
@@ -846,8 +853,6 @@ impl Levels {
         let mut bitpos = 0;
         loop {
             let begin = st.pos;
-            self.f_ll = [0; NUM_LL];
-            self.f_off = [0; NUM_OFF];
             // A block can only be ended early if both parts are long enough.
             let split: *mut Split = if n - begin >= 2 * MIN_BLOCK {
                 self.split = Split::new();
@@ -856,6 +861,7 @@ impl Levels {
                 core::ptr::null_mut()
             };
             let min_len = first_min_len(&inp[begin..], self.depth);
+            let sink = sink!();
             let n_seqs = by_size!(lg; LG => match self.parse {
                 Parse::Greedy => greedy::<LG>(c, min_len, sink, &mut st, split),
                 Parse::Lazy => lazy::<LG>(c, min_len, false, sink, &mut st, split),

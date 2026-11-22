@@ -106,3 +106,17 @@ for pass in 1 2; do
   echo "every level, the best of $ROUNDS passes (run $pass):"
   taskset -c $CPU ./target/release/cmp $ROUNDS $SETS
 done
+
+# From which table size on is it worth asking for a table entry a step ahead
+# (see `fetch` in fastgzip/src/fast.rs)?  The same comparison with the
+# threshold at every size, at 2^13, 2^14 and 2^15 entries, and never.
+echo
+echo "fetching table entries ahead, by threshold (time against libdeflate; levels 1 2 5 9):"
+for v in A N O P Z; do
+  FASTGZIP_FETCH_FROM=$v CARGO_TARGET_DIR=$W/target_$v cargo build --release > /dev/null 2>&1
+  for set in capture rtb_single rtb_5k rtb_x3 rtb_x6; do
+    printf "  from %s  %-11s" "$v" "$set"
+    LEVELS=1,2,5,9 taskset -c $CPU $W/target_$v/release/cmp 20 $W/$set.bin | grep "^      [0-9]" | awk '{printf " %s", $10}'
+    echo
+  done
+done

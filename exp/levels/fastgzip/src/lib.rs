@@ -27,6 +27,13 @@
 //! depends on what the compressor was given before.  Use one compressor per
 //! kind of payload: codes made for one kind fit another poorly, and a payload
 //! they do not fit is written the slow way.
+//!
+//! That is level 0, the level this crate is for.  [`Gzip::with_level`] also
+//! has levels 1 to 9.  They search a payload the way libdeflate does at the
+//! same level and give it codes of its own, so their output is as large as
+//! libdeflate's, depends on nothing but the payload, and takes about as long
+//! to make: at those levels the time goes into the search, which sharing
+//! codes does nothing for.
 
 #![warn(missing_docs)]
 
@@ -112,9 +119,12 @@ struct State {
 
 /// A gzip compressor for payloads of one kind.
 ///
-/// It owns its working memory (about 80 KiB at level 0) and its output
-/// buffer, and allocates nothing per call once the buffer has grown to fit.
-/// It is `Send`, so it can live in a `thread_local!`, in a pool, or in a task.
+/// It owns its working memory and its output buffer, and allocates nothing
+/// per call once the buffer has grown to fit.  The working memory is about
+/// 80 KiB at level 0.  At levels 1 to 9 it is 256 KiB of tables, of which
+/// only what the payloads need is ever touched: 56 KiB for payloads of up to
+/// 4 KiB (32 KiB at level 1), twice that for up to 8 KiB, and so on.  It is
+/// `Send`, so it can live in a `thread_local!`, in a pool, or in a task.
 pub struct Gzip {
     kind: Kind,
     out: Vec<u8>,
@@ -157,11 +167,13 @@ impl Gzip {
 
     /// A new compressor of the given level, 0 to 9.
     ///
-    /// Level 0 is [`Gzip::new`]: the fastest, with output a few percent
-    /// larger than libdeflate's at level 1.  Levels 1 to 9 search each
-    /// payload the way libdeflate does at the same level and give it codes of
-    /// its own, so their output is about the size of libdeflate's at that
-    /// level, and depends on nothing but the payload.
+    /// Level 0 is [`Gzip::new`]: the fastest by far, with output a few
+    /// percent larger than libdeflate's at level 1.  Levels 1 to 9 search
+    /// each payload the way libdeflate does at the same level and give it
+    /// codes of its own: their output is the size of libdeflate's at that
+    /// level (within 0.1%) and depends on nothing but the payload.  They are
+    /// made for payloads of up to 32 KiB; larger ones are compressed
+    /// correctly, but more slowly than libdeflate does it.
     ///
     /// # Panics
     ///

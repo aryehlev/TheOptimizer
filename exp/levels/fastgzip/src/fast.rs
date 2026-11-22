@@ -31,16 +31,16 @@ unsafe fn rd64(p: *const u8, i: usize, n: usize) -> u64 {
 /// the same.
 #[inline(always)]
 unsafe fn fetch<T>(entry: *const T) {
-    #[cfg(target_arch = "x86_64")]
-    core::arch::x86_64::_mm_prefetch::<{ core::arch::x86_64::_MM_HINT_T0 }>(entry.cast());
     // SAFETY: a prefetch is a hint.  It reads nothing and does not fault.
+    #[cfg(all(target_arch = "x86_64", not(miri)))]
+    core::arch::x86_64::_mm_prefetch::<{ core::arch::x86_64::_MM_HINT_T0 }>(entry.cast());
     #[cfg(all(target_arch = "aarch64", not(miri)))]
     core::arch::asm!(
         "prfm pstl1keep, [{entry}]",
         entry = in(reg) entry,
         options(nostack, readonly, preserves_flags)
     );
-    #[cfg(not(any(target_arch = "x86_64", all(target_arch = "aarch64", not(miri)))))]
+    #[cfg(any(miri, not(any(target_arch = "x86_64", target_arch = "aarch64"))))]
     let _ = entry;
 }
 
@@ -53,7 +53,10 @@ fn lz_hash(seq: u32, bits: u32) -> usize {
 /// Entries are fetched ahead in tables of at least `1 << FETCH_FROM`
 /// entries (see `fetch`): those that do not fit in the first-level cache
 /// with the rest of what a search touches.
-const FETCH_FROM: u32 = 15;
+const FETCH_FROM: u32 = match option_env!("FASTGZIP_FETCH_FROM") {
+    Some(s) => s.as_bytes()[0] as u32 - b'A' as u32,
+    None => 15,
+};
 
 /// How many bytes are equal at `a` and at `b`: at least `len`, which are
 /// known to be, and at most `max`.  `a` < `b`, and `max` bytes can be read
