@@ -121,21 +121,21 @@ S="$W/rtb_cut500.bin $W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin"
 M="$W/mid/json_9k.bin $W/rtb_x3.bin $W/mid/json_16k.bin $W/rtb_x6.bin $W/mid/json_30k.bin $W/mid/text_9k.bin $W/mid/text_12k.bin $W/mid/text_24k.bin $W/mid/code_9k.bin $W/mid/code_12k.bin $W/mid/code_24k.bin"
 B="$W/big/req_x12.bin $W/big/req_x24.bin $W/big/req_x100.bin $W/big/text_200k.bin $W/big/code_200k.bin $W/big/mixed_210k.bin"
 if [ -n "$EXP" ]; then
-  # Only the levels as they are now and as they were, each as a share of
-  # libdeflate's time (now/before), passes interleaved; twice.
+  # A question about the timings above 32 KiB, where the code has not
+  # changed: the two copies next to each other, in either order, and what
+  # the searches they share are in this program.
   cd $HERE/ab
   cargo build --release > /dev/null 2>&1
+  echo
+  echo "the searches of long payloads in this program (address, bytes of code, name; each twice, now and before):"
+  nm -C -S target/release/ab | grep "big::Chain.*search" | sed 's/::h[0-9a-f]\{16\}$//' | awk '{print $1, $2, $4, $5, $6}' | sort -k3
   for pass in 1 2; do
     echo
-    echo "== now/before as shares of libdeflate's time, and the size next to libdeflate's (run $pass)"
-    echo "payloads of 9 to 30 KB:"
-    LEVELS=2,3,4,5,6,7,9 taskset -c $CPU ./target/release/ab $ROUNDS $M
-    echo "smaller ones:"
-    LEVELS=2,5,9 taskset -c $CPU ./target/release/ab $ROUNDS $S
+    echo "== now/before as shares of libdeflate's time (run $pass); now first:"
+    LEVELS=2,4,5,6,7,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
+    echo "before first:"
+    SWAP=1 LEVELS=2,4,5,6,7,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
   done
-  echo
-  echo "payloads above 32 KiB:"
-  LEVELS=2,5,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
   exit 0
 fi
 

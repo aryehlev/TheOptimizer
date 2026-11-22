@@ -38,9 +38,17 @@ fn main() {
             println!();
             continue;
         }
+        // SWAP=1: the copy from before is made first and timed first.
+        let swap = std::env::var("SWAP").is_ok();
         for &level in &levels {
-            let mut new = fastgzip::Gzip::with_level(level as u8);
-            let mut old = before::Gzip::with_level(level as u8);
+            let (mut new, mut old);
+            if swap {
+                old = before::Gzip::with_level(level as u8);
+                new = fastgzip::Gzip::with_level(level as u8);
+            } else {
+                new = fastgzip::Gzip::with_level(level as u8);
+                old = before::Gzip::with_level(level as u8);
+            }
             let mut ld = gzlocal::Gzip::new(level as i32);
             let (mut tn, mut to, mut tl) = (f64::MAX, f64::MAX, f64::MAX);
             let (mut sn, mut so, mut sl) = (0usize, 0usize, 0usize);
@@ -53,12 +61,19 @@ fn main() {
                 assert!(back == **r, "level {level}: does not read back");
             }
             for _ in 0..rounds {
+                if swap {
+                    let t = Instant::now();
+                    so = recs.iter().map(|r| old.compress(r).len()).sum();
+                    to = to.min(t.elapsed().as_secs_f64());
+                }
                 let t = Instant::now();
                 sn = recs.iter().map(|r| new.compress(r).len()).sum();
                 tn = tn.min(t.elapsed().as_secs_f64());
-                let t = Instant::now();
-                so = recs.iter().map(|r| old.compress(r).len()).sum();
-                to = to.min(t.elapsed().as_secs_f64());
+                if !swap {
+                    let t = Instant::now();
+                    so = recs.iter().map(|r| old.compress(r).len()).sum();
+                    to = to.min(t.elapsed().as_secs_f64());
+                }
                 let t = Instant::now();
                 sl = recs.iter().map(|r| ld.compress(r).len()).sum();
                 tl = tl.min(t.elapsed().as_secs_f64());
