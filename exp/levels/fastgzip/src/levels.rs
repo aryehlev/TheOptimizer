@@ -291,6 +291,17 @@ fn choose_min_len(used: u32, depth: u32) -> usize {
 /// more time.
 const BINARY: u32 = 160;
 
+/// EXPERIMENT: payloads longer than this get the search of `big.rs`.
+fn big_from() -> usize {
+    static FROM: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+    *FROM.get_or_init(|| std::env::var("FG_BIG_FROM").map_or(8192, |v| v.parse().unwrap()))
+}
+/// EXPERIMENT: four links a position below 32 KiB too.
+fn mid_hops() -> bool {
+    static HOPS: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *HOPS.get_or_init(|| std::env::var("FG_MIDHOPS").is_ok())
+}
+
 /// `choose_min_len` for a block, from its first 4 KiB; and whether the block
 /// is searched for matches of three bytes if the payload is longer than
 /// 32768 bytes.
@@ -999,7 +1010,7 @@ impl Levels {
             }
         }
 
-        if big {
+        if n > big_from() {
             return Some(self.deflate_big(inp, out, cap));
         }
 
@@ -1048,14 +1059,14 @@ impl Levels {
         let (depth, nice, parse) = (self.depth, self.nice, self.parse);
         // Where chains are followed far, a position holds its next four:
         // measured, that is the quicker from 16 candidates on.
-        let hops = depth >= 16;
+        let hops = depth >= 16 && (n > WINDOW || mid_hops());
         if hops && self.links.is_empty() {
             self.links = vec![0; WINDOW];
         }
         let h3 = self.t.h3.as_mut_ptr().cast::<u16>();
         let h4 = self.t.h4.as_mut_ptr().cast::<u16>();
         let next = self.t.next.as_mut_ptr().cast::<u16>();
-        let links = self.links.as_mut_ptr();
+        let links = if hops { self.links.as_mut_ptr() } else { core::ptr::null_mut() };
         core::ptr::write_bytes(h3, 0, 1 << 15);
         core::ptr::write_bytes(h4, 0, 1 << 16);
         if hops {
@@ -1102,10 +1113,14 @@ impl Levels {
                 (Parse::Greedy, true, false) => run!(0, true, false),
                 (Parse::Greedy, false, true) => run!(0, false, true),
                 (Parse::Greedy, true, true) => run!(0, true, true),
-                (Parse::Lazy, false, _) => run!(1, false, true),
-                (Parse::Lazy, true, _) => run!(1, true, true),
-                (_, false, _) => run!(2, false, true),
-                (_, true, _) => run!(2, true, true),
+                (Parse::Lazy, false, false) => run!(1, false, false),
+                (Parse::Lazy, true, false) => run!(1, true, false),
+                (Parse::Lazy, false, true) => run!(1, false, true),
+                (Parse::Lazy, true, true) => run!(1, true, true),
+                (_, false, false) => run!(2, false, false),
+                (_, true, false) => run!(2, true, false),
+                (_, false, true) => run!(2, false, true),
+                (_, true, true) => run!(2, true, true),
             };
             let end = st.pos;
             let last = end == n;
@@ -1154,7 +1169,7 @@ impl Levels {
             f_off: &mut self.f_off,
             splitting: false,
             split: &mut self.split,
-            big: n > WINDOW && self.parse != Parse::Fastest,
+            big: n > big_from() && self.parse != Parse::Fastest,
             with3: true,
         };
         let mut bitpos = 0;

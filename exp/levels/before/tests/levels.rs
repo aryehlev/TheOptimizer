@@ -32,6 +32,27 @@ fn requests(rng: &mut Rng, n: usize) -> Vec<u8> {
     v
 }
 
+/// `n` bytes of any value, in which much has been seen before: pieces of 3
+/// to 40 bytes from up to 40000 back, with up to four new bytes between
+/// them.  What machine code is like to a search: every byte in use, and
+/// matches of three bytes worth taking.
+fn binary(rng: &mut Rng, n: usize) -> Vec<u8> {
+    let mut v: Vec<u8> = (0..3000).map(|_| rng.u32() as u8).collect();
+    while v.len() < n {
+        let most = if rng.below(4) == 0 { 38 } else { 5 };
+        let len = 3 + rng.below(most);
+        let back = rng.below((v.len() - len).min(40_000));
+        let from = v.len() - len - back;
+        v.extend_from_within(from..from + len);
+        let new = rng.below(5);
+        for _ in 0..new {
+            v.push(rng.u32() as u8);
+        }
+    }
+    v.truncate(n);
+    v
+}
+
 #[test]
 fn levels() {
     assert_eq!(Gzip::new().level(), 0);
@@ -171,6 +192,17 @@ fn fast_and_plain_searches_agree_on_large_payloads() {
             both(&data);
             both(&data[..(at + 500).max(600)]);
         }
+        // Payloads that are searched for matches of three bytes, as a
+        // whole and from the middle on, and one that is so only in the
+        // middle.
+        for n in [32_769usize, 65_541, 98_310, 150_000] {
+            both(&binary(&mut rng, n));
+            let mut data = requests(&mut rng, n / 2);
+            data.extend_from_slice(&binary(&mut rng, n - n / 2));
+            both(&data);
+            data.extend_from_slice(&requests(&mut rng, 40_000));
+            both(&data);
+        }
         // Matches so short and so many that a block ends because the room
         // for them is used up: words of four letters out of 64, a byte of
         // anything between them.
@@ -289,9 +321,25 @@ fn large_paths_once() {
     data.extend_from_within(300..700); // and of the second, where entries are counted anew
     data.extend((0..200).map(|_| rng.u32() as u8));
     data.resize(66_400, b'x');
-    for level in [1u8, 3, 9] {
+    // Each search above level 1 exists without and with matches of three
+    // bytes, which the second payload has throughout, and with chains of
+    // either kind.  Every one of those is run here.  Under Miri, which
+    // takes minutes for each, every part of them is run once, and the last
+    // on a payload that ends before the tables are full.
+    let mut other = binary(&mut rng, 66_400);
+    other.extend_from_within(65_000..65_300);
+    let runs: &[(u8, bool, usize)] = if cfg!(miri) {
+        &[(1, false, 0), (3, false, 0), (9, false, 0), (6, true, 0), (2, true, 33_000)]
+    } else {
+        &[
+            (1, false, 0), (3, false, 0), (4, false, 0), (5, false, 0), (9, false, 0),
+            (2, true, 0), (4, true, 0), (6, true, 0), (8, true, 0), (2, true, 33_000),
+        ]
+    };
+    for &(level, with_three, cut) in runs {
         let mut gz = Gzip::with_level(level);
-        check(&mut gz, &data);
+        let payload = if with_three { &other } else { &data };
+        check(&mut gz, if cut == 0 { payload } else { &payload[..cut] });
         assert!(gz.stats().own_codes >= 1);
     }
 }

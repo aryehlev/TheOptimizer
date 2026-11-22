@@ -334,7 +334,8 @@ impl<const H3: bool, const HOPS: bool> Chain<H3, HOPS> {
         splitting: bool,
         soft_end: usize,
     ) -> usize {
-        debug_assert!(n > WINDOW && min_len >= Self::SHORTEST && st.pos < soft_end && soft_end <= n);
+        debug_assert!(n > 8192 && min_len >= Self::SHORTEST && st.pos < soft_end && soft_end <= n);
+        debug_assert!(!HOPS || !self.links.is_null());
         let f_ll = sink.f_ll;
         // Everything that says where is an entry, and `ent` is the address
         // that the byte of entry 0 would have: nothing in a step has to do

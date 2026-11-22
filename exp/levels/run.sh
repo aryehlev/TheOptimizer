@@ -109,10 +109,12 @@ PY
 # and 375 KB); source text (libdeflate's and this repository's) and machine
 # code (the Python interpreter of this machine) in pieces of 200 KB; and
 # payloads that are text, then machine code, then requests.
-mkdir -p $W/big
+mkdir -p $W/big $W/mid
 { find "$ROOT/gzlocal/vendor/stock" -name '*.[ch]' | sort | xargs cat
   find "$ROOT/exp" "$ROOT/gzlocal/src" -name '*.rs' -not -path '*/target/*' | sort | xargs cat; } > $W/big/text.src
 python3 -I "$HERE/tools/bigsets.py" $W/rtb_single.bin $W/big $W/big/text.src "$(readlink -f "$(command -v python3)")"
+# And of 9 to 30 KB: the requests in arrays, text and machine code in pieces.
+python3 -I "$HERE/tools/midsets.py" $W/rtb_single.bin $W/mid $W/big/text.src "$(readlink -f "$(command -v python3)")"
 rm $W/big/text.src
 
 CPU=$(( $(nproc) - 1 ))
@@ -123,12 +125,21 @@ if [ -n "$EXP" ]; then
   B="$W/big/req_x12.bin $W/big/req_x24.bin $W/big/req_x100.bin $W/big/text_200k.bin $W/big/code_200k.bin $W/big/mixed_210k.bin"
   cd $HERE/ab
   cargo build --release > /dev/null 2>&1
+  M="$W/mid/json_9k.bin $W/rtb_x3.bin $W/mid/json_16k.bin $W/rtb_x6.bin $W/mid/json_30k.bin $W/mid/text_12k.bin $W/mid/text_24k.bin $W/mid/code_12k.bin $W/mid/code_24k.bin"
   for pass in 1 2; do
     echo
-    echo "now/before as shares of libdeflate's time, and the size next to libdeflate's (run $pass):"
-    LEVELS=1,2,3,5,7,9 taskset -c $CPU ./target/release/ab $ROUNDS $S
-    LEVELS=1,2,3,5,7,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
+    echo "== now/before as shares of libdeflate's time, and the size next to libdeflate's (run $pass)"
+    echo "payloads of 9 to 30 KB, one link a position:"
+    LEVELS=2,3,4,5,6,7,9 taskset -c $CPU ./target/release/ab $ROUNDS $M
+    echo "the same, four links a position from level 4 on:"
+    FG_MIDHOPS=1 LEVELS=4,5,6,7,9 taskset -c $CPU ./target/release/ab $ROUNDS $M
+    echo "smaller payloads through the same search (tables of full size):"
+    FG_BIG_FROM=2048 LEVELS=2,5,9 taskset -c $CPU ./target/release/ab $ROUNDS $W/rtb_single.bin $W/rtb_5k.bin
   done
+  echo
+  echo "payloads above 32 KiB and small ones (unchanged code):"
+  LEVELS=2,5,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $W/big/req_x24.bin $W/big/text_200k.bin
+  LEVELS=1,2,5,9 taskset -c $CPU ./target/release/ab $ROUNDS $W/rtb_single.bin
   exit 0
 fi
 
