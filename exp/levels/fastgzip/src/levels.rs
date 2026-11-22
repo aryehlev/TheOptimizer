@@ -22,11 +22,12 @@
 //! payloads this crate is made for.
 //!
 //! Consecutive payloads do not share their codes here, as they do at level
-//! 0.  Shared codes have to describe every symbol any of the payloads uses,
-//! which makes their header some 25 bytes longer than a payload's own: 1% of
-//! a 4 KB payload's output.  Level 0 gets its single pass for that.  Here
-//! the search is what takes the time, and 1% is more than most of these
-//! levels gain over the one below.
+//! 0.  Shared codes have to describe every symbol any of the payloads uses
+//! and fit none of them exactly, which was measured to cost some 25 bytes
+//! per payload: 1% of a 4 KB payload's output.  Level 0 gets its single pass
+//! for that.  Here it would save the making of codes, a quarter of the time
+//! at level 1 and less above, and 1% is more than most of these levels gain
+//! over the one below.
 
 use crate::codes::{Codes, FIXED};
 use crate::enc::stored_at;

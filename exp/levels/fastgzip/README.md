@@ -18,6 +18,10 @@ let mut gz = fastgzip::Gzip::new();
 let bytes: &[u8] = gz.compress(&payload); // valid until the next call
 ```
 
+That is level 0, which is what this crate is for. `Gzip::with_level(1..=9)`
+has libdeflate's levels as well, for output as small as libdeflate's; see
+Levels.
+
 ## What it costs
 
 Microseconds per call inside tokio (2 workers), on a GitHub arm64 runner
@@ -267,6 +271,61 @@ candidate finds more of.
 
 Every output is at most 18 bytes and 24 per 16 KiB larger than its input.
 
+## Levels
+
+`Gzip::new()` is level 0: everything above. `Gzip::with_level(n)` also has
+levels 1 to 9, which are libdeflate's: each searches a payload the way
+libdeflate does at that level (`src/levels.rs` says what was taken from it),
+and the payload gets Huffman codes of its own. The output is the size of
+libdeflate's at the same level, and depends on nothing but the payload.
+
+Microseconds per payload on one thread, and the size of the output against
+libdeflate's at level 1, for the synthetic 3.7 KB requests on the arm64
+runner (Neoverse N2):
+
+| level | libdeflate | fastgzip | fastgzip's share of libdeflate's time | output: libdeflate | fastgzip |
+|---|---|---|---|---|---|
+| 0 | | **5.35** | 30% of level 1 | | +2.1% |
+| 1 | 17.83 | **15.64** | 88% | 0 | +0.05% |
+| 2 | 28.00 | **23.00** | 82% | +0.2% | +0.1% |
+| 3 | 28.40 | **23.27** | 82% | +0.1% | 0.0% |
+| 4 | 28.52 | **23.36** | 82% | 0.0% | -0.1% |
+| 5 | 32.39 | **26.39** | 81% | -1.7% | -1.7% |
+| 6 | 32.70 | **26.78** | 82% | -1.7% | -1.7% |
+| 7 | 32.82 | **26.86** | 82% | -1.7% | -1.7% |
+| 8 | 34.38 | **28.18** | 82% | -1.9% | -1.9% |
+| 9 | 34.40 | **28.17** | 82% | -1.9% | -1.9% |
+
+Other sizes on the same machine, levels 1 to 9: 73 to 87% of libdeflate's
+time at 1.5 KB, 80 to 89% at 5 KB, 87 to 91% at 11 KB, 88 to 94% at 22 KB.
+On an x86-64 runner (Intel Xeon 6975P-C): 73 to 92% up to 1.8 KB; from 3.7 KB
+on, 87 to 93% at level 1 and 97 to 108% at the levels above, which is to say
+the same as libdeflate. The output is within 0.1% of libdeflate's at every
+level and size that was measured, and the same number of bytes from 8 KiB
+on, where the tables are as large as libdeflate's.
+
+So these levels are libdeflate's, somewhat faster on arm64 and on small
+payloads. They do not gain what level 0 gains, and cannot:
+
+- Their time goes into the search and into making each payload's codes, and
+  libdeflate does both about as fast as they can be done. What is left to
+  save is what a small payload does not need: libdeflate clears 128 KiB of
+  tables per call at level 1 and 192 KiB at the levels above, and then works
+  in tables of that size. Here they are sized to the payload (`fast_order`
+  in `src/levels.rs`).
+- Level 0's way, codes shared between payloads, was tried at these levels.
+  It saves the making of codes, a quarter of the time at level 1, and costs
+  some 25 bytes per payload, 1% of the output at 4 KB and 2% at 2 KB: shared
+  codes have to describe every symbol that any of the payloads uses, and fit
+  none of them exactly. That is more than levels 2 to 4 gain over level 1 on
+  payloads like these, and half or more of what levels 5 to 9 gain. Level 0
+  gets its single pass for those bytes; here they buy too little.
+
+Which level, then: 0 if time matters; 5 if output 4% smaller is worth five
+times the time. The gain of libdeflate's levels on payloads like these comes
+with level 5, where a match is given up when the next position has a better
+one; levels 2 to 4 gain almost nothing over 1, and 6 to 9 little over 5.
+
 ## How it was checked
 
 The encoder reads and writes through raw pointers. Every such access has a
@@ -286,6 +345,13 @@ an optimized build.
   runners (zlib-ng 1.3.1 on the build machine), and 1,500 by GNU gzip 1.12.
 - **Miri**: the unit tests and a test that takes every path once, on both
   architectures. Nothing reported.
+- **Levels 1 to 9**: the same round trips at every level; each level's two
+  forms of its search (see `src/fast.rs`) compared byte for byte on payloads
+  of every shape; 20,000 payloads per level through the stress run on each
+  runner, those of three levels read back by zlib and 500 of each by gzip;
+  the test that takes every path once under Miri. With tables of
+  libdeflate's size the output has libdeflate's size to the byte, which is
+  how it is known that the searches are the same.
 - **Rust 1.83** builds the library.
 
 The workflow in `.github/workflows/ci.yml` repeats all of this at every push,
@@ -317,5 +383,9 @@ two calls.
 - For payloads of mixed kinds on one compressor, and for very repetitive
   payloads (most of the input covered by long repetitions), the output is
   further from libdeflate's than the figures above; see Output size.
-- Level 1 only. There is no setting that trades time for size.
+- Levels 1 to 9 are made for payloads of up to 32 KiB. A larger one is
+  compressed correctly, but takes about twice as long as with libdeflate and
+  comes out about 1% larger (its blocks cover at most 64 KiB each).
+- Level 0 and levels 1 to 9 are two different things (see Levels); there is
+  nothing in between.
 - Needs Rust 1.83 or later.
