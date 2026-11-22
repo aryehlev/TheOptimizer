@@ -175,6 +175,7 @@ unsafe fn rebase(tables: &[(*mut u16, usize)]) {
 /// A step loads the bucket of its position and, without asking whether it
 /// holds anything, eight bytes at both of its entries (an entry of 0 reads
 /// what is there too).  One branch then tells a literal from the rest.
+/// Eight bytes can be read at every position before `end`.
 ///
 /// A function of its own so that this loop is all the compiler sees: inside
 /// the search it shared its registers with everything a match needs, and
@@ -192,7 +193,14 @@ unsafe fn literals<const ORDER: u32>(
     unsafe fn at(ent: *const u8, e: usize) -> u64 {
         u64::from_le(ptr::read_unaligned(ent.add(e) as *const u64))
     }
-    while e < end {
+    if e >= end {
+        return (e, h);
+    }
+    // The hash of the position after `e`.  Which step is the last is hard
+    // to predict, and what decides it is at the end of a load, a product
+    // and two more loads: so the first two are done one position early.
+    let mut ahead = lz_hash(at32(ent, e + 1), ORDER);
+    loop {
         let w = at(ent, e);
         debug_assert!(h < 1 << ORDER);
         let bucket = *tab.add(h);
@@ -202,9 +210,13 @@ unsafe fn literals<const ORDER: u32>(
             break;
         }
         *tab.add(h) = bucket << 16 | e as u32;
-        h = lz_hash((w >> 8) as u32, ORDER);
+        h = ahead;
+        ahead = lz_hash(at32(ent, e + 2), ORDER);
         *f_ll.add(w as u8 as usize) += 1;
         e += 1;
+        if e >= end {
+            break;
+        }
     }
     (e, h)
 }
@@ -855,14 +867,14 @@ macro_rules! chain_skip {
 }
 /// Up to where `chain_literals!` may go: nowhere if the search asks for
 /// matches longer than four bytes (see there); else the end of the block as
-/// far as it is known, the last position at which five bytes are left, the
+/// far as it is known, the last position at which six bytes are left, the
 /// first entry that does not fit in 16 bits, where a lazy search next
 /// counts the bytes in use, and where the block could be ended early.
 macro_rules! chain_stop {
     ($BIG:ident, $s:ident, $split:ident, $splitting:ident, $min_len:ident) => {{
         let mut stop = 0;
         if $min_len <= 4 {
-            stop = $s.soft_end.min($s.end - 4).min($s.recalc);
+            stop = $s.soft_end.min($s.end - 5).min($s.recalc);
             if $BIG {
                 stop = stop.min(2 * WINDOW);
             }
@@ -901,11 +913,18 @@ macro_rules! chain_literals {
         let mut on = true;
         loop {
             let from = $s.pos;
+            // The hashes of the position after `s.pos`.  Whether a position
+            // is a literal is hard to predict, and what decides it is at
+            // the end of a load, a product and another load: so the first
+            // two are done one position early, and the answer is there by
+            // the time it is asked for.
+            let seq = at32($s.ent, $s.pos + 1);
+            let mut ahead = (lz_hash(seq & 0xFF_FFFF, Orders::<$LG>::O3), lz_hash(seq, Orders::<$LG>::O4));
             // Literals, until a position has a candidate (true) or `stop`
             // is reached.
             let found = loop {
                 let p = $s.pos;
-                debug_assert!(1 <= p && p < 2 * WINDOW && p + 5 <= $s.end);
+                debug_assert!(1 <= p && p < 2 * WINDOW && p + 6 <= $s.end);
                 *$c.h3.add($s.nh.0) = p as u16;
                 let head = *$c.h4.add($s.nh.1);
                 *$c.h4.add($s.nh.1) = p as u16;
@@ -914,14 +933,15 @@ macro_rules! chain_literals {
                 } else {
                     *$c.next.add(link_of::<$BIG>(p)) = head;
                 }
-                let seq = at32($s.ent, p + 1);
-                $s.nh = (lz_hash(seq & 0xFF_FFFF, Orders::<$LG>::O3), lz_hash(seq, Orders::<$LG>::O4));
                 let b = *$s.ent.wrapping_add(p);
                 *$sink.f_ll.add(b as usize) += 1;
                 if $splitting {
                     let kinds = ptr::addr_of_mut!((*$split).new_obs).cast::<u32>();
                     *kinds.add(crate::levels::Split::kind(b)) += 1;
                 }
+                let seq = at32($s.ent, p + 2);
+                $s.nh = ahead;
+                ahead = (lz_hash(seq & 0xFF_FFFF, Orders::<$LG>::O3), lz_hash(seq, Orders::<$LG>::O4));
                 $s.pos = p + 1;
                 if $s.pos >= $s.stop {
                     break false;
