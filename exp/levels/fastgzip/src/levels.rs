@@ -182,6 +182,43 @@ impl Split {
             && self.check(block_len)
     }
 
+    /// `may_end_at` for a search that keeps no count of the kinds: `num_now`
+    /// is the number of literals and matches the block has so far.
+    #[inline(always)]
+    pub(crate) fn may_end_at_counted(&self, num_now: u32, block_len: usize, remaining: usize) -> Option<usize> {
+        let num_new = (num_now - self.num) as usize;
+        let at = (block_len + 512usize.saturating_sub(num_new).max(1)).max(MIN_BLOCK);
+        (remaining >= MIN_BLOCK && at - block_len <= remaining - MIN_BLOCK).then_some(at)
+    }
+
+    /// `ends_at` for such a search: the kinds are worked out from the
+    /// block's symbol counts, as often as there is something to decide.
+    #[inline(always)]
+    pub(crate) fn ends_at_counted(&mut self, f_ll: &[u32; NUM_LL], num_now: u32, block_len: usize, remaining: usize) -> bool {
+        num_now - self.num >= 512
+            && block_len >= MIN_BLOCK
+            && remaining >= MIN_BLOCK
+            && self.check_counted(f_ll, num_now, block_len)
+    }
+
+    #[cold]
+    fn check_counted(&mut self, f_ll: &[u32; NUM_LL], num_now: u32, block_len: usize) -> bool {
+        // What has been seen so far, by kind; `obs` is the same as of the
+        // last look.
+        let mut seen = [0u32; 10];
+        for (b, &f) in f_ll[..256].iter().enumerate() {
+            seen[Self::kind(b as u8)] += f;
+        }
+        seen[8] = f_ll[FIRST_LEN..FIRST_LEN + 6].iter().sum();
+        seen[9] = f_ll[FIRST_LEN + 6..FIRST_LEN + NUM_LEN].iter().sum();
+        for i in 0..10 {
+            self.new_obs[i] = seen[i] - self.obs[i];
+        }
+        self.num_new = num_now - self.num;
+        debug_assert_eq!(self.new_obs.iter().sum::<u32>(), self.num_new);
+        self.check(block_len)
+    }
+
     /// Has what the block holds changed enough to end it at `block_len`?
     #[cold]
     fn check(&mut self, block_len: usize) -> bool {
@@ -776,7 +813,8 @@ impl Levels {
         let mut rows = match level {
             2 => Some((1, Parse::Greedy, 258)),
             3 => Some((1, Parse::Lazy, 258)),
-            4 => Some((2, Parse::Lazy, 258)),
+            4 => Some((1, Parse::Lazy, 258)),
+            5..=9 => Some((2, parse, nice)),
             _ => None,
         };
         if let Ok(v) = std::env::var("FG_ROWS") {
@@ -787,9 +825,11 @@ impl Levels {
                 let p = match f[1] {
                     "g" => Parse::Greedy,
                     "l" => Parse::Lazy,
-                    _ => Parse::Lazy2,
+                    "2" => Parse::Lazy2,
+                    _ => parse,
                 };
-                Some((f[0].parse().unwrap(), p, f[2].parse().unwrap()))
+                let nc: usize = f[2].parse().unwrap();
+                Some((f[0].parse().unwrap(), p, if nc % 1000 == 0 { nc + nice } else { nc }))
             };
         }
         Levels {
@@ -925,26 +965,55 @@ impl Levels {
         }
 
         if let (true, Some((w, parse, nice))) = (big, self.rows) {
-            use crate::rows::{search as rows_search, Rows, ROW_WORDS};
+            use crate::big::{search as big_search, Chain, Rows4, ROW_WORDS};
             let tab = (&mut *self.t as *mut Tables).cast::<u64>();
-            core::ptr::write_bytes(tab, 0, ROW_WORDS);
-            let depth = 4 * w as u32;
-            let c = Rows { ip: inp.as_ptr(), n, tab, depth, nice };
+            // w: 1 rows of four; 0 chains; 2 chains that hold four links.  nice >= 1000: with matches of three.
+            let with3 = nice >= 1000;
+            let nice = nice % 1000;
+            let hops = w == 2;
+            if hops && self.links.is_empty() {
+                self.links = vec![0; WINDOW];
+            }
+            let chain_depth = self.depth;
+            let h3 = self.t.h3.as_mut_ptr().cast::<u16>();
+            let h4 = self.t.h4.as_mut_ptr().cast::<u16>();
+            let next = self.t.next.as_mut_ptr().cast::<u16>();
+            let links = self.links.as_mut_ptr();
+            if w == 1 {
+                core::ptr::write_bytes(tab, 0, ROW_WORDS);
+            } else {
+                core::ptr::write_bytes(h3, 0, 1 << 15);
+                core::ptr::write_bytes(h4, 0, 1 << 16);
+                if hops {
+                    *links = 0;
+                }
+            }
+            let depth = if w == 1 { 4 } else { chain_depth };
             loop {
                 let begin = st.pos;
                 let soft_end = Self::soft_end(n, begin, SOFT_MAX_BLOCK);
                 let splitting = n - begin >= 2 * MIN_BLOCK;
                 self.split = Split::new();
                 let split: *mut Split = &mut self.split;
-                let min_len = first_min_len(&inp[begin..soft_end], depth).max(4);
+                let shortest = if with3 && w != 1 { 3 } else { 4 };
+                let min_len = first_min_len(&inp[begin..soft_end], depth).max(shortest);
                 let sink = sink!();
-                let n_seqs = match (parse, w) {
-                    (Parse::Greedy, 1) => rows_search::<1, 0>(c, min_len, sink, &mut st, split, splitting, soft_end),
-                    (Parse::Greedy, _) => rows_search::<2, 0>(c, min_len, sink, &mut st, split, splitting, soft_end),
-                    (Parse::Lazy, 1) => rows_search::<1, 1>(c, min_len, sink, &mut st, split, splitting, soft_end),
-                    (Parse::Lazy, _) => rows_search::<2, 1>(c, min_len, sink, &mut st, split, splitting, soft_end),
-                    (_, 1) => rows_search::<1, 2>(c, min_len, sink, &mut st, split, splitting, soft_end),
-                    (_, _) => rows_search::<2, 2>(c, min_len, sink, &mut st, split, splitting, soft_end),
+                let ip = inp.as_ptr();
+                macro_rules! run {
+                    ($f:expr) => {
+                        match parse {
+                            Parse::Greedy => big_search::<_, 0>($f, ip, n, min_len, sink, &mut st, split, splitting, soft_end),
+                            Parse::Lazy => big_search::<_, 1>($f, ip, n, min_len, sink, &mut st, split, splitting, soft_end),
+                            _ => big_search::<_, 2>($f, ip, n, min_len, sink, &mut st, split, splitting, soft_end),
+                        }
+                    };
+                }
+                let n_seqs = match (w, with3) {
+                    (1, _) => run!(Rows4 { tab }),
+                    (0, false) => run!(Chain::<false, false> { h3, h4, next, links, depth, nice }),
+                    (0, true) => run!(Chain::<true, false> { h3, h4, next, links, depth, nice }),
+                    (_, false) => run!(Chain::<false, true> { h3, h4, next, links, depth, nice }),
+                    (_, true) => run!(Chain::<true, true> { h3, h4, next, links, depth, nice }),
                 };
                 if finish!(begin, st.pos, n_seqs, bitpos) {
                     return Some(bitpos);

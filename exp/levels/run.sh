@@ -121,12 +121,18 @@ if [ -n "$EXP" ]; then
   B="$W/big/req_x12.bin $W/big/req_x24.bin $W/big/req_x100.bin $W/big/text_200k.bin $W/big/code_200k.bin $W/big/mixed_210k.bin"
   cd $HERE/ab
   cargo build --release > /dev/null 2>&1
+  run() { echo; echo "$1:"; shift; env "$@" taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B; }
   for pass in 1 2; do
     echo
-    echo "now/before as shares of libdeflate's time, and the size next to libdeflate's (run $pass):"
-    LEVELS=1,2,5 taskset -c $CPU ./target/release/ab $ROUNDS $W/rtb_single.bin $W/rtb_x6.bin
-    LEVELS=1,2,3,4,5,7 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
+    echo "== now/before as shares of libdeflate's time, and the size next to libdeflate's (run $pass)"
+    run "chains, one link a position, no matches of three" FG_ROWS=0,-,0 LEVELS=2,3,4,5,7,9
+    run "chains, four links a position, no matches of three" FG_ROWS=2,-,0 LEVELS=2,3,4,5,7,9
+    run "chains, four links a position, with matches of three" FG_ROWS=2,-,1000 LEVELS=2,5,9
+    run "rows of four: level 2 the longest, levels 3 and 4 looking one position ahead" LEVELS=2,3,4
   done
+  echo
+  echo "payloads of up to 32 KiB (unchanged code):"
+  LEVELS=1,2,5 taskset -c $CPU ./target/release/ab $ROUNDS $W/rtb_single.bin $W/rtb_x6.bin
   exit 0
 fi
 
