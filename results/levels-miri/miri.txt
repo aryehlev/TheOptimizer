@@ -4,12 +4,12 @@ Preparing a sysroot for Miri (target: x86_64-unknown-linux-gnu)... done
     Updating crates.io index
      Locking 9 packages to highest compatible versions
  Downloading crates ...
+  Downloaded simd-adler32 v0.3.10
   Downloaded cfg-if v1.0.5
   Downloaded pin-project-lite v0.2.18
-  Downloaded zlib-rs v0.6.8
-  Downloaded simd-adler32 v0.3.10
-  Downloaded crc32fast v1.5.5
   Downloaded flate2 v1.1.11
+  Downloaded crc32fast v1.5.5
+  Downloaded zlib-rs v0.6.8
   Downloaded tokio v1.54.1
    Compiling crc32fast v1.5.5
    Compiling cfg-if v1.0.5
@@ -20,7 +20,7 @@ Preparing a sysroot for Miri (target: x86_64-unknown-linux-gnu)... done
    Compiling miniz_oxide v0.9.1
    Compiling fastgzip v0.2.0 (/home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip)
    Compiling flate2 v1.1.11
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.01s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.97s
      Running unittests src/lib.rs (target/miri/x86_64-unknown-linux-gnu/debug/build/fastgzip/9a9d0320cc14350e/out/fastgzip-9a9d0320cc14350e)
 
 running 6 tests
@@ -46,7 +46,7 @@ test large_payloads ... ignored
 test levels ... ok
 test output_does_not_depend_on_what_came_before ... ignored
 
-test result: ok. 2 passed; 0 failed; 7 ignored; 0 measured; 0 filtered out; finished in 167.43s
+test result: ok. 2 passed; 0 failed; 7 ignored; 0 measured; 0 filtered out; finished in 167.42s
 
      Running tests/roundtrip.rs (target/miri/x86_64-unknown-linux-gnu/debug/build/fastgzip/ddf13ca0c4ccf658/out/roundtrip-ddf13ca0c4ccf658)
 
