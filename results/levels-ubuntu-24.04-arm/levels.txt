@@ -5,121 +5,342 @@ machine: aarch64, 4 CPUs, Neoverse-N2
 rustc 1.100.0 (0ef1bc386 2026-11-09)
 
 VARIANT=7
-capture.bin       L1 0.84/0.85  L2 0.83/0.78  L5 0.79/0.76  L9 0.78/0.76
-rtb_single.bin    L1 0.85/0.88  L2 0.87/0.81  L5 0.85/0.81  L9 0.85/0.81
-rtb_5k.bin        L1 0.86/0.89  L2 0.86/0.81  L5 0.83/0.80  L9 0.84/0.81
-rtb_x3.bin        L1 0.88/0.91  L2 0.92/0.90  L5 0.89/0.87  L9 0.90/0.89
-rtb_x6.bin        L1 0.85/0.88  L2 0.93/0.91  L5 0.92/0.89  L9 0.96/0.94
-req_x24.bin       L1 0.82/1.90  L2 1.03/1.58  L5 1.00/1.50  L9 1.00/1.60
-text_200k.bin     L1 1.01/2.11  L2 1.01/1.70  L5 1.02/1.65  L9 0.94/1.86
-code_200k.bin     L1 0.82/1.81  L2 1.03/1.55  L5 1.01/1.49  L9 1.00/1.71
+capture.bin       L1 0.85/0.85  L2 0.83/0.78  L5 0.79/0.76  L9 0.78/0.76
+rtb_single.bin    L1 0.85/0.88  L2 0.87/0.81  L5 0.85/0.81  L9 0.85/0.82
+rtb_5k.bin        L1 0.86/0.89  L2 0.86/0.81  L5 0.84/0.80  L9 0.84/0.81
+rtb_x3.bin        L1 0.88/0.91  L2 0.92/0.90  L5 0.89/0.87  L9 0.90/0.88
+rtb_x6.bin        L1 0.84/0.88  L2 0.93/0.91  L5 0.92/0.90  L9 0.96/0.94
 
 VARIANT=6
 capture.bin       L1 0.84/0.85  L2 0.83/0.78  L5 0.79/0.76  L9 0.79/0.76
-rtb_single.bin    L1 0.85/0.88  L2 0.86/0.82  L5 0.85/0.82  L9 0.85/0.82
-rtb_5k.bin        L1 0.86/0.89  L2 0.85/0.82  L5 0.83/0.80  L9 0.84/0.81
-rtb_x3.bin        L1 0.88/0.91  L2 0.91/0.90  L5 0.88/0.87  L9 0.90/0.89
-rtb_x6.bin        L1 0.85/0.88  L2 0.93/0.91  L5 0.91/0.89  L9 0.95/0.93
-req_x24.bin       L1 0.82/1.90  L2 1.03/1.59  L5 1.02/1.52  L9 1.00/1.59
-text_200k.bin     L1 1.01/2.10  L2 1.01/1.70  L5 1.03/1.65  L9 1.00/1.87
-code_200k.bin     L1 0.82/1.81  L2 1.03/1.54  L5 1.07/1.56  L9 1.01/1.70
-
-VARIANT=5
-capture.bin       L1 0.84/0.85  L2 0.85/0.78  L5 0.81/0.76  L9 0.80/0.76
-rtb_single.bin    L1 0.85/0.88  L2 0.87/0.81  L5 0.85/0.81  L9 0.85/0.81
-rtb_5k.bin        L1 0.86/0.89  L2 0.86/0.81  L5 0.83/0.80  L9 0.84/0.80
-rtb_x3.bin        L1 0.88/0.91  L2 0.94/0.90  L5 0.90/0.87  L9 0.92/0.88
-rtb_x6.bin        L1 0.84/0.88  L2 0.94/0.91  L5 0.92/0.90  L9 0.97/0.94
-req_x24.bin       L1 0.81/1.90  L2 1.01/1.58  L5 1.00/1.51  L9 0.98/1.58
-text_200k.bin     L1 1.01/2.11  L2 0.99/1.69  L5 1.01/1.66  L9 0.95/1.85
-code_200k.bin     L1 0.82/1.82  L2 0.99/1.55  L5 1.00/1.51  L9 0.95/1.67
-
-VARIANT=4
-capture.bin       L1 0.85/0.85  L2 0.86/0.78  L5 0.82/0.76  L9 0.82/0.76
-rtb_single.bin    L1 0.85/0.88  L2 0.87/0.82  L5 0.85/0.82  L9 0.85/0.82
-rtb_5k.bin        L1 0.86/0.89  L2 0.86/0.82  L5 0.84/0.81  L9 0.84/0.81
-rtb_x3.bin        L1 0.88/0.91  L2 0.94/0.90  L5 0.91/0.88  L9 0.92/0.89
-rtb_x6.bin        L1 0.84/0.88  L2 0.93/0.91  L5 0.92/0.89  L9 0.95/0.93
-req_x24.bin       L1 0.82/1.91  L2 1.02/1.59  L5 1.01/1.53  L9 0.99/1.59
-text_200k.bin     L1 1.01/2.11  L2 0.99/1.70  L5 1.02/1.67  L9 0.93/1.86
-code_200k.bin     L1 0.82/1.81  L2 0.99/1.54  L5 1.00/1.52  L9 0.95/1.62
-
-VARIANT=3
-capture.bin       L1 0.84/0.85  L2 0.83/0.78  L5 0.79/0.77  L9 0.78/0.76
-rtb_single.bin    L1 0.85/0.88  L2 0.86/0.82  L5 0.84/0.82  L9 0.85/0.82
-rtb_5k.bin        L1 0.86/0.89  L2 0.85/0.82  L5 0.83/0.81  L9 0.83/0.81
-rtb_x3.bin        L1 0.87/0.91  L2 0.91/0.90  L5 0.87/0.87  L9 0.89/0.88
-rtb_x6.bin        L1 0.84/0.88  L2 0.92/0.91  L5 0.90/0.89  L9 0.95/0.93
-req_x24.bin       L1 0.82/1.89  L2 1.03/1.59  L5 1.03/1.53  L9 1.01/1.60
-text_200k.bin     L1 1.02/2.11  L2 1.03/1.70  L5 1.06/1.67  L9 0.93/1.82
-code_200k.bin     L1 0.81/1.81  L2 1.02/1.55  L5 1.08/1.56  L9 1.01/1.70
-
-VARIANT=2
-capture.bin       L1 0.85/0.85  L2 0.83/0.78  L5 0.79/0.76  L9 0.79/0.76
-rtb_single.bin    L1 0.85/0.88  L2 0.86/0.81  L5 0.85/0.81  L9 0.85/0.82
-rtb_5k.bin        L1 0.86/0.89  L2 0.85/0.81  L5 0.83/0.80  L9 0.84/0.81
-rtb_x3.bin        L1 0.87/0.91  L2 0.91/0.90  L5 0.88/0.87  L9 0.89/0.88
-rtb_x6.bin        L1 0.84/0.88  L2 0.92/0.91  L5 0.91/0.90  L9 0.95/0.94
-req_x24.bin       L1 0.82/1.90  L2 1.03/1.59  L5 1.02/1.53  L9 1.00/1.60
-text_200k.bin     L1 1.02/2.10  L2 1.02/1.70  L5 1.03/1.67  L9 0.93/1.78
-code_200k.bin     L1 0.81/1.81  L2 1.02/1.55  L5 1.07/1.56  L9 0.94/1.63
-
-VARIANT=15
-capture.bin       L1 0.84/0.85  L2 0.83/0.78  L5 0.79/0.77  L9 0.78/0.76
-rtb_single.bin    L1 0.85/0.88  L2 0.87/0.82  L5 0.85/0.82  L9 0.85/0.82
-rtb_5k.bin        L1 0.86/0.89  L2 0.86/0.82  L5 0.83/0.81  L9 0.84/0.81
-rtb_x3.bin        L1 0.88/0.91  L2 0.92/0.90  L5 0.88/0.87  L9 0.90/0.89
-rtb_x6.bin        L1 0.85/0.88  L2 0.93/0.91  L5 0.92/0.90  L9 0.97/0.94
-req_x24.bin       L1 0.81/1.90  L2 1.03/1.58  L5 1.01/1.48  L9 0.95/1.51
-text_200k.bin     L1 1.00/2.10  L2 1.02/1.70  L5 1.04/1.65  L9 0.94/1.84
-code_200k.bin     L1 0.82/1.81  L2 1.03/1.55  L5 1.07/1.57  L9 0.99/1.70
-
-VARIANT=14
-capture.bin       L1 0.85/0.85  L2 0.83/0.78  L5 0.80/0.76  L9 0.79/0.76
-rtb_single.bin    L1 0.85/0.88  L2 0.86/0.81  L5 0.85/0.81  L9 0.86/0.82
-rtb_5k.bin        L1 0.86/0.89  L2 0.86/0.81  L5 0.84/0.80  L9 0.84/0.81
+rtb_single.bin    L1 0.85/0.88  L2 0.86/0.81  L5 0.85/0.81  L9 0.86/0.81
+rtb_5k.bin        L1 0.86/0.90  L2 0.86/0.81  L5 0.84/0.80  L9 0.84/0.81
 rtb_x3.bin        L1 0.87/0.91  L2 0.92/0.90  L5 0.89/0.87  L9 0.90/0.88
 rtb_x6.bin        L1 0.85/0.88  L2 0.93/0.91  L5 0.92/0.90  L9 0.96/0.94
-req_x24.bin       L1 0.81/1.90  L2 1.03/1.59  L5 0.98/1.46  L9 1.00/1.59
-text_200k.bin     L1 1.00/2.10  L2 1.02/1.70  L5 1.06/1.67  L9 0.95/1.87
-code_200k.bin     L1 0.82/1.81  L2 1.03/1.54  L5 1.05/1.54  L9 1.00/1.69
+
+VARIANT=4
+capture.bin       L1 0.84/0.85  L2 0.87/0.78  L5 0.82/0.76  L9 0.81/0.76
+rtb_single.bin    L1 0.85/0.88  L2 0.87/0.81  L5 0.86/0.81  L9 0.86/0.82
+rtb_5k.bin        L1 0.86/0.89  L2 0.86/0.81  L5 0.84/0.80  L9 0.85/0.81
+rtb_x3.bin        L1 0.87/0.91  L2 0.94/0.90  L5 0.91/0.87  L9 0.92/0.89
+rtb_x6.bin        L1 0.85/0.88  L2 0.94/0.91  L5 0.93/0.90  L9 0.97/0.94
 
 VARIANT=7
-capture.bin       L1 0.84/0.84  L2 0.83/0.78  L5 0.79/0.76  L9 0.78/0.76
-rtb_single.bin    L1 0.85/0.88  L2 0.87/0.82  L5 0.85/0.82  L9 0.85/0.82
-rtb_5k.bin        L1 0.86/0.89  L2 0.86/0.82  L5 0.83/0.81  L9 0.84/0.81
-rtb_x3.bin        L1 0.88/0.91  L2 0.91/0.90  L5 0.88/0.87  L9 0.90/0.89
-rtb_x6.bin        L1 0.85/0.88  L2 0.93/0.91  L5 0.91/0.90  L9 0.96/0.94
-req_x24.bin       L1 0.82/1.90  L2 1.03/1.59  L5 1.00/1.50  L9 1.00/1.59
-text_200k.bin     L1 1.01/2.10  L2 1.01/1.70  L5 1.03/1.63  L9 0.97/1.87
-code_200k.bin     L1 0.82/1.81  L2 1.03/1.55  L5 1.05/1.53  L9 0.96/1.65
+capture.bin       L1 0.84/0.85  L2 0.83/0.78  L5 0.79/0.76  L9 0.79/0.76
+rtb_single.bin    L1 0.85/0.88  L2 0.87/0.81  L5 0.85/0.81  L9 0.86/0.82
+rtb_5k.bin        L1 0.86/0.89  L2 0.86/0.81  L5 0.84/0.80  L9 0.84/0.81
+rtb_x3.bin        L1 0.88/0.91  L2 0.92/0.90  L5 0.89/0.87  L9 0.90/0.88
+rtb_x6.bin        L1 0.85/0.88  L2 0.93/0.92  L5 0.91/0.90  L9 0.96/0.94
 
-HOPS_FROM=16
-rtb_single.bin    L5 0.85/0.82  L6 0.85/0.82  L7 0.86/0.82  L8 0.86/0.82  L9 0.86/0.82
-rtb_5k.bin        L5 0.83/0.81  L6 0.84/0.81  L7 0.84/0.81  L8 0.84/0.81  L9 0.84/0.81
-rtb_x3.bin        L5 0.88/0.87  L6 0.89/0.88  L7 0.90/0.89  L8 0.90/0.89  L9 0.90/0.89
-rtb_x6.bin        L5 0.92/0.90  L6 0.93/0.92  L7 0.95/0.93  L8 0.96/0.94  L9 0.96/0.94
-
-HOPS_FROM=15
-rtb_single.bin    L5 0.85/0.82  L6 0.85/0.82  L7 0.85/0.82  L8 0.85/0.82  L9 0.86/0.82
-rtb_5k.bin        L5 0.84/0.81  L6 0.84/0.81  L7 0.84/0.81  L8 0.84/0.81  L9 0.84/0.81
-rtb_x3.bin        L5 0.89/0.87  L6 0.89/0.88  L7 0.90/0.89  L8 0.90/0.89  L9 0.90/0.89
-rtb_x6.bin        L5 0.95/0.90  L6 0.95/0.92  L7 0.94/0.94  L8 0.93/0.94  L9 0.94/0.95
-
-HOPS_FROM=14
-rtb_single.bin    L5 0.86/0.81  L6 0.86/0.82  L7 0.86/0.82  L8 0.86/0.82  L9 0.86/0.82
-rtb_5k.bin        L5 0.84/0.80  L6 0.84/0.81  L7 0.85/0.81  L8 0.84/0.81  L9 0.84/0.81
-rtb_x3.bin        L5 0.93/0.87  L6 0.93/0.88  L7 0.93/0.88  L8 0.92/0.88  L9 0.92/0.88
-rtb_x6.bin        L5 0.94/0.89  L6 0.94/0.91  L7 0.94/0.92  L8 0.93/0.93  L9 0.93/0.93
-
-HOPS_FROM=13
-rtb_single.bin    L5 0.87/0.81  L6 0.87/0.82  L7 0.87/0.82  L8 0.86/0.81  L9 0.86/0.82
-rtb_5k.bin        L5 0.88/0.80  L6 0.88/0.81  L7 0.88/0.81  L8 0.87/0.81  L9 0.87/0.81
-rtb_x3.bin        L5 0.94/0.87  L6 0.94/0.88  L7 0.94/0.88  L8 0.93/0.88  L9 0.93/0.89
-rtb_x6.bin        L5 0.95/0.89  L6 0.96/0.91  L7 0.95/0.93  L8 0.94/0.93  L9 0.94/0.94
-
-HOPS_FROM=16
-rtb_single.bin    L5 0.85/0.82  L6 0.86/0.82  L7 0.86/0.82  L8 0.85/0.82  L9 0.86/0.82
-rtb_5k.bin        L5 0.83/0.81  L6 0.84/0.81  L7 0.84/0.81  L8 0.84/0.81  L9 0.84/0.81
-rtb_x3.bin        L5 0.89/0.87  L6 0.90/0.88  L7 0.90/0.89  L8 0.90/0.88  L9 0.90/0.89
-rtb_x6.bin        L5 0.92/0.90  L6 0.94/0.92  L7 0.95/0.93  L8 0.96/0.94  L9 0.96/0.94
+instructions executed:
+before ==3255== Command: ./target/release/one before 2 2 /tmp/levelswork/rtb_single.bin
+before before level 2: 871358 B
+before ==3255== I   refs:      176,109,433
+58,159,302 (33.02%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/before/src/fast.rs:fastgzip::fast::greedy::<12>'2 [/home/runner/work/TheOp
+25,498,898 (14.48%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/before/src/write.rs:fastgzip::write::write_block'2 [/home/runner/work/TheO
+21,271,808 (12.08%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/before/src/fast.rs:fastgzip::fast::greedy::<13>'2 [/home/runner/work/TheOp
+ 5,989,512 ( 3.40%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/before/src/huff.rs:fastgzip::huff::make_lens'2 [/home/runner/work/TheOptim
+ 5,957,960 ( 3.38%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/before/src/levels.rs:<fastgzip::levels::Levels>::deflate [/home/runner/wor
+ 5,661,170 ( 3.21%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/slice/specialize.rs:fastgzip::huff::make_lens
+ 5,107,704 ( 2.90%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/cmp.rs:fastgzip::fast::greedy::<12>'2
+ 4,889,676 ( 2.78%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/before/src/codes.rs:<fastgzip::codes::Codes>::write_header'2 [/home/runner
+grep: write error: Broken pipe
+_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_: 75,828,008 instructions run
+             ...
+   1,074,892   45fea4  add	x20, x20, #0x1
+   1,074,892   45fea8  cmp	x20, x23
+   1,074,892   45feac  b.cs	4603fc <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x5cc>
+   1,276,926   45feb0  sub	x11, x23, x20
+   1,276,926   45feb4  cmp	x11, #0x102
+   1,276,926   45feb8  csel	x10, x11, x2, cc	// cc = lo, ul, last
+   1,276,926   45febc  cmp	x27, x10
+   1,276,926   45fec0  csel	x12, x27, x10, cc	// cc = lo, ul, last
+   1,276,926   45fec4  cmp	x11, #0x5
+   1,276,926   45fec8  b.cs	45fee0 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0xb0> 
+             ...
+   1,274,600   45fee0  ldrh	w17, [x26, x21, lsl #1]
+   1,274,600   45fee4  ldrh	w16, [x25, x22, lsl #1]
+   1,274,600   45fee8  add	x14, x24, x20
+   1,274,600   45feec  strh	w20, [x25, x22, lsl #1]
+   1,274,600   45fef0  cmp	x7, #0x4
+   1,274,600   45fef4  strh	w20, [x26, x21, lsl #1]
+   1,274,600   45fef8  strh	w17, [x28, x20, lsl #1]
+   1,274,600   45fefc  ldur	w9, [x14, #1]
+   1,274,600   45ff00  ldr	w15, [x14]
+   1,274,600   45ff04  b.cs	45ff2c <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0xfc> 
+   1,274,600   45ff08  mov	x13, x20
+   1,274,600   45ff0c  sub	x8, x1, #0x1
+   1,274,600   45ff10  cbz	w16, 4600d4 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x
+             ...
+   1,274,600   4600d4  and	w10, w9, #0xffffff
+   1,274,600   4600d8  mul	w9, w9, w19
+   1,274,600   4600dc  mul	w10, w10, w19
+   1,274,600   4600e0  lsr	w21, w9, #18
+   1,274,600   4600e4  sub	x9, x20, x13
+   1,274,600   4600e8  lsr	w22, w10, #19
+   1,274,600   4600ec  cmp	x8, x1
+   1,274,600   4600f0  b.cc	460104 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x2d4>
+             ...
+   1,074,892   460104  ldrb	w8, [x24, x20]
+   1,074,892   460108  ldr	w9, [x5, x8, lsl #2]
+   1,074,892   46010c  add	w9, w9, #0x1
+   1,074,892   460110  str	w9, [x5, x8, lsl #2]
+   1,074,892   460114  cbz	x4, 45fea4 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x7
+             ...
+     880,216   4602f4  strh	w9, [x25, x22, lsl #1]
+     880,216   4602f8  subs	x8, x8, #0x1
+     880,216   4602fc  ldrh	w11, [x26, x21, lsl #1]
+     880,216   460300  strh	w11, [x28, x9, lsl #1]
+     880,216   460304  strh	w9, [x26, x21, lsl #1]
+     880,216   460308  add	x9, x9, #0x1
+     880,216   46030c  ldr	w11, [x10], #1
+     880,216   460310  and	w12, w11, #0xffffff
+     880,216   460314  mul	w11, w11, w19
+     880,216   460318  mul	w12, w12, w19
+     880,216   46031c  lsr	w21, w11, #18
+     880,216   460320  lsr	w22, w12, #19
+     880,216   460324  b.ne	4602f4 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast6greedyKmc_EB4_+0x4c4>
+             ...
+now variant 4 ==3269== Command: ./target/release/one now 2 2 /tmp/levelswork/rtb_single.bin
+now variant 4 now level 2: 871358 B
+now variant 4 ==3269== I   refs:      194,500,014
+72,645,826 (37.35%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::greedy::<12, false, false>'2 [/home/r
+26,192,804 (13.47%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::greedy::<13, false, false>'2 [/home/r
+23,990,316 (12.33%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/write.rs:fastgzip::write::write_block::<true>'2 [/home/runner
+ 8,217,858 ( 4.23%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ptr/mod.rs:<fastgzip::levels::Levels>::deflate_fast'2
+ 6,212,932 ( 3.19%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/huff.rs:fastgzip::huff::make_lens'2 [/home/runner/work/TheOpt
+ 5,661,170 ( 2.91%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/slice/specialize.rs:fastgzip::huff::make_lens
+ 5,107,704 ( 2.63%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/cmp.rs:fastgzip::fast::greedy::<12, false, false>'2
+ 4,885,074 ( 2.51%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/codes.rs:<fastgzip::codes::Codes>::write_header'2 [/home/runn
+grep: write error: Broken pipe
+_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_KBI_EB4_: 90,725,732 instructions run
+             ...
+   1,276,314   438d28  ldur	w8, [x29, #-84]
+   1,276,314   438d2c  and	w8, w8, w22
+   1,276,314   438d30  tbnz	w8, #0, 4391b8 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0
+   1,276,926   438d34  sub	x10, x30, x20
+   1,276,926   438d38  cmp	x10, #0x102
+   1,276,926   438d3c  csel	x9, x10, x14, cc	// cc = lo, ul, last
+   1,276,926   438d40  cmp	x13, x9
+   1,276,926   438d44  csel	x11, x13, x9, cc	// cc = lo, ul, last
+   1,276,926   438d48  cmp	x10, #0x5
+   1,276,926   438d4c  b.cs	438e7c <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_KBI_EB4
+             ...
+     880,216   438e38  strh	w9, [x23, x28, lsl #1]
+     880,216   438e3c  subs	x8, x8, #0x1
+     880,216   438e40  ldrh	w10, [x24, x27, lsl #1]
+     880,216   438e44  strh	w10, [x26, x9, lsl #1]
+     880,216   438e48  strh	w9, [x24, x27, lsl #1]
+     880,216   438e4c  ldr	w10, [x21, x9]
+     880,216   438e50  add	x9, x9, #0x1
+     880,216   438e54  and	w11, w10, #0xffffff
+     880,216   438e58  mul	w10, w10, w25
+     880,216   438e5c  mul	w11, w11, w25
+     880,216   438e60  lsr	w27, w10, #18
+     880,216   438e64  lsr	w28, w11, #19
+     880,216   438e68  b.ne	438e38 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_KBI_EB4
+             ...
+   1,274,600   438e7c  add	x8, x20, #0x1
+   1,274,600   438e80  ldrh	w13, [x24, x27, lsl #1]
+   1,274,600   438e84  ldrh	w17, [x23, x28, lsl #1]
+   1,274,600   438e88  strh	w8, [x23, x28, lsl #1]
+   1,274,600   438e8c  add	x14, x21, x20
+   1,274,600   438e90  ldr	x18, [sp, #96]
+   1,274,600   438e94  strh	w8, [x24, x27, lsl #1]
+   1,274,600   438e98  strh	w13, [x26, x8, lsl #1]
+   1,274,600   438e9c  cmp	x18, #0x4
+   1,274,600   438ea0  ldr	w8, [x21, x8]
+   1,274,600   438ea4  ldr	w15, [x14]
+   1,274,600   438ea8  b.cs	438edc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_KBI_EB4
+   1,274,600   438eac  mov	x12, x20
+   1,274,600   438eb0  sub	x16, x3, #0x1
+   1,274,600   438eb4  sub	x22, x21, #0x1
+   1,274,600   438eb8  cbz	w17, 439040 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_KBI
+             ...
+   1,274,600   439040  and	w9, w8, #0xffffff
+   1,274,600   439044  mul	w8, w8, w25
+   1,274,600   439048  ldur	x13, [x29, #-96]
+   1,274,600   43904c  mul	w9, w9, w25
+   1,274,600   439050  mov	w14, #0x102                 	// #258
+   1,274,600   439054  mov	w15, #0x1000                	// #4096
+   1,274,600   439058  lsr	w27, w8, #18
+   1,274,600   43905c  sub	x8, x20, x12
+   1,274,600   439060  lsr	w28, w9, #19
+   1,274,600   439064  cmp	x16, #0x4
+   1,274,600   439068  ccmp	x8, x15, #0x0, cc	// cc = lo, ul, last
+   1,274,600   43906c  ccmp	x16, x3, #0x0, ls	// ls = plast
+   1,274,600   439070  cset	w22, cc	// cc = lo, ul, last
+   1,274,600   439074  b.cs	438d6c <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_KBI_EB4
+   1,074,892   439078  ldrb	w8, [x21, x20]
+   1,074,892   43907c  ldr	w9, [x2, x8, lsl #2]
+   1,074,892   439080  add	w9, w9, #0x1
+   1,074,892   439084  str	w9, [x2, x8, lsl #2]
+   1,074,892   439088  cbz	x6, 4390b0 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_KBI_
+             ...
+   1,074,892   4390b0  add	x20, x20, #0x1
+   1,074,892   4390b4  subs	x19, x30, x20
+   1,074,892   4390b8  b.ls	4393f8 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_KBI_EB4
+   1,276,314   4390bc  cbz	x6, 438d28 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast6greedyKmc_Kb0_KBI_
+             ...
+before ==3279== Command: ./target/release/one before 5 2 /tmp/levelswork/rtb_single.bin
+before before level 5: 855109 B
+before ==3279== I   refs:      198,725,163
+72,984,454 (36.73%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/before/src/fast.rs:fastgzip::fast::lazy::<12>'2 [/home/runner/work/TheOpti
+26,936,318 (13.55%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/before/src/fast.rs:fastgzip::fast::lazy::<13>'2 [/home/runner/work/TheOpti
+23,964,684 (12.06%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/before/src/write.rs:fastgzip::write::write_block'2 [/home/runner/work/TheO
+ 6,856,026 ( 3.45%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/cmp.rs:fastgzip::fast::lazy::<12>'2
+ 5,961,076 ( 3.00%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/before/src/huff.rs:fastgzip::huff::make_lens'2 [/home/runner/work/TheOptim
+ 5,953,160 ( 3.00%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/before/src/levels.rs:<fastgzip::levels::Levels>::deflate [/home/runner/wor
+ 5,665,314 ( 2.85%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/slice/specialize.rs:fastgzip::huff::make_lens
+ 4,991,546 ( 2.51%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ptr/mod.rs:fastgzip::fast::lazy::<12>'2
+grep: write error: Broken pipe
+_RINvNtCsfPDEuAInDOD_8fastgzip4fast4lazyKmc_EB4_: 93,337,202 instructions run
+             ...
+   1,064,816   45ac30  add	x20, x20, #0x1
+   1,246,778   45ac34  cmp	x20, x19
+   1,246,778   45ac38  b.cs	45bee8 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast4lazyKmc_EB4_+0x136c> 
+   1,246,778   45ac3c  cmp	x20, x13
+   1,246,778   45ac40  b.cc	45aee8 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast4lazyKmc_EB4_+0x36c>  
+             ...
+   1,246,778   45aee8  sub	x9, x19, x20
+   1,246,778   45aeec  sub	x8, x1, #0x1
+   1,246,778   45aef0  cmp	x9, #0x102
+   1,246,778   45aef4  csel	x11, x9, x6, cc	// cc = lo, ul, last
+   1,246,778   45aef8  cmp	x27, x11
+   1,246,778   45aefc  csel	x12, x27, x11, cc	// cc = lo, ul, last
+   1,246,778   45af00  cmp	x9, #0x5
+   1,246,778   45af04  b.cs	45af18 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast4lazyKmc_EB4_+0x39c>  
+             ...
+   1,244,452   45af18  ldrh	w17, [x25, x26, lsl #1]
+   1,244,452   45af1c  ldrh	w16, [x24, x21, lsl #1]
+   1,244,452   45af20  add	x14, x22, x20
+   1,244,452   45af24  strh	w20, [x24, x21, lsl #1]
+   1,244,452   45af28  mov	x7, x13
+   1,244,452   45af2c  cmp	x8, #0x4
+   1,244,452   45af30  strh	w20, [x25, x26, lsl #1]
+   1,244,452   45af34  mov	x13, x20
+   1,244,452   45af38  strh	w17, [x28, x20, lsl #1]
+   1,244,452   45af3c  ldur	w10, [x14, #1]
+   1,244,452   45af40  ldr	w15, [x14]
+   1,244,452   45af44  b.cs	45af98 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast4lazyKmc_EB4_+0x41c>  
+   1,244,452   45af48  cbz	w16, 45b1bc <_RINvNtCsfPDEuAInDOD_8fastgzip4fast4lazyKmc_EB4_+0x64
+             ...
+   1,244,452   45b1bc  and	w11, w10, #0xffffff
+   1,244,452   45b1c0  mul	w10, w10, w2
+   1,244,452   45b1c4  mul	w11, w11, w2
+   1,244,452   45b1c8  lsr	w26, w10, #18
+   1,244,452   45b1cc  sub	x10, x20, x13
+   1,244,452   45b1d0  mov	x13, x7
+   1,244,452   45b1d4  lsr	w21, w11, #19
+   1,244,452   45b1d8  cmp	x8, x1
+   1,244,452   45b1dc  b.cc	45b1f0 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast4lazyKmc_EB4_+0x674>  
+             ...
+   1,064,816   45b1f0  ldrb	w8, [x22, x20]
+   1,064,816   45b1f4  ldr	w9, [x23, x8, lsl #2]
+   1,064,816   45b1f8  add	w9, w9, #0x1
+   1,064,816   45b1fc  str	w9, [x23, x8, lsl #2]
+   1,064,816   45b200  cbz	x5, 45ac30 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast4lazyKmc_EB4_+0xb4>
+             ...
+     590,952   45be98  strh	w12, [x24, x21, lsl #1]
+     590,952   45be9c  subs	x8, x8, #0x1
+     590,952   45bea0  ldrh	w10, [x25, x26, lsl #1]
+     590,952   45bea4  strh	w10, [x28, x12, lsl #1]
+     590,952   45bea8  strh	w12, [x25, x26, lsl #1]
+     590,952   45beac  add	x12, x12, #0x1
+     590,952   45beb0  ldr	w10, [x9], #1
+     590,952   45beb4  and	w11, w10, #0xffffff
+     590,952   45beb8  mul	w10, w10, w2
+     590,952   45bebc  mul	w11, w11, w2
+     590,952   45bec0  lsr	w26, w10, #18
+     590,952   45bec4  lsr	w21, w11, #19
+     590,952   45bec8  b.ne	45be98 <_RINvNtCsfPDEuAInDOD_8fastgzip4fast4lazyKmc_EB4_+0x131c> 
+             ...
+now variant 4 ==3289== Command: ./target/release/one now 5 2 /tmp/levelswork/rtb_single.bin
+now variant 4 now level 5: 855109 B
+now variant 4 ==3289== I   refs:      216,804,616
+85,933,732 (39.64%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::lazy::<12, false, false, false>'2 [/h
+31,375,060 (14.47%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/fast.rs:fastgzip::fast::lazy::<13, false, false, false>'2 [/h
+23,697,736 (10.93%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/write.rs:fastgzip::write::write_block::<true>'2 [/home/runner
+ 8,214,658 ( 3.79%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ptr/mod.rs:<fastgzip::levels::Levels>::deflate_fast'2
+ 6,856,026 ( 3.16%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/cmp.rs:fastgzip::fast::lazy::<12, false, false, false>'2
+ 6,184,816 ( 2.85%)  /home/runner/work/TheOptimizer/TheOptimizer/exp/levels/fastgzip/src/huff.rs:fastgzip::huff::make_lens'2 [/home/runner/work/TheOpt
+ 5,665,314 ( 2.61%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/slice/specialize.rs:fastgzip::huff::make_lens
+ 5,343,930 ( 2.46%)  /rustc/0ef1bc386059596dada8fb65b50425aab2ea637a/library/core/src/ptr/mod.rs:fastgzip::fast::lazy::<12, false, false, false>'2
+grep: write error: Broken pipe
+_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_KBG_EB4_: 106,961,130 instructions run
+             ...
+   1,246,166   427cdc  cmp	x3, #0x5
+   1,246,166   427ce0  csel	w8, wzr, w25, cs	// cs = hs, nlast
+   1,246,166   427ce4  tbnz	w8, #0, 428cfc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_K
+   1,246,778   427ce8  cmp	x20, x15
+   1,246,778   427cec  b.cs	427cf8 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_KBG_E
+   1,246,778   427cf0  ldur	x23, [x29, #-96]
+   1,246,778   427cf4  b	427fa0 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_KBG_EB4_
+             ...
+   1,246,778   427fa0  sub	x9, x2, x20
+   1,246,778   427fa4  sub	x11, x3, #0x1
+   1,246,778   427fa8  cmp	x9, #0x102
+   1,246,778   427fac  csel	x8, x9, x17, cc	// cc = lo, ul, last
+   1,246,778   427fb0  cmp	x21, x8
+   1,246,778   427fb4  csel	x12, x21, x8, cc	// cc = lo, ul, last
+   1,246,778   427fb8  cmp	x9, #0x5
+   1,246,778   427fbc  b.cs	427fd0 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_KBG_E
+             ...
+   1,244,452   427fd0  add	x10, x20, #0x1
+   1,244,452   427fd4  ldrh	w14, [x26, x24, lsl #1]
+   1,244,452   427fd8  mov	x25, x15
+   1,244,452   427fdc  ldrh	w17, [x30, x22, lsl #1]
+   1,244,452   427fe0  strh	w10, [x30, x22, lsl #1]
+   1,244,452   427fe4  add	x15, x23, x20
+   1,244,452   427fe8  strh	w10, [x26, x24, lsl #1]
+   1,244,452   427fec  cmp	x11, #0x4
+   1,244,452   427ff0  mov	x13, x20
+   1,244,452   427ff4  strh	w14, [x27, x10, lsl #1]
+   1,244,452   427ff8  ldr	w10, [x23, x10]
+   1,244,452   427ffc  ldr	w16, [x15]
+   1,244,452   428000  b.cs	428024 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_KBG_E
+   1,244,452   428004  cbz	w17, 428174 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_K
+             ...
+   1,244,452   428174  mov	w1, #0xa7bd                	// #42941
+   1,244,452   428178  and	w8, w10, #0xffffff
+   1,244,452   42817c  mov	x15, x25
+   1,244,452   428180  movk	w1, #0x1e35, lsl #16
+   1,244,452   428184  mov	w17, #0x102                 	// #258
+   1,244,452   428188  mul	w8, w8, w1
+   1,244,452   42818c  mul	w10, w10, w1
+   1,244,452   428190  lsr	w22, w8, #19
+   1,244,452   428194  lsr	w24, w10, #18
+   1,244,452   428198  sub	x10, x20, x13
+   1,244,452   42819c  cmp	x11, x3
+   1,244,452   4281a0  b.cc	4281b4 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_KBG_E
+             ...
+   1,064,816   4281b4  ldrb	w8, [x23, x20]
+   1,064,816   4281b8  ldr	w9, [x28, x8, lsl #2]
+   1,064,816   4281bc  add	w9, w9, #0x1
+   1,064,816   4281c0  str	w9, [x28, x8, lsl #2]
+   1,064,816   4281c4  cbz	x7, 4281ec <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_KB
+             ...
+   1,064,816   4281ec  ldur	w25, [x29, #-112]
+   1,064,816   4281f0  add	x20, x20, #0x1
+   1,246,778   4281f4  subs	x23, x2, x20
+   1,246,778   4281f8  b.ls	429094 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_KBG_E
+   1,246,166   4281fc  cbz	x7, 427cdc <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_KB
+             ...
+     590,952   428e54  strh	w9, [x30, x22, lsl #1]
+     590,952   428e58  subs	x8, x8, #0x1
+     590,952   428e5c  ldrh	w10, [x26, x24, lsl #1]
+     590,952   428e60  strh	w10, [x27, x9, lsl #1]
+     590,952   428e64  strh	w9, [x26, x24, lsl #1]
+     590,952   428e68  ldr	w10, [x23, x9]
+     590,952   428e6c  add	x9, x9, #0x1
+     590,952   428e70  and	w12, w10, #0xffffff
+     590,952   428e74  mul	w10, w10, w1
+     590,952   428e78  mul	w12, w12, w1
+     590,952   428e7c  lsr	w24, w10, #18
+     590,952   428e80  lsr	w22, w12, #19
+     590,952   428e84  b.ne	428e54 <_RINvNtCsgflMcMFjHPm_8fastgzip4fast4lazyKmc_Kb0_KBG_KBG_E
+             ...
+before level 1: ==3300== I   refs:      131,587,172
+now level 1: ==3303== I   refs:      128,417,275
+before level 9: ==3306== I   refs:      209,190,980
+now level 9: ==3309== I   refs:      205,283,097
