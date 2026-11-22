@@ -897,7 +897,8 @@ macro_rules! chain_none {
 /// The positions from `s.pos` on that have no candidate at all, as far as
 /// `s.stop` allows: they are literals.  Each is entered and counted.  The
 /// first of them is `s.pos` itself, which the caller has found to be one.
-/// Evaluates to whether the block goes on.
+/// Evaluates to whether the block goes on; `$node3` is then what the table
+/// of hashes of three bytes holds for the new `s.pos`.
 ///
 /// A search asks for the longest match longer than some length.  If that
 /// length is less than 4, the first thing it looks at is where the three
@@ -909,17 +910,20 @@ macro_rules! chain_none {
 /// is never too far on, and is put right when it has been reached.
 macro_rules! chain_literals {
     ($LG:ident, $BIG:ident, $HOPS:ident, $c:ident, $s:ident, $sink:ident, $st:ident, $split:ident,
-     $splitting:ident, $min_len:ident) => {{
+     $splitting:ident, $min_len:ident, $node3:ident) => {{
         let mut on = true;
         loop {
             let from = $s.pos;
-            // The hashes of the position after `s.pos`.  Whether a position
-            // is a literal is hard to predict, and what decides it is at
-            // the end of a load, a product and another load: so the first
-            // two are done one position early, and the answer is there by
-            // the time it is asked for.
+            // Whether a position is a literal is what this loop cannot
+            // predict, and what decides it comes at the end of a load, a
+            // product and another load.  So those are done a position
+            // early: the hashes of the position after `s.pos`, and what the
+            // table holds for them before `s.pos` is entered.  When the
+            // question is asked the answer is there, and a wrong guess is
+            // found out at once.
             let seq = at32($s.ent, $s.pos + 1);
-            let mut ahead = (lz_hash(seq & 0xFF_FFFF, Orders::<$LG>::O3), lz_hash(seq, Orders::<$LG>::O4));
+            let mut after = (lz_hash(seq & 0xFF_FFFF, Orders::<$LG>::O3), lz_hash(seq, Orders::<$LG>::O4));
+            let mut held = *$c.h3.add(after.0) as usize;
             // Literals, until a position has a candidate (true) or `stop`
             // is reached.
             let found = loop {
@@ -939,14 +943,18 @@ macro_rules! chain_literals {
                     let kinds = ptr::addr_of_mut!((*$split).new_obs).cast::<u32>();
                     *kinds.add(crate::levels::Split::kind(b)) += 1;
                 }
+                // What the table holds for the next position now: what it
+                // held before `p` was entered, unless `p` went there.
+                $node3 = if after.0 == $s.nh.0 { p } else { held };
                 let seq = at32($s.ent, p + 2);
-                $s.nh = ahead;
-                ahead = (lz_hash(seq & 0xFF_FFFF, Orders::<$LG>::O3), lz_hash(seq, Orders::<$LG>::O4));
+                $s.nh = after;
+                after = (lz_hash(seq & 0xFF_FFFF, Orders::<$LG>::O3), lz_hash(seq, Orders::<$LG>::O4));
+                held = *$c.h3.add(after.0) as usize;
                 $s.pos = p + 1;
                 if $s.pos >= $s.stop {
                     break false;
                 }
-                if !chain_none!($BIG, $s, *$c.h3.add($s.nh.0) as usize) {
+                if !chain_none!($BIG, $s, $node3) {
                     break true;
                 }
             };
@@ -962,7 +970,7 @@ macro_rules! chain_literals {
                 break;
             }
             $s.stop = chain_stop!($BIG, $s, $split, $splitting, $min_len);
-            if $s.pos >= $s.stop || !chain_none!($BIG, $s, *$c.h3.add($s.nh.0) as usize) {
+            if $s.pos >= $s.stop || !chain_none!($BIG, $s, $node3) {
                 break;
             }
         }
@@ -1033,12 +1041,14 @@ pub(crate) unsafe fn greedy<const LG: u32, const BIG: bool>(
         if BIG && s.pos == 2 * WINDOW {
             chain_slide!(HOPS, c, s);
         }
-        let node3 = *c.h3.add(s.nh.0) as usize;
+        let mut node3 = *c.h3.add(s.nh.0) as usize;
         if s.pos < s.stop && chain_none!(BIG, s, node3) {
-            if !chain_literals!(LG, BIG, HOPS, c, s, sink, st, split, splitting, min_len) {
+            if !chain_literals!(LG, BIG, HOPS, c, s, sink, st, split, splitting, min_len, node3) {
                 break;
             }
-            continue;
+            if BIG && s.pos == 2 * WINDOW {
+                continue;
+            }
         }
         let max_len = (s.end - s.pos).min(MAX_MATCH);
         let nice_len = c.nice.min(max_len);
@@ -1117,12 +1127,14 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool>(
         if BIG && s.pos == 2 * WINDOW {
             chain_slide!(HOPS, c, s);
         }
-        let node3 = *c.h3.add(s.nh.0) as usize;
+        let mut node3 = *c.h3.add(s.nh.0) as usize;
         if s.pos < s.stop && chain_none!(BIG, s, node3) {
-            if !chain_literals!(LG, BIG, HOPS, c, s, sink, st, split, splitting, min_len) {
+            if !chain_literals!(LG, BIG, HOPS, c, s, sink, st, split, splitting, min_len, node3) {
                 break;
             }
-            continue;
+            if BIG && s.pos == 2 * WINDOW {
+                continue;
+            }
         }
         'step: {
             if s.pos >= s.recalc {

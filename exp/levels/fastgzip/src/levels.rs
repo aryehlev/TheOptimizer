@@ -737,6 +737,9 @@ pub(crate) struct Levels {
     nice: usize,
     /// Use the searches of `fast.rs` where they apply.
     pub(crate) fast: bool,
+    /// The form of `write::write_block` to use, if not the one that `asking`
+    /// would choose; for tests.
+    pub(crate) asks: Option<bool>,
     pub(crate) stats: Stats,
     t: Box<Tables>,
     /// The chains of levels 5 to 9 in a payload of more than 32768 bytes
@@ -772,6 +775,7 @@ impl Levels {
             depth,
             nice,
             fast: true,
+            asks: None,
             stats: Stats::default(),
             t,
             links: Vec::new(),
@@ -866,6 +870,7 @@ impl Levels {
                 let (block, tokens) = (&inp[$begin..$end], &self.seqs[..$n_seqs]);
                 $bitpos = finish_block(
                     &mut self.own, &mut self.stats, &self.f_ll, &self.f_off, block, tokens, out, cap, $bitpos, last,
+                    self.asks.unwrap_or(asking(n)),
                 );
                 last
             }};
@@ -1020,6 +1025,7 @@ impl Levels {
             let (block, tokens) = (&inp[begin..end], &s.seqs[..s.n_seqs]);
             bitpos = finish_block(
                 &mut self.own, &mut self.stats, s.f_ll, s.f_off, block, tokens, out, cap, bitpos, last,
+                self.asks.unwrap_or(asking(n)),
             );
             if last {
                 return bitpos;
@@ -1027,6 +1033,16 @@ impl Levels {
             begin = end;
         }
     }
+}
+
+/// Which form of `write::write_block` writes the blocks of a payload of `n`
+/// bytes.  On arm64 (measured on Neoverse N2) the form that asks nothing is
+/// up to 1% quicker for payloads of a few kilobytes, whose matches mostly
+/// have a few literals before them, and no slower for those of up to 32 KiB.
+/// On x86-64 the compiler makes branches of that form's masks, and asking
+/// once instead is 1 to 3% quicker.
+fn asking(n: usize) -> bool {
+    n > WINDOW || !cfg!(target_arch = "aarch64")
 }
 
 /// Writes one block at bit `bitpos` of `out` with whichever is smallest:
@@ -1044,6 +1060,7 @@ unsafe fn finish_block(
     cap: usize,
     bitpos: usize,
     last: bool,
+    asking: bool,
 ) -> usize {
     // What the fixed codes would take, and the extra bits that any codes
     // take.
@@ -1087,7 +1104,11 @@ unsafe fn finish_block(
         stats.own_codes += 1;
         own
     };
-    let end = write_block(c, block.as_ptr(), block.len(), tokens, out, cap, bitpos, last);
+    let end = if asking {
+        write_block::<true>(c, block.as_ptr(), block.len(), tokens, out, cap, bitpos, last)
+    } else {
+        write_block::<false>(c, block.as_ptr(), block.len(), tokens, out, cap, bitpos, last)
+    };
     debug_assert_eq!(end - bitpos, own_bits.min(fixed_bits) as usize);
     end
 }

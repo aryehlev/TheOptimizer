@@ -273,6 +273,16 @@ impl Gzip {
         }
     }
 
+    /// Levels 1 to 9 write a block in one of two ways, chosen by machine
+    /// and payload, that give the same bytes.  This chooses, for tests to
+    /// compare.
+    #[doc(hidden)]
+    pub fn __writer_asks(&mut self, asks: bool) {
+        if let Kind::Level(_, lv) = &mut self.kind {
+            lv.asks = Some(asks);
+        }
+    }
+
     /// How this compressor's blocks have been written so far.  If `own_codes`
     /// keeps growing, the payloads it is given are not of one kind.
     pub fn stats(&self) -> Stats {

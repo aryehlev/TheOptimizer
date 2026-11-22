@@ -296,8 +296,32 @@ fn large_paths_once() {
     }
 }
 
-/// Small enough for Miri: every level, each of its searches, each kind of
-/// block.
+/// Both ways of writing a block give the same bytes.
+#[test]
+#[cfg_attr(miri, ignore)]
+fn both_writers_agree() {
+    let mut rng = Rng(900);
+    let mut payloads: Vec<Vec<u8>> = Vec::new();
+    for i in 0..40 {
+        payloads.push(any_payload(&mut rng, i));
+    }
+    for n in [0usize, 1, 9, 300, 2000, 5000, 20_000, 40_000, 70_000] {
+        payloads.push(requests(&mut rng, n));
+        payloads.push((0..n).map(|i| b"ab,c"[(i * i / 7) % 4]).collect()); // matches without literals between
+    }
+    for level in [1u8, 2, 5, 9] {
+        let (mut a, mut b) = (Gzip::with_level(level), Gzip::with_level(level));
+        a.__writer_asks(true);
+        b.__writer_asks(false);
+        for p in &payloads {
+            check(&mut a, p);
+            assert!(a.compress(p) == b.compress(p), "level {level}, {} bytes", p.len());
+        }
+    }
+}
+
+/// Small enough for Miri: every level, each of its searches, each way of
+/// writing, each kind of block.
 #[test]
 fn every_path_once() {
     let mut rng = Rng(700);
@@ -305,6 +329,7 @@ fn every_path_once() {
         let mut gz = Gzip::with_level(level);
         for plain in [false, true] {
             gz.__plain_search(plain);
+            gz.__writer_asks(plain);
             check(&mut gz, &request(&mut rng, 1300, 0)); // codes of its own
             let noise: Vec<u8> = (0..600).map(|_| rng.u32() as u8).collect();
             check(&mut gz, &noise); // stored
