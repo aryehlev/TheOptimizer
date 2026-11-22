@@ -115,51 +115,50 @@ rm $W/big/text.src
 
 CPU=$(( $(nproc) - 1 ))
 if [ -n "$EXP" ]; then
-  # The forms some parts of the chain searches and of the writer can take,
-  # each as fastgzip's share of libdeflate's time (the figure before the
-  # slash; the one after it is before/ and the same in every row).
-  #   VARIANT   1 the walk along a chain as one loop, 2 the loop over
-  #             positions without a candidate, 4 the writer that asks
-  #             whether a match has literals before it, 8 asking early for
-  #             what the position after a match needs of the tables
-  #   HOPS_FROM 14: chains four steps at a time from payloads of 8 KiB on
+  # The levels as they are now and as they were, each as a share of
+  # libdeflate's time (now/before), passes interleaved; twice.
   cd $HERE/ab
   cargo build --release > /dev/null 2>&1
   S="$W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin"
-  B="$W/big/req_x24.bin $W/big/text_200k.bin $W/big/code_200k.bin"
-  for v in 7 6 4 7; do
+  B="$W/big/req_x12.bin $W/big/req_x24.bin $W/big/req_x100.bin $W/big/text_200k.bin $W/big/code_200k.bin $W/big/mixed_210k.bin"
+  for pass in 1 2; do
     echo
-    echo "VARIANT=$v"
-    VARIANT=$v LEVELS=1,2,5,9 taskset -c $CPU ./target/release/ab $ROUNDS $S
+    echo "now/before, as shares of libdeflate's time (run $pass):"
+    LEVELS=1,2,3,5,7,9 taskset -c $CPU ./target/release/ab $ROUNDS $S
+    LEVELS=1,2,3,5,7,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
   done
 
-  # What each executes, counted: the encoder as it was and as it is, at a
-  # level of each kind of chain search, on the 3.7 KB requests; and the
-  # instructions that the search for tables of 4 KiB ran most.
+  # What each executes, counted: libdeflate, the encoder as it was and as
+  # it is, on the 3.7 KB requests and on two sets above 32 KiB; and the
+  # instructions that the searches for tables of 4 KiB ran most.
   if ! command -v valgrind > /dev/null; then
     (sudo apt-get update -qq && sudo apt-get install -y -qq valgrind) > /dev/null 2>&1 || true
   fi
   if command -v valgrind > /dev/null; then
     cd $HERE/one
     cargo build --release > /dev/null 2>&1
-    count() {  # count <now|before> <level> <symbol> [variant]
-      VARIANT=${4:-7} valgrind --tool=callgrind --dump-instr=yes --callgrind-out-file=$W/cg.out \
-        ./target/release/one $1 $2 2 $W/rtb_single.bin 2>&1 | grep -E "refs|level" | sed "s/^/$1 ${4:+variant $4 }/"
-      callgrind_annotate $W/cg.out 2> /dev/null | grep -E "fastgzip" | head -8 | cut -c1-150
-      python3 -I "$HERE/tools/hotasm.py" $W/cg.out target/release/one "$3" 0.45
+    refs() {  # refs <ld|before|now> <level> <set>
+      valgrind --tool=callgrind --dump-instr=yes --callgrind-out-file=$W/cg.out \
+        ./target/release/one $1 $2 1 $3 2>&1 | sed -n 's/^.*I *refs: *//p' | tr -d ,
     }
     echo
-    echo "instructions executed:"
-    count before 2 6greedyKmc
-    count now 2 6greedyKmc 4
-    count before 5 4lazyKmc
-    count now 5 4lazyKmc 4
-    for level in 1 9; do
-      for which in before now; do
-        valgrind --tool=callgrind --callgrind-out-file=$W/cg.out ./target/release/one $which $level 2 $W/rtb_single.bin 2>&1 \
-          | grep -E "refs" | sed "s/^/$which level $level: /"
+    echo "instructions executed (libdeflate, before, now):"
+    for set in $W/rtb_single.bin $W/rtb_x6.bin $W/big/req_x24.bin $W/big/text_200k.bin $W/big/code_200k.bin; do
+      for level in 1 2 5 9; do
+        echo "$(basename $set) L$level  $(refs ld $level $set)  $(refs before $level $set)  $(refs now $level $set)"
       done
     done
+    hot() {  # hot <level> <set> <symbol>
+      echo
+      echo "now, level $1, $(basename $2):"
+      valgrind --tool=callgrind --dump-instr=yes --callgrind-out-file=$W/cg.out \
+        ./target/release/one now $1 1 $2 > /dev/null 2>&1
+      callgrind_annotate $W/cg.out 2> /dev/null | grep -E "fastgzip" | head -6 | cut -c1-150
+      python3 -I "$HERE/tools/hotasm.py" $W/cg.out target/release/one "$3" 0.4
+    }
+    hot 2 $W/rtb_single.bin 6greedyKmc
+    hot 5 $W/rtb_single.bin 4lazyKmc
+    hot 2 $W/big/text_200k.bin 6greedyKmf
   fi
   exit 0
 fi

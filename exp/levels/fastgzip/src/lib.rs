@@ -273,23 +273,6 @@ impl Gzip {
         }
     }
 
-    /// From which size of payload on levels 5 to 9 walk their chains four
-    /// steps at a time, as a power of two; for measurements.
-    #[doc(hidden)]
-    pub fn __hops_from(&mut self, lg: u32) {
-        if let Kind::Level(_, lv) = &mut self.kind {
-            lv.hops_from = lg;
-        }
-    }
-
-    /// Which form of some parts levels 1 to 9 use; for measurements.
-    #[doc(hidden)]
-    pub fn __variant(&mut self, bits: u32) {
-        if let Kind::Level(_, lv) = &mut self.kind {
-            lv.variant = bits;
-        }
-    }
-
     /// How this compressor's blocks have been written so far.  If `own_codes`
     /// keeps growing, the payloads it is given are not of one kind.
     pub fn stats(&self) -> Stats {

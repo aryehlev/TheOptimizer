@@ -1,6 +1,6 @@
 //! One encoder at one level over a set of payloads, for counting what it
-//! executes: one <now|before> <level> <passes> <records.bin>
-//! (VARIANT and HOPS_FROM as in ab, for `now`.)
+//! executes: one <now|before|ld> <level> <passes> <records.bin>
+//! (`ld` is unmodified libdeflate.)
 fn main() {
     let a: Vec<String> = std::env::args().collect();
     let level: u8 = a[2].parse().unwrap();
@@ -14,21 +14,24 @@ fn main() {
         off += 4 + n;
     }
     let mut size = 0usize;
-    if a[1] == "before" {
-        let mut gz = before::Gzip::with_level(level);
-        for _ in 0..passes {
-            size = recs.iter().map(|r| gz.compress(r).len()).sum();
+    match a[1].as_str() {
+        "before" => {
+            let mut gz = before::Gzip::with_level(level);
+            for _ in 0..passes {
+                size = recs.iter().map(|r| gz.compress(r).len()).sum();
+            }
         }
-    } else {
-        let mut gz = fastgzip::Gzip::with_level(level);
-        if let Some(bits) = std::env::var("VARIANT").ok().and_then(|v| v.parse().ok()) {
-            gz.__variant(bits);
+        "ld" => {
+            let mut gz = gzlocal::Gzip::new(level as i32);
+            for _ in 0..passes {
+                size = recs.iter().map(|r| gz.compress(r).len()).sum();
+            }
         }
-        if let Some(lg) = std::env::var("HOPS_FROM").ok().and_then(|v| v.parse().ok()) {
-            gz.__hops_from(lg);
-        }
-        for _ in 0..passes {
-            size = recs.iter().map(|r| gz.compress(r).len()).sum();
+        _ => {
+            let mut gz = fastgzip::Gzip::with_level(level);
+            for _ in 0..passes {
+                size = recs.iter().map(|r| gz.compress(r).len()).sum();
+            }
         }
     }
     println!("{} level {level}: {size} B", a[1]);
