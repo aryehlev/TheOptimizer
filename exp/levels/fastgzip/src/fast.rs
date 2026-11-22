@@ -506,7 +506,7 @@ unsafe fn slide_chains(c: Chains, off: usize, hops: bool) -> usize {
 /// first three of that head's.
 #[inline(always)]
 #[allow(clippy::too_many_arguments)]
-unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool>(
+unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool, const W: bool>(
     c: Chains,
     off: &mut usize,
     nh: &mut (usize, usize),
@@ -569,6 +569,55 @@ unsafe fn hc_longest<const LG: u32, const BIG: bool, const HOPS: bool>(
             }
         } else if node4 <= lim || best_len >= nice_len {
             break 'out;
+        }
+
+        if !W && !HOPS {
+            // The walk in two parts: up to the first candidate with the
+            // same four bytes, then for longer ones.
+            let mut node4 = node4;
+            macro_rules! advance {
+                ($out:lifetime) => {
+                    debug_assert!(node4 + off - 1 < p);
+                    node4 = *c.next.add(node4 & (WINDOW - 1)) as usize;
+                    depth -= 1;
+                    if node4 <= lim || depth == 0 {
+                        break $out;
+                    }
+                };
+            }
+            if best_len < 4 {
+                loop {
+                    if rd32(ent, node4 - 1, n - off) == seq4 {
+                        break;
+                    }
+                    advance!('out);
+                }
+                best = node4 + off - 1;
+                best_len = extend(ip, n, best, p, 4, max_len);
+                if best_len >= nice_len {
+                    break 'out;
+                }
+                advance!('out);
+            }
+            loop {
+                let mut m;
+                loop {
+                    m = node4 + off - 1;
+                    if rd32(ip, m + best_len - 3, n) == rd32(ip, p + best_len - 3, n) && rd32(ip, m, n) == seq4 {
+                        break;
+                    }
+                    advance!('out);
+                }
+                let len = extend(ip, n, m, p, 4, max_len);
+                if len > best_len {
+                    best_len = len;
+                    best = m;
+                    if best_len >= nice_len {
+                        break 'out;
+                    }
+                }
+                advance!('out);
+            }
         }
 
         // The chain, from `node4` on.  Nearly all of this is stepping past
@@ -922,8 +971,9 @@ macro_rules! chain_goes_on {
 /// A block of levels 2 to 4: what `levels::Search::greedy` finds.  Returns
 /// the number of matches.  `BIG` for a payload of more than 32768 bytes;
 /// `soft_end` is where the block ends at the latest (see `levels.rs`).
-pub(crate) unsafe fn greedy<const LG: u32, const BIG: bool>(
+pub(crate) unsafe fn greedy<const LG: u32, const BIG: bool, const W: bool>(
     c: Chains,
+    quick: bool,
     min_len: usize,
     sink: Sink,
     st: &mut Resume,
@@ -939,14 +989,14 @@ pub(crate) unsafe fn greedy<const LG: u32, const BIG: bool>(
             stop = chain_stop!(BIG, split, splitting, n, begin, soft_end, pos, off, usize::MAX);
         }
         if !chain_run!(LG, BIG, HOPS, c, plain, st, split, splitting, n, begin, soft_end, pos, nh, off, n_seqs, sink,
-                       stop, min_len <= 4)
+                       stop, quick && min_len <= 4)
         {
             break;
         }
         let max_len = (n - pos).min(MAX_MATCH);
         let nice_len = c.nice.min(max_len);
         let (len, dist) =
-            hc_longest::<LG, BIG, HOPS>(c, &mut off, &mut nh, pos, min_len - 1, max_len, nice_len, c.depth);
+            hc_longest::<LG, BIG, HOPS, W>(c, &mut off, &mut nh, pos, min_len - 1, max_len, nice_len, c.depth);
         if len >= min_len && (len > MIN_MATCH || dist <= 4096) {
             chain_match!(sink, split, splitting, run_start, n_seqs, pos, len, dist);
             hc_skip::<LG, BIG, HOPS>(c, &mut off, &mut nh, pos + 1, len - 1);
@@ -966,8 +1016,9 @@ pub(crate) unsafe fn greedy<const LG: u32, const BIG: bool>(
 /// number of matches.  `BIG` and `soft_end` as for `greedy`; `HOPS` as in
 /// `hc_longest`.
 #[allow(clippy::too_many_arguments)]
-pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool>(
+pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool, const W: bool>(
     c: Chains,
+    quick: bool,
     mut min_len: usize,
     two: bool,
     sink: Sink,
@@ -994,7 +1045,7 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool>(
             stop = chain_stop!(BIG, split, splitting, n, begin, soft_end, pos, off, next_recalc);
         }
         if !chain_run!(LG, BIG, HOPS, c, plain, st, split, splitting, n, begin, soft_end, pos, nh, off, n_seqs, sink,
-                       stop, min_len <= 4)
+                       stop, quick && min_len <= 4)
         {
             break;
         }
@@ -1004,7 +1055,7 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool>(
                 next_recalc += (n - next_recalc).min(pos - begin);
             }
             let (max_len, nice_len) = limits(pos);
-            let (mut cur_len, mut cur_dist) = hc_longest::<LG, BIG, HOPS>(
+            let (mut cur_len, mut cur_dist) = hc_longest::<LG, BIG, HOPS, W>(
                 c, &mut off, &mut nh, pos, min_len - 1, max_len, nice_len, c.depth,
             );
             if cur_len < min_len || (cur_len == MIN_MATCH && cur_dist > 8192) {
@@ -1023,7 +1074,7 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool>(
                 }
                 // The next position, with half the candidates.
                 let (max_len, nice_len) = limits(pos);
-                let (next_len, next_dist) = hc_longest::<LG, BIG, HOPS>(
+                let (next_len, next_dist) = hc_longest::<LG, BIG, HOPS, W>(
                     c, &mut off, &mut nh, pos, cur_len - 1, max_len, nice_len, c.depth >> 1,
                 );
                 pos += 1;
@@ -1036,7 +1087,7 @@ pub(crate) unsafe fn lazy<const LG: u32, const BIG: bool, const HOPS: bool>(
                 if two {
                     // And the one after it, with a quarter.
                     let (max_len, nice_len) = limits(pos);
-                    let (next_len, next_dist) = hc_longest::<LG, BIG, HOPS>(
+                    let (next_len, next_dist) = hc_longest::<LG, BIG, HOPS, W>(
                         c, &mut off, &mut nh, pos, cur_len - 1, max_len, nice_len, c.depth >> 2,
                     );
                     pos += 1;

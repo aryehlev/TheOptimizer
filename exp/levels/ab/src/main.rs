@@ -16,6 +16,11 @@ fn main() {
             levels.push(part.parse().unwrap());
         }
     }
+    // HOPS_FROM=14: chains four steps at a time from payloads of 8 KiB on.
+    let hops_from: Option<u32> = std::env::var("HOPS_FROM").ok().and_then(|v| v.parse().ok());
+    // VARIANT: 1 the walk as one loop, 2 the loop over positions without a
+    // candidate, 4 the writer that asks whether a match has literals.
+    let variant: Option<u32> = std::env::var("VARIANT").ok().and_then(|v| v.parse().ok());
     for path in &args[2..] {
         let data = std::fs::read(path).unwrap();
         let mut recs = Vec::new();
@@ -28,6 +33,12 @@ fn main() {
         print!("{:<16}", path.rsplit('/').next().unwrap());
         for &level in &levels {
             let mut new = fastgzip::Gzip::with_level(level as u8);
+            if let Some(lg) = hops_from {
+                new.__hops_from(lg);
+            }
+            if let Some(bits) = variant {
+                new.__variant(bits);
+            }
             let mut old = before::Gzip::with_level(level as u8);
             let mut ld = gzlocal::Gzip::new(level as i32);
             let (mut tn, mut to, mut tl) = (f64::MAX, f64::MAX, f64::MAX);

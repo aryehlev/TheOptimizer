@@ -737,6 +737,13 @@ pub(crate) struct Levels {
     nice: usize,
     /// Use the searches of `fast.rs` where they apply.
     pub(crate) fast: bool,
+    /// Levels 5 to 9 walk their chains four steps at a time in payloads of
+    /// more than `1 << (hops_from - 1)` bytes.
+    pub(crate) hops_from: u32,
+    /// For measurements: 1 the walk as one loop, 2 the loop over positions
+    /// without a candidate, 4 the writer that asks whether a match has
+    /// literals before it.
+    pub(crate) variant: u32,
     pub(crate) stats: Stats,
     t: Box<Tables>,
     /// The chains of levels 5 to 9 in a payload of more than 32768 bytes
@@ -772,6 +779,8 @@ impl Levels {
             depth,
             nice,
             fast: true,
+            hops_from: 16,
+            variant: 7,
             stats: Stats::default(),
             t,
             links: Vec::new(),
@@ -866,6 +875,7 @@ impl Levels {
                 let (block, tokens) = (&inp[$begin..$end], &self.seqs[..$n_seqs]);
                 $bitpos = finish_block(
                     &mut self.own, &mut self.stats, &self.f_ll, &self.f_off, block, tokens, out, cap, $bitpos, last,
+                    self.variant & 4 != 0,
                 );
                 last
             }};
@@ -898,7 +908,7 @@ impl Levels {
 
         // Where the chains get long, four steps of them at a time (see
         // `fast::hc_longest`).
-        let hops = big && self.parse != Parse::Greedy;
+        let hops = self.parse != Parse::Greedy && (big || lg >= self.hops_from);
         if hops && self.links.is_empty() {
             self.links = vec![0; WINDOW];
         }
@@ -933,20 +943,33 @@ impl Levels {
             let min_len = first_min_len(&inp[begin..soft_end], self.depth);
             let sink = sink!();
             let parse = self.parse;
+            let (one_loop, quick) = (self.variant & 1 != 0, self.variant & 2 != 0);
             macro_rules! search {
-                ($LG:ident, $BIG:literal) => {
+                ($LG:ident, $BIG:literal, $HOPS:literal) => {
+                    if one_loop {
+                        search!($LG, $BIG, $HOPS, true)
+                    } else {
+                        search!($LG, $BIG, $HOPS, false)
+                    }
+                };
+                ($LG:ident, $BIG:literal, $HOPS:literal, $W:literal) => {
                     match parse {
-                        Parse::Greedy => greedy::<$LG, $BIG>(c, min_len, sink, &mut st, split, soft_end),
-                        Parse::Lazy => lazy::<$LG, $BIG, $BIG>(c, min_len, false, sink, &mut st, split, soft_end),
-                        _ => lazy::<$LG, $BIG, $BIG>(c, min_len, true, sink, &mut st, split, soft_end),
+                        Parse::Greedy => greedy::<$LG, $BIG, $W>(c, quick, min_len, sink, &mut st, split, soft_end),
+                        Parse::Lazy => {
+                            lazy::<$LG, $BIG, $HOPS, $W>(c, quick, min_len, false, sink, &mut st, split, soft_end)
+                        }
+                        _ => lazy::<$LG, $BIG, $HOPS, $W>(c, quick, min_len, true, sink, &mut st, split, soft_end),
                     }
                 };
             }
+
             let n_seqs = if big {
                 const LG: u32 = 15;
-                search!(LG, true)
+                search!(LG, true, true)
+            } else if hops {
+                by_size!(lg; LG => search!(LG, false, true); 8 9 10 11 12 13 14 15)
             } else {
-                by_size!(lg; LG => search!(LG, false); 8 9 10 11 12 13 14 15)
+                by_size!(lg; LG => search!(LG, false, false); 8 9 10 11 12 13 14 15)
             };
             if finish!(begin, st.pos, n_seqs, bitpos) {
                 return Some(bitpos);
@@ -1019,7 +1042,7 @@ impl Levels {
             s.f_ll[EOB] = 1;
             let (block, tokens) = (&inp[begin..end], &s.seqs[..s.n_seqs]);
             bitpos = finish_block(
-                &mut self.own, &mut self.stats, s.f_ll, s.f_off, block, tokens, out, cap, bitpos, last,
+                &mut self.own, &mut self.stats, s.f_ll, s.f_off, block, tokens, out, cap, bitpos, last, true,
             );
             if last {
                 return bitpos;
@@ -1044,6 +1067,7 @@ unsafe fn finish_block(
     cap: usize,
     bitpos: usize,
     last: bool,
+    asking: bool,
 ) -> usize {
     // What the fixed codes would take, and the extra bits that any codes
     // take.
@@ -1087,7 +1111,11 @@ unsafe fn finish_block(
         stats.own_codes += 1;
         own
     };
-    let end = write_block(c, block.as_ptr(), block.len(), tokens, out, cap, bitpos, last);
+    let end = if asking {
+        write_block::<true>(c, block.as_ptr(), block.len(), tokens, out, cap, bitpos, last)
+    } else {
+        write_block::<false>(c, block.as_ptr(), block.len(), tokens, out, cap, bitpos, last)
+    };
     debug_assert_eq!(end - bitpos, own_bits.min(fixed_bits) as usize);
     end
 }

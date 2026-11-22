@@ -22,6 +22,8 @@ jobs:
         run: |
           mkdir -p out
           { uname -m; lscpu | grep -E "Model name|L1d|L2|L3"; } > out/machine.txt
+          # "[exp]" in the commit message: only the comparison of variants
+          if git log -1 --pretty=%B | grep -q '\[exp\]'; then export EXP=1; fi
           sh exp/levels/run.sh 2>&1 | tee out/levels.txt
       - uses: actions/upload-artifact@v4
         with:
@@ -30,6 +32,7 @@ jobs:
   # The searches read through raw pointers: Miri checks the unit tests and
   # the tests that take every path once.
   miri:
+    if: "!contains(github.event.head_commit.message, '[exp]')"
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:

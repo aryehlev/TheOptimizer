@@ -16,6 +16,8 @@
 #   prof/       where the time goes: one encoder at one level, sampled
 #
 #   PAYLOADS, ROUNDS, BIG_ROUNDS  less work, for trying the script out
+#   EXP=1       only the comparison of the forms some parts can take (see
+#               the end of this script)
 set -e
 PAYLOADS=${PAYLOADS:-20000}   # per stress run
 ROUNDS=${ROUNDS:-40}          # passes over each set
@@ -31,6 +33,7 @@ lscpu 2>/dev/null | grep -E "L1d|L2|L3" | sed 's/^/  /'
 echo "$(rustc --version)"
 
 # Correct?
+if [ -z "$EXP" ]; then
 cd $HERE/fastgzip
 count() { grep 'test result' | awk '{p+=$4; f+=$6} END {print p " passed, " f " failed"}'; }
 echo
@@ -50,6 +53,7 @@ for level in 1 5 9; do
   python3 -I tools/check_dump.py $W/dump$level.bin --gzip 500 | sed "s/^.*dump$level.bin: /other decoders, level $level: /"
 done
 rm -f $W/dump?.bin
+fi
 
 # Payloads: the synthetic requests, and the published sample requests.
 python3 "$ROOT/gzlocal/bench/rtbgen.py" $W/rtb 400 6 > /dev/null
@@ -109,12 +113,38 @@ mkdir -p $W/big
 python3 -I "$HERE/tools/bigsets.py" $W/rtb_single.bin $W/big $W/big/text.src "$(readlink -f "$(command -v python3)")"
 rm $W/big/text.src
 
+CPU=$(( $(nproc) - 1 ))
+if [ -n "$EXP" ]; then
+  # The forms some parts of the chain searches and of the writer can take,
+  # each as fastgzip's share of libdeflate's time (the figure before the
+  # slash; the one after it is before/ and the same in every row).
+  #   VARIANT   1 the walk along a chain as one loop, 2 the loop over
+  #             positions without a candidate, 4 the writer that asks
+  #             whether a match has literals before it
+  #   HOPS_FROM 14: chains four steps at a time from payloads of 8 KiB on
+  cd $HERE/ab
+  cargo build --release > /dev/null 2>&1
+  S="$W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin"
+  B="$W/big/req_x24.bin $W/big/text_200k.bin $W/big/code_200k.bin"
+  for v in 7 6 5 3 4 2 1 0 7; do
+    echo
+    echo "VARIANT=$v"
+    VARIANT=$v LEVELS=1,2,5,9 taskset -c $CPU ./target/release/ab $ROUNDS $S
+    VARIANT=$v LEVELS=1,2,5,9 taskset -c $CPU ./target/release/ab $BIG_ROUNDS $B
+  done
+  for h in 16 15 14 13 16; do
+    echo
+    echo "HOPS_FROM=$h"
+    HOPS_FROM=$h LEVELS=5-9 taskset -c $CPU ./target/release/ab $ROUNDS $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin
+  done
+  exit 0
+fi
+
 # Every level on every set, on one thread with nothing else between the
 # calls.  Twice, to show what a difference between two runs of the same code
 # looks like.
 cd $HERE/cmp
 cargo build --release > /dev/null 2>&1
-CPU=$(( $(nproc) - 1 ))
 SETS="$W/rtb_cut500.bin $W/mixed_exchange.bin $W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin"
 BIG="$W/big/req_x12.bin $W/big/req_x24.bin $W/big/req_x100.bin $W/big/text_200k.bin $W/big/code_200k.bin $W/big/mixed_210k.bin"
 for pass in 1 2; do

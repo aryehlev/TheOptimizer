@@ -263,12 +263,30 @@ impl Gzip {
     }
 
     /// Levels 1 to 9 have two implementations of each search that find the
-    /// same matches: a plain one and a fast one for payloads of up to 32 KiB.
-    /// This chooses the plain one for every payload, for tests to compare.
+    /// same matches: a plain one, which follows libdeflate's line by line,
+    /// and the fast one that is used.  This chooses the plain one for every
+    /// payload, for tests to compare.
     #[doc(hidden)]
     pub fn __plain_search(&mut self, plain: bool) {
         if let Kind::Level(_, lv) = &mut self.kind {
             lv.fast = !plain;
+        }
+    }
+
+    /// From which size of payload on levels 5 to 9 walk their chains four
+    /// steps at a time, as a power of two; for measurements.
+    #[doc(hidden)]
+    pub fn __hops_from(&mut self, lg: u32) {
+        if let Kind::Level(_, lv) = &mut self.kind {
+            lv.hops_from = lg;
+        }
+    }
+
+    /// Which form of some parts levels 1 to 9 use; for measurements.
+    #[doc(hidden)]
+    pub fn __variant(&mut self, bits: u32) {
+        if let Kind::Level(_, lv) = &mut self.kind {
+            lv.variant = bits;
         }
     }
 

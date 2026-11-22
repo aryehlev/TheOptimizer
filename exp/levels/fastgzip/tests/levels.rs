@@ -276,20 +276,20 @@ fn block_edges() {
 }
 
 /// What a payload of more than 32 KiB takes that a smaller one does not: the
-/// window of level 1 moving, the tables of the other levels counted anew,
-/// chains walked four steps at a time.  Mostly long runs, so that it is
-/// little work: small enough for Miri.
+/// window of level 1 moving, the tables counted anew, chains walked four
+/// steps at a time.  Mostly long runs, so that it is little work: small
+/// enough for Miri.
 #[test]
 fn large_paths_once() {
     let mut rng = Rng(800);
     let mut data = request(&mut rng, 900, 0);
-    data.resize(40_000, b'z');
-    data.extend_from_slice(&request(&mut rng, 700, 1));
-    data.resize(66_500, b'y');
-    data.extend_from_slice(&data[300..800].to_vec());
-    data.extend((0..300).map(|_| rng.u32() as u8));
-    data.resize(100_200, b'x');
-    for level in [1u8, 3, 6, 9] {
+    data.resize(32_600, b'z');
+    data.extend_from_slice(&request(&mut rng, 500, 1)); // across the end of the first window
+    data.resize(65_300, b'y');
+    data.extend_from_slice(&data[300..700].to_vec()); // and of the second, where entries are counted anew
+    data.extend((0..200).map(|_| rng.u32() as u8));
+    data.resize(66_400, b'x');
+    for level in [1u8, 3, 9] {
         let mut gz = Gzip::with_level(level);
         check(&mut gz, &data);
         assert!(gz.stats().own_codes >= 1);

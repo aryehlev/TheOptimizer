@@ -76,7 +76,7 @@ unsafe fn wr64(p: *mut u8, i: usize, cap: usize, v: u64) {
 /// 128 bytes at a time, and bits are stored eight bytes at a time.
 #[inline(never)]
 #[allow(clippy::too_many_arguments, unused_assignments)]
-pub(crate) unsafe fn write_block(
+pub(crate) unsafe fn write_block<const ASKING: bool>(
     c: &Codes,
     ip: *const u8,
     n: usize,
@@ -158,7 +158,29 @@ pub(crate) unsafe fn write_block(
         debug_assert!(p + run + len <= n);
         // Most matches of a long payload come straight after another; in a
         // short one few do.  Either way there is something to predict.
-        if run != 0 {
+        if !ASKING {
+            let end = p + run;
+            while p + 4 <= end {
+                literal!(p);
+                literal!(p + 1);
+                literal!(p + 2);
+                literal!(p + 3);
+                flush!();
+                p += 4;
+            }
+            let left = end - p;
+            let e0 = *lit.add(*ip.add(p) as usize) & ((left > 0) as u32).wrapping_neg();
+            let e1 = *lit.add(*ip.add(p + 1) as usize) & ((left > 1) as u32).wrapping_neg();
+            let e2 = *lit.add(*ip.add(p + 2) as usize) & ((left > 2) as u32).wrapping_neg();
+            bitbuf |= ((e0 & 0xFFFF) as u64) << bitcount;
+            bitcount += e0 >> 16;
+            bitbuf |= ((e1 & 0xFFFF) as u64) << bitcount;
+            bitcount += e1 >> 16;
+            bitbuf |= ((e2 & 0xFFFF) as u64) << bitcount;
+            bitcount += e2 >> 16;
+            flush!();
+            p = end;
+        } else if run != 0 {
             let end = p + run;
             // Four literals fit in the buffer with what a flush leaves.
             while p + 4 <= end {
