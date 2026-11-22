@@ -29,6 +29,13 @@ dependencies = [
 
 [[package]]
 name = "fastgzip"
+version = "0.1.9"
+dependencies = [
+ "crc32fast",
+]
+
+[[package]]
+name = "fastgzip"
 version = "0.2.0"
 dependencies = [
  "crc32fast",
@@ -57,7 +64,8 @@ checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
 name = "prof"
 version = "0.0.0"
 dependencies = [
- "fastgzip",
+ "fastgzip 0.1.9",
+ "fastgzip 0.2.0",
  "gzlocal",
  "libc",
 ]

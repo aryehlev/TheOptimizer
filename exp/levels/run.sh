@@ -160,6 +160,19 @@ if [ -n "$EXP" ]; then
     hot 5 $W/rtb_single.bin 4lazyKmc
     hot 2 $W/big/text_200k.bin 6greedyKmf
   fi
+
+  # Where the time goes on the 3.7 KB requests: the encoder as it was and
+  # as it is, by function.
+  cd $HERE/prof
+  cargo build --release > /dev/null 2>&1
+  echo
+  echo "where the time goes (share of samples by function):"
+  for level in 2 5; do
+    for enc in old fg old fg; do
+      taskset -c $CPU ./target/release/prof $enc $level 6 $W/rtb_single.bin $W/prof.out 2>&1
+      python3 -I "$HERE/tools/where.py" target/release/prof $W/prof.out 0 | sed -n '2,8p'
+    done
+  done
   exit 0
 fi
 

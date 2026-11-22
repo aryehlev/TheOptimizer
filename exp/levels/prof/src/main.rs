@@ -2,7 +2,10 @@
 //! for a while, notes where the program is every half millisecond of CPU
 //! time, and writes the addresses out.
 //!
-//!   prof <ld|fg> <level> <seconds> <records.bin> <samples.out>
+//!   prof <ld|fg|old> <level> <seconds> <records.bin> <samples.out>
+//!
+//! (`ld` is libdeflate, `fg` fastgzip, `old` fastgzip as it was measured
+//! before.)
 //!
 //! `tools/where.py` turns the addresses into functions and source lines.
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -39,10 +42,19 @@ fn main() {
     }
     let mut ld = gzlocal::Gzip::new(level.max(1));
     let mut fg = fastgzip::Gzip::with_level(level as u8);
-    let ours = a[1] == "fg";
+    let mut old = before::Gzip::with_level(level as u8);
+    let which = match a[1].as_str() {
+        "fg" => 0,
+        "old" => 1,
+        _ => 2,
+    };
     let mut pass = |sink: &mut usize| {
         for r in &recs {
-            *sink += if ours { fg.compress(r).len() } else { ld.compress(r).len() };
+            *sink += match which {
+                0 => fg.compress(r).len(),
+                1 => old.compress(r).len(),
+                _ => ld.compress(r).len(),
+            };
         }
     };
     let mut sink = 0;

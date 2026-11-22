@@ -7,6 +7,9 @@ edition = "2021"
 # unmodified libdeflate master
 gzlocal = { path = "../../../gzlocal", features = ["stock"] }
 fastgzip = { path = "../fastgzip" }
+# the levels as they were measured before large payloads got searches of
+# their own
+before = { package = "fastgzip", path = "../before" }
 libc = "0.2"
 
 [profile.release]
