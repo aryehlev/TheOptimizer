@@ -2,7 +2,7 @@ name: gzlocal arm64 benchmark
 on:
   push:
     branches: [gzlocal-arm-bench]
-    paths-ignore: ['exp/real/**', 'exp/fresh/**', 'exp/rust/**', 'exp/safe/**', 'fastgzip/**', 'gzhot/**', '.github/workflows/**', 'results/**', 'README.md']
+    paths-ignore: ['exp/real/**', 'exp/fresh/**', 'exp/rust/**', 'exp/safe/**', 'exp/levels/**', 'fastgzip/**', 'gzhot/**', '.github/workflows/**', 'results/**', 'README.md']
 permissions:
   contents: write
 jobs:

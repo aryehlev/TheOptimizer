@@ -1,0 +1,66 @@
+name: levels 1 to 9
+on:
+  push:
+    branches: [gzlocal-arm-bench]
+    paths: ['exp/levels/**', '.github/workflows/levels.yml']
+permissions:
+  contents: write
+jobs:
+  levels:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04-arm, ubuntu-24.04]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust
+        run: |
+          command -v cargo || { curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal; echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"; }
+      - name: Tests and the comparison with libdeflate
+        run: |
+          mkdir -p out
+          { uname -m; lscpu | grep -E "Model name|L1d|L2|L3"; } > out/machine.txt
+          sh exp/levels/run.sh 2>&1 | tee out/levels.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: levels-${{ matrix.runner }}
+          path: out/
+  # The searches read through raw pointers: Miri checks the unit tests and
+  # the tests that take every path once.
+  miri:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Miri
+        run: |
+          command -v rustup || { curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal; export PATH="$HOME/.cargo/bin:$PATH"; }
+          rustup toolchain install nightly --profile minimal --component miri
+          mkdir -p out
+          cd exp/levels/fastgzip
+          cargo +nightly miri test 2>&1 | tee ../../../out/miri.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: levels-miri
+          path: out/
+  publish:
+    needs: [levels, miri]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: results
+          pattern: levels-*
+      - name: Commit the results to this branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add results
+          git commit -m "Results: levels 1 to 9 [skip ci]" || exit 0
+          git pull --rebase
+          git push

@@ -1,0 +1,15 @@
+[package]
+name = "cmp"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+# unmodified libdeflate master
+gzlocal = { path = "../../../gzlocal", features = ["stock"] }
+fastgzip = { path = "../fastgzip" }
+# the encoder as published, to hold level 0 against
+published = { package = "fastgzip", path = "../../safe/fastgzip" }
+flate2 = "1"
+
+[profile.release]
+debug = 1
