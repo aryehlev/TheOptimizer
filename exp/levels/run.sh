@@ -5,16 +5,21 @@
 #
 #   fastgzip/   level 0 is the encoder as published; levels 1 to 9 search a
 #               payload the way libdeflate does at that level
+#   before/     the same as it was measured before payloads above 32 KiB got
+#               searches of their own
 #   cmp/        the comparison: every level on every set, both encoders, the
 #               best of ROUNDS passes; it also checks that every output
 #               decodes, that the fast and the plain form of each search
 #               write the same bytes, and that level 0 writes what the
 #               published encoder writes
+#   ab/         fastgzip/, before/ and libdeflate, their passes interleaved
+#   prof/       where the time goes: one encoder at one level, sampled
 #
-#   PAYLOADS, ROUNDS  less work, for trying the script out
+#   PAYLOADS, ROUNDS, BIG_ROUNDS  less work, for trying the script out
 set -e
 PAYLOADS=${PAYLOADS:-20000}   # per stress run
 ROUNDS=${ROUNDS:-40}          # passes over each set
+BIG_ROUNDS=${BIG_ROUNDS:-12}  # and over each set of payloads above 32 KiB
 cd "$(dirname "$0")"
 HERE=$(pwd)
 ROOT=$(cd ../.. && pwd)
@@ -94,6 +99,16 @@ with open(w + "/rtb_cut500.bin", "wb") as f:
         f.write(struct.pack("<I", 500) + r[-500:])
 PY
 
+# Payloads above 32 KiB: arrays of 12, 24 and 100 of the requests (45, 90
+# and 375 KB); source text (libdeflate's and this repository's) and machine
+# code (the Python interpreter of this machine) in pieces of 200 KB; and
+# payloads that are text, then machine code, then requests.
+mkdir -p $W/big
+{ find "$ROOT/gzlocal/vendor/stock" -name '*.[ch]' | sort | xargs cat
+  find "$ROOT/exp" "$ROOT/gzlocal/src" -name '*.rs' -not -path '*/target/*' | sort | xargs cat; } > $W/big/text.src
+python3 -I "$HERE/tools/bigsets.py" $W/rtb_single.bin $W/big $W/big/text.src "$(readlink -f "$(command -v python3)")"
+rm $W/big/text.src
+
 # Every level on every set, on one thread with nothing else between the
 # calls.  Twice, to show what a difference between two runs of the same code
 # looks like.
@@ -101,8 +116,38 @@ cd $HERE/cmp
 cargo build --release > /dev/null 2>&1
 CPU=$(( $(nproc) - 1 ))
 SETS="$W/rtb_cut500.bin $W/mixed_exchange.bin $W/capture.bin $W/rtb_single.bin $W/rtb_5k.bin $W/rtb_x3.bin $W/rtb_x6.bin"
+BIG="$W/big/req_x12.bin $W/big/req_x24.bin $W/big/req_x100.bin $W/big/text_200k.bin $W/big/code_200k.bin $W/big/mixed_210k.bin"
 for pass in 1 2; do
   echo
   echo "every level, the best of $ROUNDS passes (run $pass):"
   taskset -c $CPU ./target/release/cmp $ROUNDS $SETS
+  echo
+  echo "payloads above 32 KiB, every level, the best of $BIG_ROUNDS passes (run $pass):"
+  taskset -c $CPU ./target/release/cmp $BIG_ROUNDS $BIG
+done
+
+# The levels as they are now and as they were, each as a share of
+# libdeflate's time at the same level (now/before), passes interleaved.
+cd $HERE/ab
+cargo build --release > /dev/null 2>&1
+echo
+echo "now/before, as shares of libdeflate's time, the best of $ROUNDS passes:"
+taskset -c $CPU ./target/release/ab $ROUNDS $SETS
+echo
+echo "payloads above 32 KiB, now/before, the best of $BIG_ROUNDS passes:"
+taskset -c $CPU ./target/release/ab $BIG_ROUNDS $BIG
+
+# Where the time goes above 32 KiB: both encoders, by function, at a level
+# of each kind of search.
+cd $HERE/prof
+cargo build --release > /dev/null 2>&1
+echo
+echo "where the time goes (share of samples by function):"
+for set in req_x24 text_200k; do
+  for level in 1 2 5 9; do
+    for enc in ld fg; do
+      taskset -c $CPU ./target/release/prof $enc $level 3 $W/big/$set.bin $W/prof.out 2>&1 | sed "s/^/$set: /"
+      python3 -I "$HERE/tools/where.py" target/release/prof $W/prof.out 0 | sed -n '2,7p'
+    done
+  done
 done

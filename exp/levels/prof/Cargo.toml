@@ -1,0 +1,13 @@
+[package]
+name = "prof"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+# unmodified libdeflate master
+gzlocal = { path = "../../../gzlocal", features = ["stock"] }
+fastgzip = { path = "../fastgzip" }
+libc = "0.2"
+
+[profile.release]
+debug = 1
